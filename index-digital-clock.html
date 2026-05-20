@@ -28,7 +28,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     }
     .digit_clock_toolbar {
       display: flex;
-      justify-content: center;
+      justify-content: flex-end;
       width: 100%;
       max-width: 1500px;
       margin: 0 auto 1.5rem;
@@ -149,9 +149,6 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       margin: 0;
     }
     @media only screen and (min-width: 768px) {
-      .digit_clock_toolbar {
-        justify-content: flex-end;
-      }
       .digit_clocks_container {
         flex-direction: row;
         flex-wrap: wrap;
