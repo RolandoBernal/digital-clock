@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Digital Clock</title>
   <!--
 Weather: Open-Meteo (no API key). Optional future provider:
@@ -19,12 +20,15 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      padding: 1rem;
+      padding: max(1rem, env(safe-area-inset-top))
+        max(1rem, env(safe-area-inset-right))
+        max(1rem, env(safe-area-inset-bottom))
+        max(1rem, env(safe-area-inset-left));
       box-sizing: border-box;
     }
     .digit_clock_toolbar {
       display: flex;
-      justify-content: flex-end;
+      justify-content: center;
       width: 100%;
       max-width: 1500px;
       margin: 0 auto 1.5rem;
@@ -83,10 +87,9 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     }
     .digit_clocks_container {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
+      align-items: center;
       gap: 1.5rem;
-      justify-content: center;
-      align-content: flex-start;
       max-width: 1500px;
       width: 100%;
       margin: 0 auto;
@@ -95,14 +98,14 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     .digit_clock_current_weather {
       font-family: 'Orbitron', 'Work Sans', sans-serif;
       color: #66ff99;
-      font-size: 35px;
+      font-size: 20px;
       text-align: center;
       padding-bottom: 10px;
     }
     .digit_clock_current_weather {
       padding-top: 20px;
       padding-bottom: 0;
-      font-size: 30px;
+      font-size: 18px;
     }
     .digit_clock_current_weather .weather_temp,
     .digit_clock_current_weather .weather_desc {
@@ -111,62 +114,56 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     .digit_clock_time {
       font-family: 'Orbitron', 'Work Sans', sans-serif;
       color: #66ff99;
-      font-size: 45px;
+      font-size: 30px;
       text-align: center;
     }
     .digit_clock_time span {
       display: inline-block;
-      width: 80px;
+      width: 50px;
     }
     .digit_clock_time .ampm {
-      font-size: 42px;
+      font-size: 26px;
     }
     .digit_clock_date,
     .digit_clock_date_short {
       font-family: 'Orbitron', 'Work Sans', sans-serif;
       color: #66ff99;
-      font-size: 35px;
+      font-size: 20px;
       text-align: center;
       padding-top: 20px;
     }
     .digit_clock_date_short {
-      font-size: 40px;
+      font-size: 24px;
     }
     .digital_clock_wrapper {
       border: 2px solid #222;
       box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
         0 6px 20px 0 rgb(255 255 255 / 10%) !important;
-      padding: 25px;
-      flex: 1 1 320px;
-      max-width: 480px;
+      padding: 1rem;
+      flex: 0 0 auto;
+      width: 100%;
+      max-width: min(480px, 100%);
+      box-sizing: border-box;
       text-align: center;
       border-radius: 15px;
       margin: 0;
     }
-    @media only screen and (max-width: 600px) {
-      .digit_clock_time span {
-        width: 50px;
+    @media only screen and (min-width: 768px) {
+      .digit_clock_toolbar {
+        justify-content: flex-end;
       }
-      .digit_clock_time {
-        font-size: 30px;
+      .digit_clocks_container {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-content: flex-start;
       }
-      .digit_clock_time .ampm {
-        font-size: 26px;
+      .digital_clock_wrapper {
+        padding: 25px;
+        flex: 1 1 320px;
+        width: auto;
+        max-width: 480px;
       }
-      .digit_clock_date,
-      .digit_clock_date_short,
-      .digit_clock_city_name,
-      .digit_clock_current_weather {
-        font-size: 20px;
-      }
-      .digit_clock_date_short {
-        font-size: 24px;
-      }
-      .digit_clock_current_weather {
-        font-size: 18px;
-      }
-    }
-    @media only screen and (min-width: 600px) {
       .digit_clock_time span {
         width: 60px;
       }
@@ -189,7 +186,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         font-size: 22px;
       }
     }
-    @media only screen and (min-width: 768px) {
+    @media only screen and (min-width: 1024px) {
       .digit_clock_time span {
         width: 80px;
       }
