@@ -1,284 +1,791 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8">
   <title>Digital Clock</title>
-
+  <!--
+Weather: Open-Meteo (no API key). Optional future provider:
+<script>window.__WEATHER_API_KEY__ = 'your-key';</script>
+const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
+-->
   <style type="text/css">
-    /* Google font */
     @import url('https://fonts.googleapis.com/css?family=Orbitron');
-
     body {
       background-color: black;
+      margin: 0;
+      min-height: 100vh;
     }
-
-    #digit_clock_time {
+    .digit_clock_app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    .digit_clock_toolbar {
+      display: flex;
+      justify-content: flex-end;
+      width: 100%;
+      max-width: 1500px;
+      margin: 0 auto 1.5rem;
+      flex-shrink: 0;
+    }
+    .digit_clock_controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background-color: #0a0a0a;
+      border: 2px solid #222;
+      border-radius: 10px;
+      box-shadow: 0 6px 16px 0 rgb(255 255 255 / 10%);
+      font-family: 'Orbitron', 'Work Sans', sans-serif;
+    }
+    .toggle_group {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .toggle_label {
+      color: #66ff99;
+      font-size: 12px;
+    }
+    .toggle_btn {
+      font-family: inherit;
+      font-size: 12px;
+      color: #66ff99;
+      background-color: #111;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.35rem 0.6rem;
+      cursor: pointer;
+      transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+      min-width: 40px;
+    }
+    .toggle_btn:hover {
+      border-color: #66ff99;
+    }
+    .toggle_btn.is-active {
+      background-color: #1a3d2a;
+      border-color: #66ff99;
+      color: #a8ffcc;
+      font-weight: bold;
+    }
+    .toggle_btn:focus-visible {
+      outline: 2px solid #66ff99;
+      outline-offset: 2px;
+    }
+    .digit_clocks_row {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      flex: 1;
+    }
+    .digit_clocks_container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      justify-content: center;
+      align-content: flex-start;
+      max-width: 1500px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .digit_clock_city_name,
+    .digit_clock_current_weather {
       font-family: 'Orbitron', 'Work Sans', sans-serif;
       color: #66ff99;
-      /* font-size: 150px; */
+      font-size: 35px;
+      text-align: center;
+      padding-bottom: 10px;
+    }
+    .digit_clock_current_weather {
+      padding-top: 20px;
+      padding-bottom: 0;
+      font-size: 30px;
+    }
+    .digit_clock_current_weather .weather_temp,
+    .digit_clock_current_weather .weather_desc {
+      display: block;
+    }
+    .digit_clock_time {
+      font-family: 'Orbitron', 'Work Sans', sans-serif;
+      color: #66ff99;
       font-size: 45px;
       text-align: center;
     }
-
-    #digit_clock_time span {
+    .digit_clock_time span {
       display: inline-block;
-      /* width: 250px; */
       width: 80px;
     }
-
-    #digit_clock_time .ampm {
-      /* font-size: 140px; */
+    .digit_clock_time .ampm {
       font-size: 42px;
     }
-
-    #digit_clock_date,
-    #digit_clock_date_short {
+    .digit_clock_date,
+    .digit_clock_date_short {
       font-family: 'Orbitron', 'Work Sans', sans-serif;
       color: #66ff99;
-      /* font-size: 100px; */
       font-size: 35px;
       text-align: center;
       padding-top: 20px;
     }
-
-    #digit_clock_date_short {
-      /* font-size: 130px; */
+    .digit_clock_date_short {
       font-size: 40px;
     }
-
     .digital_clock_wrapper {
       border: 2px solid #222;
       box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
         0 6px 20px 0 rgb(255 255 255 / 10%) !important;
       padding: 25px;
-      max-width: 1500px;
+      flex: 1 1 320px;
+      max-width: 480px;
       text-align: center;
       border-radius: 15px;
-      margin: auto;
+      margin: 0;
     }
-
-    /* Extra small devices (phones, 600px and down) */
     @media only screen and (max-width: 600px) {
-      /* .example {
-background: #010101;
-} */
-
-      #digit_clock_time span {
+      .digit_clock_time span {
         width: 50px;
       }
-
-      #digit_clock_time {
+      .digit_clock_time {
         font-size: 30px;
       }
-
-      #digit_clock_time .ampm {
+      .digit_clock_time .ampm {
         font-size: 26px;
       }
-
-      #digit_clock_date,
-      #digit_clock_date_short {
+      .digit_clock_date,
+      .digit_clock_date_short,
+      .digit_clock_city_name,
+      .digit_clock_current_weather {
         font-size: 20px;
       }
-
-      #digit_clock_date_short {
+      .digit_clock_date_short {
         font-size: 24px;
       }
+      .digit_clock_current_weather {
+        font-size: 18px;
+      }
     }
-
-    /* Small devices (portrait tablets and large phones, 600px and up) */
     @media only screen and (min-width: 600px) {
-
-      #digit_clock_time span {
+      .digit_clock_time span {
         width: 60px;
       }
-
-      #digit_clock_time {
+      .digit_clock_time {
         font-size: 35px;
       }
-
-      #digit_clock_time .ampm {
+      .digit_clock_time .ampm {
         font-size: 32px;
       }
-
-      #digit_clock_date,
-      #digit_clock_date_short {
+      .digit_clock_date,
+      .digit_clock_date_short,
+      .digit_clock_city_name,
+      .digit_clock_current_weather {
         font-size: 25px;
       }
-
-      #digit_clock_date_short {
+      .digit_clock_date_short {
+        font-size: 30px;
+      }
+      .digit_clock_current_weather {
+        font-size: 22px;
+      }
+    }
+    @media only screen and (min-width: 768px) {
+      .digit_clock_time span {
+        width: 80px;
+      }
+      .digit_clock_time {
+        font-size: 45px;
+      }
+      .digit_clock_time .ampm {
+        font-size: 42px;
+      }
+      .digit_clock_date,
+      .digit_clock_date_short,
+      .digit_clock_city_name,
+      .digit_clock_current_weather {
+        font-size: 35px;
+      }
+      .digit_clock_date_short {
+        font-size: 40px;
+      }
+      .digit_clock_current_weather {
         font-size: 30px;
       }
     }
-
-    /* Medium devices (landscape tablets, 768px and up) */
-    @media only screen and (min-width: 768px) {
-
-      #digit_clock_time span {
-        width: 80px;
-      }
-
-      #digit_clock_time {
-        font-size: 45px;
-      }
-
-      #digit_clock_time .ampm {
-        font-size: 42px;
-      }
-
-      #digit_clock_date,
-      #digit_clock_date_short {
-        font-size: 35px;
-      }
-
-      #digit_clock_date_short {
-        font-size: 40px;
-      }
-
-    }
-
-    /* Large devices (laptops/desktops, 992px and up) */
-    /* @media only screen and (min-width: 992px) {
-
-#digit_clock_time span {
-width: 180px;
-}
-
-#digit_clock_time {
-font-size: 85px;
-}
-
-#digit_clock_time .ampm {
-font-size: 82px;
-}
-
-#digit_clock_date,
-#digit_clock_date_short {
-font-size: 75px;
-}
-
-#digit_clock_date_short {
-font-size: 80px;
-}
-} */
-
-    /* Extra large devices (large laptops and desktops, 1200px and up) */
-    /* @media only screen and (min-width: 1340px) {
-
-#digit_clock_time span {
-width: 250px;
-}
-
-#digit_clock_time {
-font-size: 150px;
-}
-
-#digit_clock_time .ampm {
-font-size: 140px;
-}
-
-#digit_clock_date,
-#digit_clock_date_short {
-font-size: 100px;
-}
-
-#digit_clock_date_short {
-font-size: 130px;
-}
-} */
   </style>
 </head>
-
-
-
 <body>
-  <br /><br /><br /><br />
-  <div class="digital_clock_wrapper example">
-    <div id="digit_clock_time"></div>
-    <div id="digit_clock_date"></div>
-    <div id="digit_clock_date_short"></div>
+  <div class="digit_clock_app">
+    <div class="digit_clock_toolbar">
+      <div class="digit_clock_controls" role="region" aria-label="Display settings">
+        <div class="toggle_group" role="group" aria-label="Temperature unit">
+          <button type="button" class="toggle_btn is-active" data-unit="F" aria-pressed="true">°F</button>
+          <span class="toggle_label"> / </span>
+          <button type="button" class="toggle_btn" data-unit="C" aria-pressed="false">°C</button>
+        </div>
+        <div class="toggle_group" role="group" aria-label="Language">
+          <button type="button" class="toggle_btn is-active" data-lang="en" aria-pressed="true">EN</button>
+          <span class="toggle_label"> / </span>
+          <button type="button" class="toggle_btn" data-lang="es" aria-pressed="false">ES</button>
+        </div>
+      </div>
+    </div>
+    <div class="digit_clocks_row">
+      <div class="digit_clocks_container">
+        <div class="digital_clock_wrapper" data-clock-id="nashville">
+          <div class="digit_clock_city_name">Nashville, TN</div>
+          <div class="digit_clock_time">
+            <span class="hour">--</span> :
+            <span class="minute">--</span> :
+            <span class="second">--</span>
+            <span class="ampm">--</span>
+          </div>
+          <div class="digit_clock_date"></div>
+          <div class="digit_clock_date_short"></div>
+          <div id="digit_clock_current_weather" class="digit_clock_current_weather" data-weather-id="nashville">
+            <span class="weather_temp"></span>
+            <span class="weather_desc"></span>
+          </div>
+        </div>
+        <div class="digital_clock_wrapper" data-clock-id="puerto-vallarta">
+          <div class="digit_clock_city_name">Puerto Vallarta, MX</div>
+          <div class="digit_clock_time">
+            <span class="hour">--</span> :
+            <span class="minute">--</span> :
+            <span class="second">--</span>
+            <span class="ampm">--</span>
+          </div>
+          <div class="digit_clock_date"></div>
+          <div class="digit_clock_date_short"></div>
+          <div class="digit_clock_current_weather" data-weather-id="puerto-vallarta">
+            <span class="weather_temp"></span>
+            <span class="weather_desc"></span>
+          </div>
+        </div>
+        <div class="digital_clock_wrapper" data-clock-id="tepic">
+          <div class="digit_clock_city_name">Tepic, MX</div>
+          <div class="digit_clock_time">
+            <span class="hour">--</span> :
+            <span class="minute">--</span> :
+            <span class="second">--</span>
+            <span class="ampm">--</span>
+          </div>
+          <div class="digit_clock_date"></div>
+          <div class="digit_clock_date_short"></div>
+          <div class="digit_clock_current_weather" data-weather-id="tepic">
+            <span class="weather_temp"></span>
+            <span class="weather_desc"></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-
-  <script type="text/javascript">
-    function currentTime() {
-      let date = new Date(); /* creating object of Date class */
-      let hour = date.getHours();
-      let min = date.getMinutes();
-      let sec = date.getSeconds();
-      let midday = 'AM';
-      midday = hour >= 12 ? 'PM' : 'AM'; /* assigning AM/PM */
-      hour =
-        hour == 0
-          ? 12
-          : hour > 12
-            ? hour - 12
-            : hour; /* assigning hour in 12-hour format */
-      hour = changeTime(hour);
-      min = changeTime(min);
-      sec = changeTime(sec);
-      document.getElementById('digit_clock_time').innerHTML = `
-<span class="hour">${hour}</span> :
-<span class="minute">${min}</span> :
-<span class="second">${sec}</span>
-<span class="ampm">${midday}</span>
-`;
-
-      const months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ];
-      const monthNums = [
-        '01',
-        '02',
-        '03',
-        '04',
-        '05',
-        '06',
-        '07',
-        '08',
-        '09',
-        '10',
-        '11',
-        '12',
-      ];
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-      let curWeekDay = days[date.getDay()]; // get day
-      let curDay = date.getDate(); // get date
-      let curMonth = months[date.getMonth()]; // get month name
-      let curMonthShort = monthNums[date.getMonth()]; // get month number
-      let curYear = date.getFullYear(); // get year
-      let curDate = curWeekDay + ', ' + curMonth + ' ' + curDay + ', ' +
-        curYear; // get full date
-      document.getElementById('digit_clock_date').innerHTML = curDate;
-      let curDateShort = curMonthShort + ' / ' + curDay + ' / ' + curYear;
-      // get full date
-      document.getElementById('digit_clock_date_short').innerHTML = curDateShort;
-
-      let t = setTimeout(currentTime, 1000); /* setting timer */
+  <script>
+    // Optional future providers (do not commit real keys):
+    // const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
+    const PREFERENCES_KEY = 'digit_clock_preferences_v1';
+    const TRANSLATIONS = {
+      en: {
+        currentWeather: 'Current Weather',
+        loadingWeather: 'Loading weather...',
+        weatherUnavailable: 'Weather unavailable',
+        currentConditions: 'Current conditions',
+        weatherDescriptions: {
+          0: 'Clear sky',
+          1: 'Mainly clear',
+          2: 'Partly cloudy',
+          3: 'Overcast',
+          45: 'Foggy',
+          48: 'Foggy',
+          51: 'Light drizzle',
+          53: 'Drizzle',
+          55: 'Heavy drizzle',
+          56: 'Freezing drizzle',
+          57: 'Freezing drizzle',
+          61: 'Light rain',
+          63: 'Rain',
+          65: 'Heavy rain',
+          66: 'Freezing rain',
+          67: 'Freezing rain',
+          71: 'Light snow',
+          73: 'Snow',
+          75: 'Heavy snow',
+          77: 'Snow grains',
+          80: 'Rain showers',
+          81: 'Rain showers',
+          82: 'Heavy rain showers',
+          85: 'Snow showers',
+          86: 'Heavy snow showers',
+          95: 'Thunderstorm',
+          96: 'Thunderstorm with hail',
+          99: 'Thunderstorm with hail',
+        },
+      },
+      es: {
+        currentWeather: 'Clima actual',
+        loadingWeather: 'Cargando clima...',
+        weatherUnavailable: 'Clima no disponible',
+        currentConditions: 'Condiciones actuales',
+        weatherDescriptions: {
+          0: 'Cielo despejado',
+          1: 'Principalmente despejado',
+          2: 'Parcialmente nublado',
+          3: 'Nublado',
+          45: 'Neblina',
+          48: 'Neblina',
+          51: 'Llovizna ligera',
+          53: 'Llovizna',
+          55: 'Llovizna intensa',
+          56: 'Llovizna helada',
+          57: 'Llovizna helada',
+          61: 'Lluvia ligera',
+          63: 'Lluvia',
+          65: 'Lluvia intensa',
+          66: 'Lluvia helada',
+          67: 'Lluvia helada',
+          71: 'Nieve ligera',
+          73: 'Nieve',
+          75: 'Nieve intensa',
+          77: 'Granos de nieve',
+          80: 'Chubascos',
+          81: 'Chubascos',
+          82: 'Chubascos intensos',
+          85: 'Nevadas',
+          86: 'Nevadas intensas',
+          95: 'Tormenta eléctrica',
+          96: 'Tormenta con granizo',
+          99: 'Tormenta con granizo',
+        },
+      },
+    };
+    const uiState = {
+      unit: 'F',
+      language: 'en',
+    };
+    const weatherLiveData = {};
+    const weatherStatusById = {};
+    const CLOCK_CONFIG = [
+      { id: 'nashville', city: 'Nashville, TN', timeZone: 'America/Chicago' },
+      { id: 'puerto-vallarta', city: 'Puerto Vallarta, MX', timeZone: 'America/Bahia_Banderas' },
+      { id: 'tepic', city: 'Tepic, MX', timeZone: 'America/Mazatlan' },
+    ];
+    const WEATHER_CONFIG = [
+      {
+        id: 'nashville',
+        label: 'Nashville',
+        latitude: 36.1627,
+        longitude: -86.7816,
+        cacheKey: 'digit_clock_weather_nashville_v1',
+      },
+      {
+        id: 'puerto-vallarta',
+        label: 'Puerto Vallarta',
+        latitude: 20.6534,
+        longitude: -105.2253,
+        cacheKey: 'digit_clock_weather_puerto_vallarta_v1',
+      },
+      {
+        id: 'tepic',
+        label: 'Tepic',
+        latitude: 21.5085,
+        longitude: -104.8936,
+        cacheKey: 'digit_clock_weather_tepic_v1',
+      },
+    ];
+    const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
+    const WEATHER_API_BASE =
+      'https://api.open-meteo.com/v1/forecast?current=temperature_2m,weather_code&temperature_unit=fahrenheit';
+    let clockBindings = [];
+    let clockTimerId = null;
+    function detectBrowserLanguage() {
+      const lang = (navigator.language || 'en').toLowerCase();
+      return lang.startsWith('es') ? 'es' : 'en';
     }
-
-    function changeTime(k) {
-      /* appending 0 before time elements if less than 10 */
-      if (k < 10) {
-        return '0' + k;
-      } else {
-        return k;
+    function loadPreferences() {
+      try {
+        const raw = localStorage.getItem(PREFERENCES_KEY);
+        if (!raw) {
+          return null;
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || (parsed.unit !== 'F' && parsed.unit !== 'C')) {
+          return null;
+        }
+        if (parsed.language !== 'en' && parsed.language !== 'es') {
+          return null;
+        }
+        return parsed;
+      } catch {
+        return null;
       }
     }
-
-    currentTime();
+    function savePreferences() {
+      try {
+        localStorage.setItem(
+          PREFERENCES_KEY,
+          JSON.stringify({ unit: uiState.unit, language: uiState.language }),
+        );
+      } catch {
+        /* storage unavailable */
+      }
+    }
+    function initUIState() {
+      const saved = loadPreferences();
+      if (saved) {
+        uiState.unit = saved.unit;
+        uiState.language = saved.language;
+      } else {
+        uiState.unit = 'F';
+        uiState.language = detectBrowserLanguage();
+      }
+    }
+    function getLocale() {
+      return uiState.language === 'es' ? 'es-US' : 'en-US';
+    }
+    function t(key) {
+      return TRANSLATIONS[uiState.language][key];
+    }
+    function pad2(value) {
+      const str = String(value);
+      return str.length < 2 ? `0${str}` : str;
+    }
+    function partsToMap(parts) {
+      return parts.reduce((acc, part) => {
+        if (part.type !== 'literal') {
+          acc[part.type] = part.value;
+        }
+        return acc;
+      }, {});
+    }
+    function formatClockDataForZone(timeZone, now = new Date()) {
+      const locale = getLocale();
+      const timeFormatter = new Intl.DateTimeFormat(locale, {
+        timeZone,
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      });
+      const timeParts = partsToMap(timeFormatter.formatToParts(now));
+      const dateLongFormatter = new Intl.DateTimeFormat(locale, {
+        timeZone,
+        weekday: 'short',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      const dateLongParts = partsToMap(dateLongFormatter.formatToParts(now));
+      const dateLong = `${dateLongParts.weekday}, ${dateLongParts.month} ${dateLongParts.day},
+${dateLongParts.year}`;
+      const dateShortFormatter = new Intl.DateTimeFormat(locale, {
+        timeZone,
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+      });
+      const dateShortParts = partsToMap(dateShortFormatter.formatToParts(now));
+      const dateShort = `${dateShortParts.month} / ${dateShortParts.day}
+/ ${dateShortParts.year}`;
+      return {
+        hour: pad2(timeParts.hour),
+        minute: pad2(timeParts.minute),
+        second: pad2(timeParts.second),
+        ampm: timeParts.dayPeriod || '',
+        dateLong,
+        dateShort,
+      };
+    }
+    function setTextIfChanged(element, value) {
+      if (element && element.textContent !== value) {
+        element.textContent = value;
+      }
+    }
+    function bindClockRoots(config) {
+      return config
+        .map((entry) => {
+          const root = document.querySelector(`[data-clock-id="${entry.id}"]`);
+          if (!root) {
+            return null;
+          }
+          const timeEl = root.querySelector('.digit_clock_time');
+          return {
+            config: entry,
+            hour: timeEl.querySelector('.hour'),
+            minute: timeEl.querySelector('.minute'),
+            second: timeEl.querySelector('.second'),
+            ampm: timeEl.querySelector('.ampm'),
+            date: root.querySelector('.digit_clock_date'),
+            dateShort: root.querySelector('.digit_clock_date_short'),
+          };
+        })
+        .filter(Boolean);
+    }
+    function updateClockDom(refs, data) {
+      setTextIfChanged(refs.hour, data.hour);
+      setTextIfChanged(refs.minute, data.minute);
+      setTextIfChanged(refs.second, data.second);
+      setTextIfChanged(refs.ampm, data.ampm);
+      setTextIfChanged(refs.date,
+        data.dateLong);
+      setTextIfChanged(refs.dateShort, data.dateShort);
+    }
+    function tickAllClocks(bindings) {
+      try {
+        const now = new Date();
+        bindings.forEach((refs) => {
+          const data = formatClockDataForZone(refs.config.timeZone, now);
+          updateClockDom(refs, data);
+        });
+      } catch {
+        /* keep clocks running; no console spam */
+      }
+    }
+    function scheduleClockTimer(bindings) {
+      if (clockTimerId !== null) {
+        clearTimeout(clockTimerId);
+      }
+      const runTick = () => {
+        tickAllClocks(bindings);
+        clockTimerId = setTimeout(runTick, 1000);
+      };
+      runTick();
+    }
+    function getWeatherDescription(weatherCode) {
+      const descriptions = TRANSLATIONS[uiState.language].weatherDescriptions;
+      return descriptions[weatherCode] || t('currentConditions');
+    }
+    function convertTemperature(temperatureF) {
+      if (uiState.unit === 'C') {
+        return Math.round(((temperatureF - 32) * 5) / 9);
+      }
+      return Math.round(temperatureF);
+    }
+    function getTemperatureSymbol() {
+      return uiState.unit === 'C' ? '°C' : '°F';
+    }
+    function formatWeatherDisplay(temperatureF, weatherCode) {
+      const temp = convertTemperature(temperatureF);
+      const description = getWeatherDescription(weatherCode);
+      return {
+        temperature: `${t('currentWeather')}: ${temp}${getTemperatureSymbol()},`,
+        description,
+      };
+    }
+    function normalizeWeatherPayload(cached) {
+      if (!cached) {
+        return null;
+      }
+      if (typeof cached.weatherCode === 'number') {
+        return cached;
+      }
+      return {
+        fetchedAt: cached.fetchedAt,
+        temperatureF: cached.temperatureF,
+        weatherCode: null,
+      };
+    }
+    function storeWeatherData(entryId, payload) {
+      weatherLiveData[entryId] = payload;
+    }
+    function renderWeatherEntry(entry, payload, status) {
+      if (status === 'loading') {
+        renderWeather(entry, t('loadingWeather'));
+        return;
+      }
+      if (status === 'error') {
+        renderWeather(entry, t('weatherUnavailable'));
+        return;
+      }
+      if (payload && payload.temperatureF != null) {
+        const code = payload.weatherCode != null ? payload.weatherCode : null;
+        renderWeather(
+          entry,
+          formatWeatherDisplay(payload.temperatureF, code),
+        );
+      }
+    }
+    function renderAllWeather() {
+      WEATHER_CONFIG.forEach((entry) => {
+        const live = weatherLiveData[entry.id];
+        const status = weatherStatusById[entry.id];
+        if (live) {
+          renderWeatherEntry(entry, live, 'data');
+        } else if (status === 'loading') {
+          renderWeatherEntry(entry, null, 'loading');
+        } else if (status === 'error') {
+          renderWeatherEntry(entry, null, 'error');
+        }
+      });
+    }
+    function updateControlPanelUI() {
+      document.querySelectorAll('[data-unit]').forEach((btn) => {
+        const isActive = btn.dataset.unit === uiState.unit;
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
+      });
+      document.querySelectorAll('[data-lang]').forEach((btn) => {
+        const isActive = btn.dataset.lang === uiState.language;
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
+      });
+      document.documentElement.lang = uiState.language;
+    }
+    function setUnit(unit) {
+      if (uiState.unit === unit) {
+        return;
+      }
+      uiState.unit = unit;
+      savePreferences();
+      updateControlPanelUI();
+      renderAllWeather();
+    }
+    function setLanguage(language) {
+      if (uiState.language === language) {
+        return;
+      }
+      uiState.language = language;
+      savePreferences();
+      updateControlPanelUI();
+      renderAllWeather();
+      if (clockBindings.length) {
+        tickAllClocks(clockBindings);
+      }
+    }
+    function initControlPanel() {
+      updateControlPanelUI();
+      document.querySelectorAll('[data-unit]').forEach((btn) => {
+        btn.addEventListener('click', () => setUnit(btn.dataset.unit));
+      });
+      document.querySelectorAll('[data-lang]').forEach((btn) => {
+        btn.addEventListener('click', () => setLanguage(btn.dataset.lang));
+      });
+    }
+    function buildWeatherApiUrl(latitude, longitude) {
+      return `${WEATHER_API_BASE}&latitude=${latitude}&longitude=${longitude}`;
+    }
+    function getWeatherElement(entry) {
+      return (
+        document.querySelector(`[data-weather-id="${entry.id}"]`)
+        ||
+        (entry.id
+          === 'nashville' ? document.getElementById('digit_clock_current_weather') : null)
+      );
+    }
+    function renderWeather(entry, content) {
+      const el = getWeatherElement(entry);
+      if (!el) {
+        return;
+      }
+      const tempEl = el.querySelector('.weather_temp');
+      const descEl = el.querySelector('.weather_desc');
+      if (typeof content === 'string') {
+        setTextIfChanged(tempEl, content);
+        setTextIfChanged(descEl, '');
+        return;
+      }
+      setTextIfChanged(tempEl, content.temperature);
+      setTextIfChanged(descEl, content.description);
+    }
+    function readWeatherCache(cacheKey) {
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        if (!raw) {
+          return null;
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed.fetchedAt !== 'number') {
+          return null;
+        }
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+    function writeWeatherCache(cacheKey, payload) {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(payload));
+      } catch {
+        /* storage unavailable */
+      }
+    }
+    function isWeatherCacheFresh(cache) {
+      return cache && Date.now()
+        - cache.fetchedAt < WEATHER_CACHE_TTL_MS;
+    }
+    async function fetchCurrentWeather(entry) {
+      const response = await fetch(buildWeatherApiUrl(entry.latitude, entry.longitude));
+      if (!response.ok) {
+        throw new Error('Weather fetch failed');
+      }
+      const data = await response.json();
+      const current = data && data.current;
+      if (!current || current.temperature_2m == null) {
+        throw new Error('Invalid weather payload');
+      }
+      return {
+        fetchedAt: Date.now(),
+        temperatureF: current.temperature_2m,
+        weatherCode: current.weather_code,
+      };
+    }
+    async function obtainCurrentWeather(entry) {
+      const cached = normalizeWeatherPayload(readWeatherCache(entry.cacheKey));
+      if (cached && isWeatherCacheFresh(cached)) {
+        storeWeatherData(entry.id,
+          cached);
+        weatherStatusById[entry.id]
+          = 'data';
+        renderWeatherEntry(entry, cached, 'data');
+        return;
+      }
+      if (cached) {
+        storeWeatherData(entry.id,
+          cached);
+        weatherStatusById[entry.id]
+          = 'data';
+        renderWeatherEntry(entry, cached, 'data');
+      } else {
+        weatherStatusById[entry.id]
+          = 'loading';
+        renderWeatherEntry(entry, null, 'loading');
+      }
+      try {
+        const fresh = await fetchCurrentWeather(entry);
+        writeWeatherCache(entry.cacheKey, fresh);
+        storeWeatherData(entry.id,
+          fresh);
+        weatherStatusById[entry.id]
+          = 'data';
+        renderWeatherEntry(entry, fresh, 'data');
+      } catch {
+        if (cached) {
+          storeWeatherData(entry.id,
+            cached);
+          weatherStatusById[entry.id]
+            = 'data';
+          renderWeatherEntry(entry, cached, 'data');
+        } else {
+          weatherStatusById[entry.id]
+            = 'error';
+          renderWeatherEntry(entry, null, 'error');
+        }
+      }
+    }
+    function obtainAllWeather() {
+      WEATHER_CONFIG.forEach((entry) => {
+        obtainCurrentWeather(entry);
+      });
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      initUIState();
+      initControlPanel();
+      clockBindings = bindClockRoots(CLOCK_CONFIG);
+      if (clockBindings.length) {
+        tickAllClocks(clockBindings);
+        scheduleClockTimer(clockBindings);
+      }
+      obtainAllWeather();
+    });
   </script>
 </body>
-
 </html>
