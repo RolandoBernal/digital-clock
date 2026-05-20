@@ -26,13 +26,91 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         max(1rem, env(safe-area-inset-left));
       box-sizing: border-box;
     }
-    .digit_clock_toolbar {
+    .digit_clock_header {
       display: flex;
-      justify-content: flex-end;
+      flex-direction: column;
+      align-items: stretch;
       width: 100%;
       max-width: 1500px;
       margin: 0 auto 1.5rem;
       flex-shrink: 0;
+    }
+    .digit_clock_header_row {
+      display: flex;
+      justify-content: flex-end;
+      width: 100%;
+    }
+    .digit_clock_menu_toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0.5rem;
+      color: #66ff99;
+      background-color: #111;
+      border: 1px solid #333;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .digit_clock_menu_toggle:hover {
+      border-color: #66ff99;
+    }
+    .digit_clock_menu_toggle:focus-visible {
+      outline: 2px solid #66ff99;
+      outline-offset: 2px;
+    }
+    .digit_clock_menu_toggle svg {
+      width: 24px;
+      height: 24px;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+    .digit_clock_menu_toggle[aria-expanded="true"] {
+      border-color: #66ff99;
+      background-color: #1a3d2a;
+    }
+    .digit_clock_menu_toggle[aria-expanded="true"] svg {
+      transform: rotate(90deg);
+    }
+    .digit_clock_toolbar {
+      display: grid;
+      grid-template-rows: 0fr;
+      width: 100%;
+      margin-top: 0;
+      opacity: 0;
+      overflow: hidden;
+      justify-content: flex-end;
+      transition: grid-template-rows 0.3s ease, margin-top 0.3s ease, opacity 0.25s ease;
+    }
+    .digit_clock_toolbar.is-open {
+      grid-template-rows: 1fr;
+      margin-top: 0.5rem;
+      opacity: 1;
+    }
+    .digit_clock_toolbar:not(.is-open) .digit_clock_controls {
+      pointer-events: none;
+    }
+    .digit_clock_toolbar .digit_clock_controls {
+      min-height: 0;
+      overflow: hidden;
+      transform: translateY(-0.5rem);
+      transition: transform 0.3s ease;
+    }
+    .digit_clock_toolbar.is-open .digit_clock_controls {
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .digit_clock_toolbar,
+      .digit_clock_toolbar .digit_clock_controls,
+      .digit_clock_menu_toggle svg {
+        transition: none;
+      }
+      .digit_clock_toolbar .digit_clock_controls,
+      .digit_clock_toolbar.is-open .digit_clock_controls {
+        transform: none;
+      }
     }
     .digit_clock_controls {
       display: flex;
@@ -149,6 +227,32 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       margin: 0;
     }
     @media only screen and (min-width: 768px) {
+      .digit_clock_header {
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: center;
+      }
+      .digit_clock_header_row {
+        display: none;
+      }
+      .digit_clock_menu_toggle {
+        display: none;
+      }
+      .digit_clock_toolbar {
+        display: flex;
+        grid-template-rows: none;
+        margin-top: 0;
+        width: auto;
+        opacity: 1;
+        overflow: visible;
+        justify-content: flex-end;
+        transition: none;
+      }
+      .digit_clock_toolbar .digit_clock_controls {
+        transform: none;
+        overflow: visible;
+        transition: none;
+      }
       .digit_clocks_container {
         flex-direction: row;
         flex-wrap: wrap;
@@ -210,17 +314,32 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
 </head>
 <body>
   <div class="digit_clock_app">
-    <div class="digit_clock_toolbar">
-      <div class="digit_clock_controls" role="region" aria-label="Display settings">
-        <div class="toggle_group" role="group" aria-label="Temperature unit">
-          <button type="button" class="toggle_btn is-active" data-unit="F" aria-pressed="true">°F</button>
-          <span class="toggle_label"> / </span>
-          <button type="button" class="toggle_btn" data-unit="C" aria-pressed="false">°C</button>
-        </div>
-        <div class="toggle_group" role="group" aria-label="Language">
-          <button type="button" class="toggle_btn is-active" data-lang="en" aria-pressed="true">EN</button>
-          <span class="toggle_label"> / </span>
-          <button type="button" class="toggle_btn" data-lang="es" aria-pressed="false">ES</button>
+    <div class="digit_clock_header">
+      <div class="digit_clock_header_row">
+        <button type="button"
+          class="digit_clock_menu_toggle"
+          id="digit_clock_menu_toggle"
+          aria-expanded="false"
+          aria-controls="digit_clock_toolbar"
+          aria-label="Display settings">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+      <div class="digit_clock_toolbar" id="digit_clock_toolbar">
+        <div class="digit_clock_controls" role="region" aria-label="Display settings">
+          <div class="toggle_group" role="group" aria-label="Temperature unit">
+            <button type="button" class="toggle_btn is-active" data-unit="F" aria-pressed="true">°F</button>
+            <span class="toggle_label"> / </span>
+            <button type="button" class="toggle_btn" data-unit="C" aria-pressed="false">°C</button>
+          </div>
+          <div class="toggle_group" role="group" aria-label="Language">
+            <button type="button" class="toggle_btn is-active" data-lang="en" aria-pressed="true">EN</button>
+            <span class="toggle_label"> / </span>
+            <button type="button" class="toggle_btn" data-lang="es" aria-pressed="false">ES</button>
+          </div>
         </div>
       </div>
     </div>
@@ -624,6 +743,18 @@ ${dateLongParts.year}`;
       });
       document.documentElement.lang = uiState.language;
     }
+    function isMobileViewport() {
+      return !window.matchMedia('(min-width: 768px)').matches;
+    }
+    function closeMobileSettingsMenu() {
+      const toolbar = document.getElementById('digit_clock_toolbar');
+      const toggle = document.getElementById('digit_clock_menu_toggle');
+      if (!toolbar || !toggle) {
+        return;
+      }
+      toolbar.classList.remove('is-open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
     function setUnit(unit) {
       if (uiState.unit === unit) {
         return;
@@ -632,6 +763,9 @@ ${dateLongParts.year}`;
       savePreferences();
       updateControlPanelUI();
       renderAllWeather();
+      if (isMobileViewport()) {
+        closeMobileSettingsMenu();
+      }
     }
     function setLanguage(language) {
       if (uiState.language === language) {
@@ -644,6 +778,28 @@ ${dateLongParts.year}`;
       if (clockBindings.length) {
         tickAllClocks(clockBindings);
       }
+      if (isMobileViewport()) {
+        closeMobileSettingsMenu();
+      }
+    }
+    function initMobileSettingsMenu() {
+      const toggle = document.getElementById('digit_clock_menu_toggle');
+      const toolbar = document.getElementById('digit_clock_toolbar');
+      if (!toggle || !toolbar) {
+        return;
+      }
+      toggle.addEventListener('click', () => {
+        if (!isMobileViewport()) {
+          return;
+        }
+        const isOpen = toolbar.classList.toggle('is-open');
+        toggle.setAttribute('aria-expanded', String(isOpen));
+      });
+      window.matchMedia('(min-width: 768px)').addEventListener('change', (e) => {
+        if (e.matches) {
+          closeMobileSettingsMenu();
+        }
+      });
     }
     function initControlPanel() {
       updateControlPanelUI();
@@ -772,6 +928,7 @@ ${dateLongParts.year}`;
     }
     document.addEventListener('DOMContentLoaded', () => {
       initUIState();
+      initMobileSettingsMenu();
       initControlPanel();
       clockBindings = bindClockRoots(CLOCK_CONFIG);
       if (clockBindings.length) {
