@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,21 +12,29 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
 -->
   <style type="text/css">
     @import url('https://fonts.googleapis.com/css?family=Orbitron');
+
+    @font-face {
+      font-family: 'Digital-7';
+      src: url('fonts/digital-7.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
     body {
       background-color: black;
       margin: 0;
       min-height: 100vh;
     }
+
     .digit_clock_app {
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      padding: max(1rem, env(safe-area-inset-top))
-        max(1rem, env(safe-area-inset-right))
-        max(1rem, env(safe-area-inset-bottom))
-        max(1rem, env(safe-area-inset-left));
+      padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
       box-sizing: border-box;
     }
+
     .digit_clock_header {
       display: flex;
       flex-direction: column;
@@ -35,11 +44,36 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       margin: 0 auto 1.5rem;
       flex-shrink: 0;
     }
+
     .digit_clock_header_row {
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
+      align-items: center;
       width: 100%;
     }
+
+    .digit_clock_brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'Orbitron', 'Work Sans', sans-serif;
+      color: #66ff99;
+      min-width: 0;
+    }
+
+    .digit_clock_logo {
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+    }
+
+    .digit_clock_title {
+      font-size: 15px;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
     .digit_clock_menu_toggle {
       display: flex;
       align-items: center;
@@ -54,26 +88,32 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       cursor: pointer;
       transition: background-color 0.15s, border-color 0.15s, color 0.15s;
     }
+
     .digit_clock_menu_toggle:hover {
       border-color: #66ff99;
     }
+
     .digit_clock_menu_toggle:focus-visible {
       outline: 2px solid #66ff99;
       outline-offset: 2px;
     }
+
     .digit_clock_menu_toggle svg {
       width: 24px;
       height: 24px;
       display: block;
       transition: transform 0.3s ease;
     }
+
     .digit_clock_menu_toggle[aria-expanded="true"] {
       border-color: #66ff99;
       background-color: #1a3d2a;
     }
+
     .digit_clock_menu_toggle[aria-expanded="true"] svg {
       transform: rotate(90deg);
     }
+
     .digit_clock_toolbar {
       display: grid;
       grid-template-rows: 0fr;
@@ -84,34 +124,42 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       justify-content: flex-end;
       transition: grid-template-rows 0.3s ease, margin-top 0.3s ease, opacity 0.25s ease;
     }
+
     .digit_clock_toolbar.is-open {
       grid-template-rows: 1fr;
       margin-top: 0.5rem;
       opacity: 1;
     }
+
     .digit_clock_toolbar:not(.is-open) .digit_clock_controls {
       pointer-events: none;
     }
+
     .digit_clock_toolbar .digit_clock_controls {
       min-height: 0;
       overflow: hidden;
       transform: translateY(-0.5rem);
       transition: transform 0.3s ease;
     }
+
     .digit_clock_toolbar.is-open .digit_clock_controls {
       transform: translateY(0);
     }
+
     @media (prefers-reduced-motion: reduce) {
+
       .digit_clock_toolbar,
       .digit_clock_toolbar .digit_clock_controls,
       .digit_clock_menu_toggle svg {
         transition: none;
       }
+
       .digit_clock_toolbar .digit_clock_controls,
       .digit_clock_toolbar.is-open .digit_clock_controls {
         transform: none;
       }
     }
+
     .digit_clock_controls {
       display: flex;
       flex-direction: column;
@@ -123,15 +171,18 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       box-shadow: 0 6px 16px 0 rgb(255 255 255 / 10%);
       font-family: 'Orbitron', 'Work Sans', sans-serif;
     }
+
     .toggle_group {
       display: flex;
       align-items: center;
       gap: 0.35rem;
     }
+
     .toggle_label {
       color: #66ff99;
       font-size: 12px;
     }
+
     .toggle_btn {
       font-family: inherit;
       font-size: 12px;
@@ -144,34 +195,42 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       transition: background-color 0.15s, border-color 0.15s, color 0.15s;
       min-width: 40px;
     }
+
     .toggle_btn:hover {
       border-color: #66ff99;
     }
+
     .toggle_btn.is-active {
       background-color: #1a3d2a;
       border-color: #66ff99;
       color: #a8ffcc;
       font-weight: bold;
     }
+
     .toggle_btn:focus-visible {
       outline: 2px solid #66ff99;
       outline-offset: 2px;
     }
+
     .digit_clocks_row {
       display: flex;
       justify-content: center;
       width: 100%;
       flex: 1;
     }
+
     .digit_clocks_container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-auto-rows: 1fr;
+      align-items: stretch;
+      justify-items: center;
       gap: 1.5rem;
       max-width: 1500px;
       width: 100%;
       margin: 0 auto;
     }
+
     .digit_clock_city_name,
     .digit_clock_current_weather {
       font-family: 'Orbitron', 'Work Sans', sans-serif;
@@ -180,28 +239,75 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       text-align: center;
       padding-bottom: 10px;
     }
+
+    .digit_clock_city_name {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.3em;
+      line-height: 1.15;
+    }
+
     .digit_clock_current_weather {
       padding-top: 20px;
       padding-bottom: 0;
       font-size: 18px;
     }
+
     .digit_clock_current_weather .weather_temp,
     .digit_clock_current_weather .weather_desc {
       display: block;
     }
+
     .digit_clock_time {
-      font-family: 'Orbitron', 'Work Sans', sans-serif;
+      font-family: 'Digital-7', 'Orbitron', monospace;
       color: #66ff99;
-      font-size: 30px;
+      font-size: 35px;
       text-align: center;
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      column-gap: 0.45em;
+      white-space: nowrap;
     }
+
     .digit_clock_time span {
       display: inline-block;
-      width: 50px;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
     }
+
+    .digit_clock_time .hour,
+    .digit_clock_time .minute,
+    .digit_clock_time .second {
+      width: 2ch;
+      text-align: right;
+      transform: scaleX(1.45);
+      transform-origin: center;
+    }
+
+    .digit_clock_time .is_double_one {
+      letter-spacing: 0.3em;
+    }
+
+    .digit_clock_time .has_one {
+      letter-spacing: 0.18em;
+    }
+
+    .digit_clock_time .time_separator {
+      width: 0.35em;
+      text-align: center;
+      letter-spacing: 0;
+    }
+
     .digit_clock_time .ampm {
       font-size: 26px;
+      margin-left: 0.25em;
     }
+
     .digit_clock_date,
     .digit_clock_date_short {
       font-family: 'Orbitron', 'Work Sans', sans-serif;
@@ -210,34 +316,56 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       text-align: center;
       padding-top: 20px;
     }
+
     .digit_clock_date_short {
       font-size: 24px;
     }
+
     .digital_clock_wrapper {
       border: 2px solid #222;
       box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
         0 6px 20px 0 rgb(255 255 255 / 10%) !important;
       padding: 1rem;
-      flex: 0 0 auto;
       width: 100%;
       max-width: min(480px, 100%);
       box-sizing: border-box;
       text-align: center;
       border-radius: 15px;
       margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      height: 100%;
     }
+
     @media only screen and (min-width: 768px) {
+      .digit_clock_title {
+        font-size: 18px;
+      }
+
+      .digit_clock_logo {
+        width: 34px;
+        height: 34px;
+      }
+
       .digit_clock_header {
         flex-direction: row;
-        justify-content: flex-end;
+        justify-content: space-between;
         align-items: center;
       }
+
       .digit_clock_header_row {
-        display: none;
+        display: flex;
+        flex: 1;
+        justify-content: flex-start;
+        align-items: center;
+        width: auto;
       }
+
       .digit_clock_menu_toggle {
         display: none;
       }
+
       .digit_clock_toolbar {
         display: flex;
         grid-template-rows: none;
@@ -248,82 +376,121 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         justify-content: flex-end;
         transition: none;
       }
+
       .digit_clock_toolbar .digit_clock_controls {
         transform: none;
         overflow: visible;
         transition: none;
       }
+
       .digit_clocks_container {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-content: flex-start;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-items: stretch;
       }
+
       .digital_clock_wrapper {
         padding: 25px;
-        flex: 1 1 320px;
-        width: auto;
-        max-width: 480px;
+        max-width: none;
       }
-      .digit_clock_time span {
-        width: 60px;
+
+      .digit_clock_time .hour,
+      .digit_clock_time .minute,
+      .digit_clock_time .second {
+        width: 45px;
       }
+
       .digit_clock_time {
         font-size: 35px;
       }
+
       .digit_clock_time .ampm {
-        font-size: 32px;
+        font-size: 30px;
       }
+
       .digit_clock_date,
       .digit_clock_date_short,
       .digit_clock_city_name,
       .digit_clock_current_weather {
         font-size: 25px;
       }
+
       .digit_clock_date_short {
         font-size: 30px;
       }
+
       .digit_clock_current_weather {
         font-size: 22px;
       }
     }
+
     @media only screen and (min-width: 1024px) {
-      .digit_clock_time span {
-        width: 80px;
+      .digit_clock_title {
+        font-size: 22px;
       }
+
+      .digit_clock_logo {
+        width: 38px;
+        height: 38px;
+      }
+
+      .digit_clock_time .hour,
+      .digit_clock_time .minute,
+      .digit_clock_time .second {
+        width: 45px;
+      }
+
       .digit_clock_time {
         font-size: 45px;
       }
+
       .digit_clock_time .ampm {
-        font-size: 42px;
+        font-size: 30px;
       }
+
       .digit_clock_date,
       .digit_clock_date_short,
       .digit_clock_city_name,
       .digit_clock_current_weather {
         font-size: 35px;
       }
+
       .digit_clock_date_short {
         font-size: 40px;
       }
+
       .digit_clock_current_weather {
         font-size: 30px;
       }
     }
+
+    @media only screen and (min-width: 1280px) {
+      .digit_clocks_container {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
   </style>
 </head>
+
 <body>
   <div class="digit_clock_app">
     <div class="digit_clock_header">
       <div class="digit_clock_header_row">
-        <button type="button"
-          class="digit_clock_menu_toggle"
-          id="digit_clock_menu_toggle"
-          aria-expanded="false"
-          aria-controls="digit_clock_toolbar"
-          aria-label="Display settings">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+        <div class="digit_clock_brand">
+          <svg class="digit_clock_logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none"
+            aria-hidden="true">
+            <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2"></circle>
+            <path d="M16 8v8l5 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            </path>
+          </svg>
+          <span class="digit_clock_title">Digital Clock</span>
+        </div>
+        <button type="button" class="digit_clock_menu_toggle" id="digit_clock_menu_toggle" aria-expanded="false"
+          aria-controls="digit_clock_toolbar" aria-label="Display settings">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path
+              d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z">
+            </path>
             <circle cx="12" cy="12" r="3"></circle>
           </svg>
         </button>
@@ -348,8 +515,8 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         <div class="digital_clock_wrapper" data-clock-id="nashville">
           <div class="digit_clock_city_name">Nashville, TN</div>
           <div class="digit_clock_time">
-            <span class="hour">--</span> :
-            <span class="minute">--</span> :
+            <span class="hour">--</span><span class="time_separator">:</span>
+            <span class="minute">--</span><span class="time_separator">:</span>
             <span class="second">--</span>
             <span class="ampm">--</span>
           </div>
@@ -363,8 +530,8 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         <div class="digital_clock_wrapper" data-clock-id="puerto-vallarta">
           <div class="digit_clock_city_name">Puerto Vallarta, MX</div>
           <div class="digit_clock_time">
-            <span class="hour">--</span> :
-            <span class="minute">--</span> :
+            <span class="hour">--</span><span class="time_separator">:</span>
+            <span class="minute">--</span><span class="time_separator">:</span>
             <span class="second">--</span>
             <span class="ampm">--</span>
           </div>
@@ -378,14 +545,29 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         <div class="digital_clock_wrapper" data-clock-id="tepic">
           <div class="digit_clock_city_name">Tepic, MX</div>
           <div class="digit_clock_time">
-            <span class="hour">--</span> :
-            <span class="minute">--</span> :
+            <span class="hour">--</span><span class="time_separator">:</span>
+            <span class="minute">--</span><span class="time_separator">:</span>
             <span class="second">--</span>
             <span class="ampm">--</span>
           </div>
           <div class="digit_clock_date"></div>
           <div class="digit_clock_date_short"></div>
           <div class="digit_clock_current_weather" data-weather-id="tepic">
+            <span class="weather_temp"></span>
+            <span class="weather_desc"></span>
+          </div>
+        </div>
+        <div class="digital_clock_wrapper" data-clock-id="vancouver">
+          <div class="digit_clock_city_name">Vancouver, BC</div>
+          <div class="digit_clock_time">
+            <span class="hour">--</span><span class="time_separator">:</span>
+            <span class="minute">--</span><span class="time_separator">:</span>
+            <span class="second">--</span>
+            <span class="ampm">--</span>
+          </div>
+          <div class="digit_clock_date"></div>
+          <div class="digit_clock_date_short"></div>
+          <div class="digit_clock_current_weather" data-weather-id="vancouver">
             <span class="weather_temp"></span>
             <span class="weather_desc"></span>
           </div>
@@ -481,6 +663,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       { id: 'nashville', city: 'Nashville, TN', timeZone: 'America/Chicago' },
       { id: 'puerto-vallarta', city: 'Puerto Vallarta, MX', timeZone: 'America/Bahia_Banderas' },
       { id: 'tepic', city: 'Tepic, MX', timeZone: 'America/Mazatlan' },
+      { id: 'vancouver', city: 'Vancouver, BC', timeZone: 'America/Vancouver' },
     ];
     const WEATHER_CONFIG = [
       {
@@ -503,6 +686,13 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         latitude: 21.5085,
         longitude: -104.8936,
         cacheKey: 'digit_clock_weather_tepic_v1',
+      },
+      {
+        id: 'vancouver',
+        label: 'Vancouver',
+        latitude: 49.2827,
+        longitude: -123.1207,
+        cacheKey: 'digit_clock_weather_vancouver_v1',
       },
     ];
     const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -600,7 +790,7 @@ ${dateLongParts.year}`;
       const dateShort = `${dateShortParts.month} / ${dateShortParts.day}
 / ${dateShortParts.year}`;
       return {
-        hour: pad2(timeParts.hour),
+        hour: timeParts.hour,
         minute: pad2(timeParts.minute),
         second: pad2(timeParts.second),
         ampm: timeParts.dayPeriod || '',
@@ -611,6 +801,14 @@ ${dateLongParts.year}`;
     function setTextIfChanged(element, value) {
       if (element && element.textContent !== value) {
         element.textContent = value;
+      }
+    }
+    function setClockPartText(element, value) {
+      setTextIfChanged(element, value);
+      if (element) {
+        const text = String(value);
+        element.classList.toggle('is_double_one', text === '11');
+        element.classList.toggle('has_one', text !== '11' && text.length > 1 && text.includes('1'));
       }
     }
     function bindClockRoots(config) {
@@ -634,9 +832,9 @@ ${dateLongParts.year}`;
         .filter(Boolean);
     }
     function updateClockDom(refs, data) {
-      setTextIfChanged(refs.hour, data.hour);
-      setTextIfChanged(refs.minute, data.minute);
-      setTextIfChanged(refs.second, data.second);
+      setClockPartText(refs.hour, data.hour);
+      setClockPartText(refs.minute, data.minute);
+      setClockPartText(refs.second, data.second);
       setTextIfChanged(refs.ampm, data.ampm);
       setTextIfChanged(refs.date,
         data.dateLong);
@@ -939,4 +1137,5 @@ ${dateLongParts.year}`;
     });
   </script>
 </body>
+
 </html>
