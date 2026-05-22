@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Digital Clock</title>
+  <link rel="icon" type="image/svg+xml" href="clock-favicon.svg">
   <!--
 Weather: Open-Meteo (no API key). Optional future provider:
 <script>window.__WEATHER_API_KEY__ = 'your-key';</script>
@@ -216,13 +217,11 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       display: flex;
       justify-content: center;
       width: 100%;
-      flex: 1;
     }
 
     .digit_clocks_container {
       display: grid;
       grid-template-columns: 1fr;
-      grid-auto-rows: 1fr;
       align-items: stretch;
       justify-items: center;
       gap: 1.5rem;
@@ -381,6 +380,11 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         transform: none;
         overflow: visible;
         transition: none;
+        pointer-events: auto;
+      }
+
+      .digit_clock_toolbar:not(.is-open) .digit_clock_controls {
+        pointer-events: auto;
       }
 
       .digit_clocks_container {
@@ -465,7 +469,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
 
     @media only screen and (min-width: 1280px) {
       .digit_clocks_container {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
   </style>

@@ -1,0 +1,50 @@
+@using DigitalClockBlazor.Models
+
+<div class="digit_clock_toolbar @(IsOpen ? "is-open" : null)" id="digit_clock_toolbar">
+    <div class="digit_clock_controls" role="region" aria-label="Display settings">
+        <div class="toggle_group" role="group" aria-label="Temperature unit">
+            <button type="button"
+                    class="toggle_btn @(Preferences.Unit == TemperatureUnit.Fahrenheit ? "is-active" : null)"
+                    aria-pressed="@(Preferences.Unit == TemperatureUnit.Fahrenheit)"
+                    @onclick="() => UnitChanged.InvokeAsync(TemperatureUnit.Fahrenheit)">
+                &deg;F
+            </button>
+            <span class="toggle_label"> / </span>
+            <button type="button"
+                    class="toggle_btn @(Preferences.Unit == TemperatureUnit.Celsius ? "is-active" : null)"
+                    aria-pressed="@(Preferences.Unit == TemperatureUnit.Celsius)"
+                    @onclick="() => UnitChanged.InvokeAsync(TemperatureUnit.Celsius)">
+                &deg;C
+            </button>
+        </div>
+        <div class="toggle_group" role="group" aria-label="Language">
+            <button type="button"
+                    class="toggle_btn @(Preferences.Language == DisplayLanguage.English ? "is-active" : null)"
+                    aria-pressed="@(Preferences.Language == DisplayLanguage.English)"
+                    @onclick="() => LanguageChanged.InvokeAsync(DisplayLanguage.English)">
+                EN
+            </button>
+            <span class="toggle_label"> / </span>
+            <button type="button"
+                    class="toggle_btn @(Preferences.Language == DisplayLanguage.Spanish ? "is-active" : null)"
+                    aria-pressed="@(Preferences.Language == DisplayLanguage.Spanish)"
+                    @onclick="() => LanguageChanged.InvokeAsync(DisplayLanguage.Spanish)">
+                ES
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public AppPreferences Preferences { get; set; } = new(TemperatureUnit.Fahrenheit, DisplayLanguage.English);
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback<TemperatureUnit> UnitChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<DisplayLanguage> LanguageChanged { get; set; }
+}

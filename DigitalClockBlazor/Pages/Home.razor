@@ -1,0 +1,180 @@
+@page "/"
+@implements IDisposable
+@inject ClockCatalog ClockCatalog
+@inject ClockFormatter ClockFormatter
+@inject WeatherService WeatherService
+@inject PreferenceService PreferenceService
+
+<PageTitle>Digital Clock</PageTitle>
+
+<div class="digit_clock_app">
+    <header class="digit_clock_header">
+        <div class="digit_clock_header_row">
+            <div class="digit_clock_brand">
+                <svg class="digit_clock_logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                    <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2"></circle>
+                    <path d="M16 8v8l5 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <span class="digit_clock_title">Digital Clock</span>
+            </div>
+            <button type="button"
+                    class="digit_clock_menu_toggle"
+                    aria-expanded="@isToolbarOpen"
+                    aria-controls="digit_clock_toolbar"
+                    aria-label="Display settings"
+                    @onclick="ToggleToolbar">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </button>
+        </div>
+        <SettingsToolbar Preferences="preferences"
+                         IsOpen="isToolbarOpen"
+                         UnitChanged="SetTemperatureUnitAsync"
+                         LanguageChanged="SetLanguageAsync" />
+    </header>
+
+    <main class="digit_clocks_row">
+        <div class="digit_clocks_container">
+            @foreach (var location in ClockCatalog.Locations)
+            {
+                <ClockCard Location="location"
+                           Display="GetClockDisplay(location)"
+                           Weather="GetWeatherDisplay(location.Id)"
+                           LoadingWeatherText="@T("Loading weather...")" />
+            }
+        </div>
+    </main>
+</div>
+
+@code {
+    private readonly CancellationTokenSource disposeToken = new();
+    private readonly Dictionary<string, WeatherDisplay?> weatherByLocationId = [];
+    private readonly Dictionary<string, ClockDisplay> displayByLocationId = [];
+    private AppPreferences preferences = new(TemperatureUnit.Fahrenheit, DisplayLanguage.English);
+    private PeriodicTimer? clockTimer;
+    private bool isToolbarOpen;
+
+    protected override async Task OnInitializedAsync()
+    {
+        preferences = await PreferenceService.LoadAsync();
+        UpdateClockDisplays();
+
+        _ = RunClockAsync(disposeToken.Token);
+        await LoadWeatherAsync();
+    }
+
+    private ClockDisplay GetClockDisplay(ClockLocation location)
+    {
+        return displayByLocationId.TryGetValue(location.Id, out var display)
+            ? display
+            : new ClockDisplay("--", "--", "--", "--", string.Empty, string.Empty);
+    }
+
+    private WeatherDisplay? GetWeatherDisplay(string locationId)
+    {
+        return weatherByLocationId.GetValueOrDefault(locationId);
+    }
+
+    private void ToggleToolbar()
+    {
+        isToolbarOpen = !isToolbarOpen;
+    }
+
+    private async Task SetTemperatureUnitAsync(TemperatureUnit unit)
+    {
+        if (preferences.Unit == unit)
+        {
+            return;
+        }
+
+        preferences = preferences with { Unit = unit };
+        await PreferenceService.SaveAsync(preferences);
+        await LoadWeatherAsync();
+    }
+
+    private async Task SetLanguageAsync(DisplayLanguage language)
+    {
+        if (preferences.Language == language)
+        {
+            return;
+        }
+
+        preferences = preferences with { Language = language };
+        UpdateClockDisplays();
+        await PreferenceService.SaveAsync(preferences);
+        await LoadWeatherAsync();
+    }
+
+    private async Task RunClockAsync(CancellationToken cancellationToken)
+    {
+        clockTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        try
+        {
+            while (await clockTimer.WaitForNextTickAsync(cancellationToken))
+            {
+                UpdateClockDisplays();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Component is being disposed.
+        }
+    }
+
+    private void UpdateClockDisplays()
+    {
+        var now = DateTimeOffset.Now;
+        foreach (var location in ClockCatalog.Locations)
+        {
+            displayByLocationId[location.Id] = ClockFormatter.Format(location, preferences.Language, now);
+        }
+    }
+
+    private async Task LoadWeatherAsync()
+    {
+        foreach (var location in ClockCatalog.Locations)
+        {
+            try
+            {
+                weatherByLocationId[location.Id] = await WeatherService.GetCurrentWeatherAsync(
+                    location,
+                    preferences.Unit,
+                    preferences.Language,
+                    disposeToken.Token);
+            }
+            catch
+            {
+                weatherByLocationId[location.Id] = new WeatherDisplay(string.Empty, T("Weather unavailable"));
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string T(string englishText)
+    {
+        if (preferences.Language == DisplayLanguage.English)
+        {
+            return englishText;
+        }
+
+        return englishText switch
+        {
+            "Loading weather..." => "Cargando clima...",
+            "Weather unavailable" => "Clima no disponible",
+            _ => englishText
+        };
+    }
+
+    public void Dispose()
+    {
+        disposeToken.Cancel();
+        disposeToken.Dispose();
+        clockTimer?.Dispose();
+    }
+}

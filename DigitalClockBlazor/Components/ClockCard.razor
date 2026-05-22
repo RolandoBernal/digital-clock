@@ -1,0 +1,46 @@
+@using DigitalClockBlazor.Models
+
+<div class="digital_clock_wrapper">
+    <div class="digit_clock_city_name">@Location.City</div>
+    <div class="digit_clock_time">
+        <span class="hour @GetDigitSpacingClass(Display.Hour)">@Display.Hour</span><span class="time_separator">:</span>
+        <span class="minute @GetDigitSpacingClass(Display.Minute)">@Display.Minute</span><span class="time_separator">:</span>
+        <span class="second @GetDigitSpacingClass(Display.Second)">@Display.Second</span>
+        <span class="ampm">@Display.DayPeriod</span>
+    </div>
+    <div class="digit_clock_date">@Display.LongDate</div>
+    <div class="digit_clock_date_short">@Display.ShortDate</div>
+    <div class="digit_clock_current_weather">
+        <span class="weather_temp">@WeatherText</span>
+        @if (!string.IsNullOrWhiteSpace(Weather?.Description))
+        {
+            <span class="weather_desc">@Weather.Description</span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ClockLocation Location { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ClockDisplay Display { get; set; } = new("--", "--", "--", "--", string.Empty, string.Empty);
+
+    [Parameter]
+    public WeatherDisplay? Weather { get; set; }
+
+    [Parameter]
+    public string LoadingWeatherText { get; set; } = "Loading weather...";
+
+    private string WeatherText => Weather?.Temperature ?? LoadingWeatherText;
+
+    private static string GetDigitSpacingClass(string value)
+    {
+        if (value == "11")
+        {
+            return "is_double_one";
+        }
+
+        return value.Length > 1 && value.Contains('1') ? "has_one" : string.Empty;
+    }
+}

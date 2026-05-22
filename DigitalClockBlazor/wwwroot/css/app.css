@@ -1,0 +1,503 @@
+@import url('https://fonts.googleapis.com/css?family=Orbitron');
+
+@font-face {
+  font-family: 'Digital-7';
+  src: url('../fonts/digital-7.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+html,
+body {
+  background-color: black;
+  margin: 0;
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'Orbitron', 'Work Sans', sans-serif;
+}
+
+button {
+  font: inherit;
+}
+
+.digit_clock_app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.digit_clock_header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto 1.5rem;
+  flex-shrink: 0;
+}
+
+.digit_clock_header_row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.digit_clock_brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #66ff99;
+  min-width: 0;
+}
+
+.digit_clock_logo {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.digit_clock_title {
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.digit_clock_menu_toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem;
+  color: #66ff99;
+  background-color: #111;
+  border: 1px solid #333;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.digit_clock_menu_toggle:hover {
+  border-color: #66ff99;
+}
+
+.digit_clock_menu_toggle:focus-visible {
+  outline: 2px solid #66ff99;
+  outline-offset: 2px;
+}
+
+.digit_clock_menu_toggle svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.digit_clock_menu_toggle[aria-expanded="true"] {
+  border-color: #66ff99;
+  background-color: #1a3d2a;
+}
+
+.digit_clock_menu_toggle[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+
+.digit_clock_toolbar {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 100%;
+  margin-top: 0;
+  opacity: 0;
+  overflow: hidden;
+  justify-content: flex-end;
+  transition: grid-template-rows 0.3s ease, margin-top 0.3s ease, opacity 0.25s ease;
+}
+
+.digit_clock_toolbar.is-open {
+  grid-template-rows: 1fr;
+  margin-top: 0.5rem;
+  opacity: 1;
+}
+
+.digit_clock_toolbar:not(.is-open) .digit_clock_controls {
+  pointer-events: none;
+}
+
+.digit_clock_toolbar .digit_clock_controls {
+  min-height: 0;
+  overflow: hidden;
+  transform: translateY(-0.5rem);
+  transition: transform 0.3s ease;
+}
+
+.digit_clock_toolbar.is-open .digit_clock_controls {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .digit_clock_toolbar,
+  .digit_clock_toolbar .digit_clock_controls,
+  .digit_clock_menu_toggle svg {
+    transition: none;
+  }
+
+  .digit_clock_toolbar .digit_clock_controls,
+  .digit_clock_toolbar.is-open .digit_clock_controls {
+    transform: none;
+  }
+}
+
+.digit_clock_controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #0a0a0a;
+  border: 2px solid #222;
+  border-radius: 10px;
+  box-shadow: 0 6px 16px 0 rgb(255 255 255 / 10%);
+}
+
+.toggle_group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.toggle_label {
+  color: #66ff99;
+  font-size: 12px;
+}
+
+.toggle_btn {
+  font-size: 12px;
+  color: #66ff99;
+  background-color: #111;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  min-width: 40px;
+}
+
+.toggle_btn:hover {
+  border-color: #66ff99;
+}
+
+.toggle_btn.is-active {
+  background-color: #1a3d2a;
+  border-color: #66ff99;
+  color: #a8ffcc;
+  font-weight: bold;
+}
+
+.toggle_btn:focus-visible {
+  outline: 2px solid #66ff99;
+  outline-offset: 2px;
+}
+
+.digit_clocks_row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.digit_clocks_container {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  justify-items: center;
+  gap: 1.5rem;
+  max-width: 1500px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.digit_clock_city_name,
+.digit_clock_current_weather {
+  color: #66ff99;
+  font-size: 20px;
+  text-align: center;
+  padding-bottom: 10px;
+}
+
+.digit_clock_city_name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.3em;
+  line-height: 1.15;
+}
+
+.digit_clock_current_weather {
+  padding-top: 20px;
+  padding-bottom: 0;
+  font-size: 18px;
+}
+
+.digit_clock_current_weather .weather_temp,
+.digit_clock_current_weather .weather_desc {
+  display: block;
+}
+
+.digit_clock_time {
+  font-family: 'Digital-7', 'Orbitron', monospace;
+  color: #66ff99;
+  font-size: 35px;
+  text-align: center;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 0.45em;
+  white-space: nowrap;
+}
+
+.digit_clock_time span {
+  display: inline-block;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.digit_clock_time .hour,
+.digit_clock_time .minute,
+.digit_clock_time .second {
+  width: 2ch;
+  text-align: right;
+  transform: scaleX(1.45);
+  transform-origin: center;
+}
+
+.digit_clock_time .is_double_one {
+  letter-spacing: 0.3em;
+}
+
+.digit_clock_time .has_one {
+  letter-spacing: 0.18em;
+}
+
+.digit_clock_time .time_separator {
+  width: 0.35em;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.digit_clock_time .ampm {
+  font-size: 26px;
+  margin-left: 0.25em;
+}
+
+.digit_clock_date,
+.digit_clock_date_short {
+  color: #66ff99;
+  font-size: 20px;
+  text-align: center;
+  padding-top: 20px;
+  white-space: pre-line;
+}
+
+.digit_clock_date_short {
+  font-size: 24px;
+}
+
+.digital_clock_wrapper {
+  border: 2px solid #222;
+  box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
+    0 6px 20px 0 rgb(255 255 255 / 10%);
+  padding: 1rem;
+  width: 100%;
+  max-width: min(480px, 100%);
+  box-sizing: border-box;
+  text-align: center;
+  border-radius: 15px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
+}
+
+#blazor-error-ui {
+  background: #211;
+  bottom: 0;
+  box-shadow: 0 -1px 2px rgb(255 255 255 / 20%);
+  color: #fff;
+  display: none;
+  left: 0;
+  padding: 0.6rem 1.25rem 0.7rem;
+  position: fixed;
+  width: 100%;
+  z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+  cursor: pointer;
+  position: absolute;
+  right: 0.75rem;
+  top: 0.5rem;
+}
+
+.loading-progress {
+  display: block;
+  width: 8rem;
+  height: 8rem;
+  margin: 20vh auto 1rem;
+}
+
+.loading-progress circle {
+  fill: none;
+  stroke: #66ff99;
+  stroke-width: 0.6rem;
+  transform-origin: 50% 50%;
+}
+
+.loading-progress-text {
+  color: #66ff99;
+  text-align: center;
+}
+
+@media only screen and (min-width: 768px) {
+  .digit_clock_title {
+    font-size: 18px;
+  }
+
+  .digit_clock_logo {
+    width: 34px;
+    height: 34px;
+  }
+
+  .digit_clock_header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .digit_clock_header_row {
+    display: flex;
+    flex: 1;
+    justify-content: flex-start;
+    align-items: center;
+    width: auto;
+  }
+
+  .digit_clock_menu_toggle {
+    display: none;
+  }
+
+  .digit_clock_toolbar {
+    display: flex;
+    grid-template-rows: none;
+    margin-top: 0;
+    width: auto;
+    opacity: 1;
+    overflow: visible;
+    justify-content: flex-end;
+    transition: none;
+  }
+
+  .digit_clock_toolbar .digit_clock_controls {
+    transform: none;
+    overflow: visible;
+    transition: none;
+    pointer-events: auto;
+  }
+
+  .digit_clock_toolbar:not(.is-open) .digit_clock_controls {
+    pointer-events: auto;
+  }
+
+  .digit_clocks_container {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-items: stretch;
+  }
+
+  .digital_clock_wrapper {
+    padding: 25px;
+    max-width: none;
+  }
+
+  .digit_clock_time .hour,
+  .digit_clock_time .minute,
+  .digit_clock_time .second {
+    width: 45px;
+  }
+
+  .digit_clock_time {
+    font-size: 35px;
+  }
+
+  .digit_clock_time .ampm {
+    font-size: 30px;
+  }
+
+  .digit_clock_date,
+  .digit_clock_date_short,
+  .digit_clock_city_name,
+  .digit_clock_current_weather {
+    font-size: 25px;
+  }
+
+  .digit_clock_date_short {
+    font-size: 30px;
+  }
+
+  .digit_clock_current_weather {
+    font-size: 22px;
+  }
+}
+
+@media only screen and (min-width: 1024px) {
+  .digit_clock_title {
+    font-size: 22px;
+  }
+
+  .digit_clock_logo {
+    width: 38px;
+    height: 38px;
+  }
+
+  .digit_clock_time .hour,
+  .digit_clock_time .minute,
+  .digit_clock_time .second {
+    width: 45px;
+  }
+
+  .digit_clock_time {
+    font-size: 45px;
+  }
+
+  .digit_clock_time .ampm {
+    font-size: 30px;
+  }
+
+  .digit_clock_date,
+  .digit_clock_date_short,
+  .digit_clock_city_name,
+  .digit_clock_current_weather {
+    font-size: 35px;
+  }
+
+  .digit_clock_date_short {
+    font-size: 40px;
+  }
+
+  .digit_clock_current_weather {
+    font-size: 30px;
+  }
+}
+
+@media only screen and (min-width: 1280px) {
+  .digit_clocks_container {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
