@@ -6,6 +6,7 @@
   let activeTimer = null;
   let audioCtx = null;
   let audioUnlocked = false;
+  const activeAudioNodes = new Set();
 
   function createId() {
     return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
@@ -160,49 +161,160 @@
 
   function getAudioContext() {
     if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        return null;
+      }
+      audioCtx = new AudioContextClass();
     }
     return audioCtx;
   }
 
-  async function unlockAudio() {
-    try {
-      const ctx = getAudioContext();
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
+  function logAudioState(message) {
+    console.log(`Violet Sprints audio: ${message}`, audioCtx?.state || 'unavailable');
+  }
+
+  function shouldResumeAudio(ctx) {
+    return ctx && (ctx.state === 'suspended' || ctx.state === 'interrupted');
+  }
+
+  function showSoundEnableControl() {
+    const root = sprintsRoot();
+    if (!root || root.hidden || root.querySelector('[data-action="enable-sound"]')) {
+      return;
+    }
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'sprints-sound-enable';
+    button.dataset.action = 'enable-sound';
+    button.textContent = 'Tap to Enable Sound';
+    button.addEventListener('click', async () => {
+      const enabled = await unlockAudio();
+      if (enabled) {
+        button.remove();
       }
-      if (!audioUnlocked) {
+    });
+    root.appendChild(button);
+    logAudioState('showing enable control');
+  }
+
+  function hideSoundEnableControl() {
+    document.querySelectorAll('[data-action="enable-sound"]').forEach((button) => button.remove());
+  }
+
+  async function ensureAudioIsRunning() {
+    const ctx = getAudioContext();
+    if (!ctx) {
+      showSoundEnableControl();
+      return false;
+    }
+    if (shouldResumeAudio(ctx)) {
+      try {
+        await ctx.resume();
+      } catch (error) {
+        console.warn('Unable to resume audio context:', error);
+      }
+    }
+    const isRunning = ctx.state === 'running';
+    if (isRunning) {
+      hideSoundEnableControl();
+    } else {
+      showSoundEnableControl();
+    }
+    return isRunning;
+  }
+
+  async function unlockAudio() {
+    const ctx = getAudioContext();
+    if (!ctx) {
+      showSoundEnableControl();
+      return false;
+    }
+    if (!(await ensureAudioIsRunning())) {
+      logAudioState('unlock failed before primer');
+      return false;
+    }
+    if (!audioUnlocked) {
+      try {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        gain.gain.value = 0.0001;
+        gain.gain.setValueAtTime(0.00001, ctx.currentTime);
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.03);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.01);
         audioUnlocked = true;
+      } catch (error) {
+        console.warn('Unable to unlock audio context:', error);
+        showSoundEnableControl();
+        return false;
       }
-    } catch {
-      /* audio unavailable */
     }
+    hideSoundEnableControl();
+    logAudioState('unlocked');
+    return ctx.state === 'running';
+  }
+
+  function trackBeepNodes(osc, gain) {
+    const entry = { osc, gain };
+    activeAudioNodes.add(entry);
+    osc.addEventListener('ended', () => {
+      activeAudioNodes.delete(entry);
+      try {
+        osc.disconnect();
+        gain.disconnect();
+      } catch {
+        /* node already disconnected */
+      }
+    });
+  }
+
+  function stopActiveBeeps() {
+    activeAudioNodes.forEach(({ osc, gain }) => {
+      try {
+        osc.stop();
+      } catch {
+        /* oscillator already stopped */
+      }
+      try {
+        osc.disconnect();
+        gain.disconnect();
+      } catch {
+        /* node already disconnected */
+      }
+    });
+    activeAudioNodes.clear();
   }
 
   function playBeep(frequency = 880, durationMs = 120) {
     try {
       const ctx = getAudioContext();
-      if (ctx.state === 'suspended') {
-        ctx.resume();
+      if (!ctx) {
+        showSoundEnableControl();
+        return;
+      }
+      if (ctx.state !== 'running') {
+        if (shouldResumeAudio(ctx)) {
+          ctx.resume().then(() => {
+            if (ctx.state !== 'running') showSoundEnableControl();
+          }).catch(() => showSoundEnableControl());
+        } else {
+          showSoundEnableControl();
+        }
+        return;
       }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.value = frequency;
-      gain.gain.value = 0.15;
+      osc.frequency.setValueAtTime(frequency, ctx.currentTime);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start();
+      trackBeepNodes(osc, gain);
+      osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + durationMs / 1000);
     } catch {
-      /* audio unavailable */
+      showSoundEnableControl();
     }
   }
 
@@ -237,6 +349,7 @@
 
   function showClock() {
     stopTimer();
+    stopActiveBeeps();
     setView('clock');
   }
 
@@ -547,6 +660,7 @@
       },
       finish() {
         clearTick();
+        stopActiveBeeps();
         phase = 'complete';
         emitUpdate();
       },
@@ -556,6 +670,7 @@
       },
       destroy() {
         clearTick();
+        stopActiveBeeps();
         phase = 'idle';
       },
     };
@@ -640,7 +755,10 @@
         await unlockAudio();
         activeTimer.restart();
       }
-      if (action === 'list') showWorkoutList();
+      if (action === 'list') {
+        stopActiveBeeps();
+        showWorkoutList();
+      }
     });
     activeTimer.start();
   }
@@ -648,8 +766,18 @@
   function init() {
     loadWorkouts();
     document.getElementById('open-sprints')?.addEventListener('click', async () => {
-      await unlockAudio();
+      const audioEnabled = await unlockAudio();
       showWorkoutList();
+      if (!audioEnabled) {
+        showSoundEnableControl();
+      }
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && audioCtx) {
+        ensureAudioIsRunning().then((running) => {
+          if (!running) logAudioState('not running after visibility restore');
+        });
+      }
     });
     setView('clock');
   }
