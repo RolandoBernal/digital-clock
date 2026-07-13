@@ -91,6 +91,16 @@
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }
 
+  function formatCountdownDisplay(totalSeconds) {
+    const s = Math.max(0, Math.round(totalSeconds || 0));
+    if (s <= 60) {
+      return String(s);
+    }
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  }
+
   function parseDuration(input) {
     const raw = String(input || '').trim();
     if (!raw) return 0;
@@ -444,6 +454,7 @@
         totalSteps: workout.steps.length,
         stepLabel: step?.label || '',
         stepTheme: getStepTheme(step?.label),
+        secondsLeft,
         countdown: formatDuration(secondsLeft),
         nextLabel: nextStep()?.label || '',
         remaining: formatDuration(remainingWorkoutSeconds()),
@@ -564,13 +575,15 @@
     }
 
     const label = state.phase === 'pre_countdown' ? 'Get Ready' : state.stepLabel;
-    const countdown = state.phase === 'pre_countdown' ? String(Number(state.countdown.slice(-2))) : state.countdown;
+    const countdownSeconds = state.phase === 'pre_countdown' ? Number(state.countdown.slice(-2)) : state.secondsLeft;
+    const countdown = formatCountdownDisplay(countdownSeconds);
+    const countdownMode = countdownSeconds <= 60 ? 'seconds' : 'time';
     root.innerHTML = `
       <div class="sprints-timer sprints-timer--${escapeHtml(state.stepTheme)}">
         <div class="sprints-timer-main">
           <div class="sprints-timer-workout">${escapeHtml(state.workoutName)}</div>
           <div class="sprints-timer-step">${escapeHtml(label)}</div>
-          <div class="sprints-countdown">${escapeHtml(countdown)}</div>
+          <div class="sprints-countdown sprints-countdown--${countdownMode}">${escapeHtml(countdown)}</div>
           <div class="sprints-timer-meta">Step ${state.stepIndex + 1} of ${state.totalSteps}</div>
         </div>
         <div class="sprints-timer-grid">

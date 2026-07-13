@@ -269,11 +269,15 @@
 .sprints-countdown {
   color: #fff;
   font-family: 'Roboto Mono', 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
-  font-size: clamp(6rem, 28vw, 17rem);
+  font-size: clamp(5.5rem, 24vw, 15rem);
   line-height: 0.9;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   white-space: nowrap;
+}
+
+.sprints-countdown--seconds {
+  font-size: clamp(8rem, 42vw, 23rem);
 }
 
 .sprints-timer-grid {
