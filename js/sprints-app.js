@@ -5,6 +5,7 @@
   let workouts = [];
   let activeTimer = null;
   let audioCtx = null;
+  let audioUnlocked = false;
 
   function createId() {
     return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
@@ -151,15 +152,36 @@
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
     return audioCtx;
+  }
+
+  async function unlockAudio() {
+    try {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+      if (!audioUnlocked) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0.0001;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.03);
+        audioUnlocked = true;
+      }
+    } catch {
+      /* audio unavailable */
+    }
   }
 
   function playBeep(frequency = 880, durationMs = 120) {
     try {
       const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -565,7 +587,8 @@
       </div>`;
   }
 
-  function showTimer(id) {
+  async function showTimer(id) {
+    await unlockAudio();
     const workout = workouts.find((item) => item.id === id);
     if (!workout) {
       showWorkoutList();
@@ -582,16 +605,28 @@
       return;
     }
     activeTimer = createWorkoutTimer(workout, { onUpdate: (state) => renderTimer(root, state) });
-    root.addEventListener('click', (event) => {
+    root.addEventListener('click', async (event) => {
       const button = event.target.closest('[data-action]');
       if (!button || !activeTimer) return;
       const action = button.dataset.action;
       if (action === 'pause') activeTimer.pause();
-      if (action === 'resume') activeTimer.resume();
-      if (action === 'skip') activeTimer.skip();
-      if (action === 'back-step') activeTimer.back();
+      if (action === 'resume') {
+        await unlockAudio();
+        activeTimer.resume();
+      }
+      if (action === 'skip') {
+        await unlockAudio();
+        activeTimer.skip();
+      }
+      if (action === 'back-step') {
+        await unlockAudio();
+        activeTimer.back();
+      }
       if (action === 'finish') activeTimer.finish();
-      if (action === 'restart') activeTimer.restart();
+      if (action === 'restart') {
+        await unlockAudio();
+        activeTimer.restart();
+      }
       if (action === 'list') showWorkoutList();
     });
     activeTimer.start();
@@ -599,7 +634,10 @@
 
   function init() {
     loadWorkouts();
-    document.getElementById('open-sprints')?.addEventListener('click', showWorkoutList);
+    document.getElementById('open-sprints')?.addEventListener('click', async () => {
+      await unlockAudio();
+      showWorkoutList();
+    });
     setView('clock');
   }
 
