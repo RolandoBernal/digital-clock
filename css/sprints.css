@@ -1,0 +1,358 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Roboto+Mono:wght@500;600;700&display=swap');
+
+.clock_launch_bar {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 1500px;
+  margin: 1.5rem auto 0;
+}
+
+.clock_launch_btn,
+.sprints-btn {
+  min-height: 48px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #111;
+  color: #f5f2ff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clock_launch_btn {
+  width: min(100%, 420px);
+  padding: 0.9rem 1.2rem;
+  border-color: #7c4dff;
+  background: #1b1233;
+  color: #d8ccff;
+}
+
+.clock_launch_btn:hover,
+.sprints-btn:hover {
+  border-color: #b49cff;
+}
+
+.clock_launch_btn:focus-visible,
+.sprints-btn:focus-visible,
+.sprints-input:focus-visible {
+  outline: 2px solid #b49cff;
+  outline-offset: 3px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.sprints-view {
+  min-height: 100vh;
+  background: #050507;
+  color: #f7f3ff;
+  box-sizing: border-box;
+}
+
+.sprints-app {
+  width: min(100%, 920px);
+  margin: 0 auto;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.sprints-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.sprints-title {
+  margin: 0;
+  color: #d8ccff;
+  font-size: clamp(1.5rem, 5vw, 3rem);
+  text-align: center;
+}
+
+.sprints-subtitle {
+  margin: 1.5rem 0 0.75rem;
+  color: #d8ccff;
+  font-size: 1rem;
+}
+
+.sprints-btn {
+  padding: 0.75rem 0.95rem;
+}
+
+.sprints-btn[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sprints-btn--primary {
+  background: #2a174d;
+  border-color: #7c4dff;
+  color: #efeaff;
+}
+
+.sprints-btn--accent {
+  background: #142b1f;
+  border-color: #3fd97f;
+  color: #d8ffe6;
+}
+
+.sprints-btn--danger {
+  background: #351316;
+  border-color: #8c2d35;
+  color: #ffd5d9;
+}
+
+.sprints-btn--ghost {
+  background: transparent;
+  color: #d8ccff;
+}
+
+.sprints-btn--large {
+  min-width: 104px;
+}
+
+.sprints-btn--block {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.sprints-list,
+.sprints-steps {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sprints-list-item,
+.sprints-step {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid #26232f;
+  border-radius: 8px;
+  background: #0d0b12;
+}
+
+.sprints-list-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-height: 62px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sprints-list-name {
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  color: #fff;
+}
+
+.sprints-list-meta,
+.sprints-label,
+.sprints-timer-meta,
+.sprints-timer-small {
+  color: #aaa2ba;
+  font-size: 0.85rem;
+}
+
+.sprints-list-actions,
+.sprints-step-actions,
+.sprints-step-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+.sprints-editor {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sprints-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.sprints-input {
+  min-height: 48px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #0b0b0e;
+  color: #fff;
+  box-sizing: border-box;
+  padding: 0.75rem;
+  font: inherit;
+  font-size: 1rem;
+}
+
+.sprints-input--large {
+  font-size: 1.35rem;
+}
+
+.sprints-input--duration {
+  font-variant-numeric: tabular-nums;
+}
+
+.sprints-empty {
+  padding: 1rem;
+  border: 1px solid #26232f;
+  border-radius: 8px;
+  color: #aaa2ba;
+  text-align: center;
+}
+
+.sprints-timer {
+  min-height: 100vh;
+  display: grid;
+  align-content: space-between;
+  gap: 1.5rem;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: background-color 0.25s ease;
+}
+
+.sprints-timer--sprint {
+  background: #2a080b;
+}
+
+.sprints-timer--walk {
+  background: #081f13;
+}
+
+.sprints-timer--rest {
+  background: #07172d;
+}
+
+.sprints-timer--cooldown,
+.sprints-timer--default {
+  background: #101014;
+}
+
+.sprints-timer--jog {
+  background: #1f1b08;
+}
+
+.sprints-timer-main {
+  display: grid;
+  gap: 0.7rem;
+  text-align: center;
+}
+
+.sprints-timer-workout {
+  color: #d8ccff;
+  font-size: clamp(1rem, 4vw, 1.6rem);
+  text-transform: uppercase;
+}
+
+.sprints-timer-step {
+  color: #fff;
+  font-size: clamp(2.6rem, 14vw, 8rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.sprints-countdown {
+  color: #fff;
+  font-family: 'Roboto Mono', 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+  font-size: clamp(6rem, 28vw, 17rem);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.sprints-timer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.sprints-timer-panel {
+  padding: 0.8rem;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 24%);
+}
+
+.sprints-timer-value {
+  display: block;
+  margin-top: 0.3rem;
+  color: #fff;
+  font-size: clamp(1.2rem, 5vw, 2rem);
+}
+
+.sprints-timer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.sprints-complete {
+  display: grid;
+  align-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: #08070d;
+  color: #fff;
+  text-align: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.sprints-complete-title {
+  margin: 0;
+  font-size: clamp(2.5rem, 12vw, 7rem);
+}
+
+.sprints-complete-actions {
+  display: grid;
+  gap: 0.75rem;
+  width: min(100%, 440px);
+  margin: 0 auto;
+}
+
+@media only screen and (min-width: 720px) {
+  .sprints-list-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .sprints-list-actions,
+  .sprints-step-actions {
+    grid-template-columns: repeat(3, auto);
+  }
+
+  .sprints-step {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .sprints-step-fields {
+    grid-template-columns: minmax(0, 1fr) 160px;
+  }
+
+  .sprints-timer-actions {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .sprints-complete-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}

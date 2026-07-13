@@ -15,7 +15,7 @@ Weather: Open-Meteo (no API key). Optional future provider:
 const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
 -->
   <style type="text/css">
-    @import url('https://fonts.googleapis.com/css?family=Orbitron');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Roboto+Mono:wght@500;600;700&display=swap');
 
     @font-face {
       font-family: 'Digital-7';
@@ -60,7 +60,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-family: 'Orbitron', 'Work Sans', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       color: #66ff99;
       min-width: 0;
     }
@@ -173,7 +173,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       border: 2px solid #222;
       border-radius: 10px;
       box-shadow: 0 6px 16px 0 rgb(255 255 255 / 10%);
-      font-family: 'Orbitron', 'Work Sans', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
     .toggle_group {
@@ -235,7 +235,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
 
     .digit_clock_city_name,
     .digit_clock_current_weather {
-      font-family: 'Orbitron', 'Work Sans', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       color: #66ff99;
       font-size: 20px;
       text-align: center;
@@ -262,16 +262,16 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     }
 
     .digit_clock_time {
-      font-family: 'Digital-7', 'Orbitron', monospace;
+      font-family: 'Roboto Mono', 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
       color: #66ff99;
       font-size: 35px;
       text-align: center;
-      letter-spacing: 0.04em;
+      letter-spacing: 0;
       font-variant-numeric: tabular-nums;
       display: flex;
       align-items: baseline;
       justify-content: center;
-      column-gap: 0.45em;
+      column-gap: 0.18em;
       white-space: nowrap;
     }
 
@@ -287,20 +287,17 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     .digit_clock_time .second {
       width: 2ch;
       text-align: right;
-      transform: scaleX(1.45);
-      transform-origin: center;
     }
 
     .digit_clock_time .is_double_one {
-      letter-spacing: 0.3em;
+      letter-spacing: 0;
     }
 
     .digit_clock_time .has_one {
-      letter-spacing: 0.18em;
+      letter-spacing: 0;
     }
 
     .digit_clock_time .time_separator {
-      width: 0.35em;
       text-align: center;
       letter-spacing: 0;
     }
@@ -312,7 +309,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
 
     .digit_clock_date,
     .digit_clock_date_short {
-      font-family: 'Orbitron', 'Work Sans', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       color: #66ff99;
       font-size: 20px;
       text-align: center;
@@ -403,7 +400,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       .digit_clock_time .hour,
       .digit_clock_time .minute,
       .digit_clock_time .second {
-        width: 45px;
+        width: 2ch;
       }
 
       .digit_clock_time {
@@ -443,7 +440,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       .digit_clock_time .hour,
       .digit_clock_time .minute,
       .digit_clock_time .second {
-        width: 45px;
+        width: 2ch;
       }
 
       .digit_clock_time {
@@ -476,10 +473,11 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       }
     }
   </style>
+  <link rel="stylesheet" href="css/sprints.css">
 </head>
 
 <body>
-  <div class="digit_clock_app">
+  <div class="digit_clock_app" id="clock-view">
     <div class="digit_clock_header">
       <div class="digit_clock_header_row">
         <div class="digit_clock_brand">
@@ -581,7 +579,11 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         </div>
       </div>
     </div>
+    <div class="clock_launch_bar">
+      <button type="button" class="clock_launch_btn" id="open-sprints">Violet Sprints</button>
+    </div>
   </div>
+  <div class="sprints-view" id="sprints-view" hidden></div>
   <script>
     // Optional future providers (do not commit real keys):
     // const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
@@ -1143,6 +1145,7 @@ ${dateLongParts.year}`;
       obtainAllWeather();
     });
   </script>
+  <script src="js/sprints-app.js"></script>
 </body>
 
 </html>
