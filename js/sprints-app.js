@@ -751,6 +751,9 @@
         paused = false;
         emitUpdate();
       },
+      isPaused() {
+        return paused;
+      },
       skip() {
         if (phase === 'complete') return;
         clearTick();
@@ -857,11 +860,18 @@
         await unlockAudio();
         activeTimer.back();
       }
-      if (action === 'finish' && await showConfirmationDialog({
-        title: 'Finish Workout?',
-        message: 'Your current workout will end immediately.',
-        confirmLabel: 'Finish Workout',
-      })) activeTimer.finish();
+      if (action === 'finish') {
+        const timer = activeTimer;
+        const wasPausedBeforeConfirmation = timer.isPaused();
+        timer.pause();
+        const confirmed = await showConfirmationDialog({
+          title: 'Finish Workout?',
+          message: 'Your current workout will end immediately.',
+          confirmLabel: 'Finish Workout',
+        });
+        if (confirmed) timer.finish();
+        else if (!wasPausedBeforeConfirmation) timer.resume();
+      }
       if (action === 'restart') {
         await unlockAudio();
         activeTimer.restart();
