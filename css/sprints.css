@@ -232,6 +232,55 @@
   cursor: pointer;
 }
 
+.sprints-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.sprints-confirm__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 62%);
+}
+
+.sprints-confirm__dialog {
+  position: relative;
+  width: min(100%, 420px);
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  padding: 1.1rem;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 8px;
+  background: #101014;
+  color: #f7f3ff;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 45%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.sprints-confirm__title {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.35rem, 6vw, 1.8rem);
+}
+
+.sprints-confirm__message {
+  margin: 0.7rem 0 1rem;
+  color: #d8ccff;
+  line-height: 1.45;
+}
+
+.sprints-confirm__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
 .sprints-timer {
   min-height: 100vh;
   display: grid;
@@ -280,6 +329,13 @@
   color: #fff;
   font-size: clamp(2.6rem, 14vw, 8rem);
   line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.sprints-timer-round {
+  color: #d8ccff;
+  font-size: clamp(1rem, 4vw, 1.35rem);
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -375,5 +431,86 @@
 
   .sprints-complete-actions {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 550px) and (max-width: 960px) {
+  .sprints-timer {
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    grid-template-columns: minmax(0, 1.65fr) minmax(13rem, 0.95fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "main details"
+      "main actions";
+    align-content: stretch;
+    align-items: center;
+    gap: clamp(0.6rem, 2vw, 1rem);
+    overflow: hidden;
+    padding: max(0.5rem, env(safe-area-inset-top)) max(0.85rem, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(0.85rem, env(safe-area-inset-left));
+  }
+
+  .sprints-timer-main {
+    grid-area: main;
+    gap: clamp(0.25rem, 1.5vh, 0.5rem);
+    min-width: 0;
+  }
+
+  .sprints-timer-workout {
+    font-size: clamp(0.78rem, 3.2vh, 1rem);
+  }
+
+  .sprints-timer-step {
+    font-size: clamp(1.6rem, 9vh, 3.2rem);
+  }
+
+  .sprints-timer-round {
+    font-size: clamp(0.78rem, 3vh, 1rem);
+  }
+
+  .sprints-countdown {
+    font-size: clamp(4.2rem, 24vh, 7.5rem);
+  }
+
+  .sprints-countdown--seconds {
+    font-size: clamp(5.4rem, 35vh, 10rem);
+  }
+
+  .sprints-timer-meta,
+  .sprints-timer-small {
+    font-size: clamp(0.72rem, 2.6vh, 0.9rem);
+  }
+
+  .sprints-timer-grid {
+    grid-area: details;
+    grid-template-columns: 1fr;
+    align-self: end;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+
+  .sprints-timer-panel {
+    padding: clamp(0.45rem, 1.8vh, 0.65rem);
+  }
+
+  .sprints-timer-value {
+    margin-top: 0.15rem;
+    font-size: clamp(0.95rem, 3.8vh, 1.35rem);
+  }
+
+  .sprints-timer-actions {
+    grid-area: actions;
+    grid-template-columns: 1fr;
+    align-self: start;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+
+  .sprints-timer-actions .sprints-btn {
+    min-height: clamp(40px, 10vh, 48px);
+    padding: 0.45rem 0.75rem;
+    font-size: clamp(0.82rem, 3vh, 0.95rem);
   }
 }

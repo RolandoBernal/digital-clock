@@ -12,8 +12,8 @@
     return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
   }
 
-  function createStep(label = 'Walk', duration = 60) {
-    return { id: createId(), label, duration };
+  function createStep(label = 'Walk', duration = 60, metadata = {}) {
+    return { id: createId(), label, duration, ...metadata };
   }
 
   function createWorkout(name = 'New Workout', steps = []) {
@@ -23,16 +23,32 @@
   function thursdaySoccerConditioningSteps() {
     const steps = [createStep('Warm-up Easy Jog', 420)];
     for (let round = 1; round <= 8; round += 1) {
-      steps.push(createStep(`Fast ${round}`, 20));
-      steps.push(createStep(`Easy Walk ${round}`, 100));
+      const metadata = { round, totalRounds: 8, blockId: 'fast-run-block' };
+      steps.push(createStep('Fast Run', 20, metadata));
+      steps.push(createStep('Walk', 100, metadata));
     }
-    steps.push(createStep('Rest', 180));
+    steps.push(createStep('Long Rest', 180));
     for (let round = 1; round <= 6; round += 1) {
-      steps.push(createStep(`Sprint ${round}`, 10));
-      steps.push(createStep(`Easy Jog ${round}`, 50));
+      const metadata = { round, totalRounds: 6, blockId: 'sprint-block' };
+      steps.push(createStep('Sprint', 10, metadata));
+      steps.push(createStep('Walk', 50, metadata));
     }
-    steps.push(createStep('Easy Walk Finish', 300));
+    steps.push(createStep('Cooldown', 300));
     return steps;
+  }
+
+  function isNumberedThursdaySprints(workout) {
+    const expected = thursdaySoccerConditioningSteps();
+    return workout?.name === 'Thursday Sprints'
+      && Array.isArray(workout.steps)
+      && workout.steps.length === expected.length
+      && workout.steps[0]?.label === 'Warm-up Easy Jog'
+      && workout.steps[0]?.duration === 420
+      && workout.steps[17]?.label === 'Rest'
+      && workout.steps[17]?.duration === 180
+      && workout.steps[30]?.label === 'Easy Walk Finish'
+      && workout.steps[30]?.duration === 300
+      && workout.steps.every((step, index) => step.duration === expected[index].duration);
   }
 
   function isOldThursdaySprints(workout) {
@@ -60,17 +76,38 @@
     };
   }
 
+  function isDefaultTabata(workout) {
+    const labels = ['Sprint', 'Rest', 'Sprint', 'Rest', 'Sprint', 'Rest', 'Sprint', 'Rest', 'Cooldown'];
+    const durations = [20, 10, 20, 10, 20, 10, 20, 10, 120];
+    return workout?.name === 'Tabata'
+      && Array.isArray(workout.steps)
+      && workout.steps.length === labels.length
+      && workout.steps.every((step, index) => (
+        step.label === labels[index] && step.duration === durations[index]
+      ));
+  }
+
+  function updateDefaultTabata(workout) {
+    return {
+      ...workout,
+      steps: workout.steps.map((step) => ({
+        ...step,
+        label: step.label === 'Sprint' ? 'Exercise' : step.label,
+      })),
+    };
+  }
+
   function defaultWorkouts() {
     return [
       createWorkout('Thursday Sprints', thursdaySoccerConditioningSteps()),
       createWorkout('Tabata', [
-        createStep('Sprint', 20),
+        createStep('Exercise', 20),
         createStep('Rest', 10),
-        createStep('Sprint', 20),
+        createStep('Exercise', 20),
         createStep('Rest', 10),
-        createStep('Sprint', 20),
+        createStep('Exercise', 20),
         createStep('Rest', 10),
-        createStep('Sprint', 20),
+        createStep('Exercise', 20),
         createStep('Rest', 10),
         createStep('Cooldown', 120),
       ]),
@@ -102,6 +139,61 @@
     return `${mins}:${String(secs).padStart(2, '0')}`;
   }
 
+  function showConfirmationDialog({
+    title,
+    message,
+    confirmLabel,
+    cancelLabel = 'Cancel',
+    confirmClass = 'sprints-btn--danger',
+  }) {
+    return new Promise((resolve) => {
+      const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const restoreAction = previousFocus?.getAttribute('data-action');
+      const titleId = `sprints-confirm-title-${createId()}`;
+      const messageId = `sprints-confirm-message-${createId()}`;
+      const dialog = document.createElement('div');
+      dialog.className = 'sprints-confirm';
+      dialog.innerHTML = `
+        <div class="sprints-confirm__backdrop" data-confirm-action="cancel"></div>
+        <section class="sprints-confirm__dialog" role="alertdialog" aria-modal="true" aria-labelledby="${titleId}" aria-describedby="${messageId}">
+          <h2 class="sprints-confirm__title" id="${titleId}">${escapeHtml(title)}</h2>
+          <p class="sprints-confirm__message" id="${messageId}">${escapeHtml(message)}</p>
+          <div class="sprints-confirm__actions">
+            <button type="button" class="sprints-btn" data-confirm-action="cancel">${escapeHtml(cancelLabel)}</button>
+            <button type="button" class="sprints-btn ${escapeHtml(confirmClass)}" data-confirm-action="confirm">${escapeHtml(confirmLabel)}</button>
+          </div>
+        </section>`;
+
+      let settled = false;
+
+      function close(confirmed) {
+        if (settled) return;
+        settled = true;
+        document.removeEventListener('keydown', handleKeydown);
+        dialog.remove();
+        const focusTarget = previousFocus?.isConnected
+          ? previousFocus
+          : document.querySelector(`[data-action="${restoreAction}"]`);
+        if (focusTarget instanceof HTMLElement) focusTarget.focus();
+        resolve(confirmed);
+      }
+
+      function handleKeydown(event) {
+        if (event.key === 'Escape') close(false);
+      }
+
+      dialog.addEventListener('click', (event) => {
+        const action = event.target.closest('[data-confirm-action]')?.dataset.confirmAction;
+        if (action === 'cancel') close(false);
+        if (action === 'confirm') close(true);
+      });
+
+      document.body.appendChild(dialog);
+      document.addEventListener('keydown', handleKeydown);
+      dialog.querySelector('[data-confirm-action="cancel"]')?.focus();
+    });
+  }
+
   function parseDuration(input) {
     const raw = String(input || '').trim();
     if (!raw) return 0;
@@ -119,6 +211,7 @@
   function getStepTheme(label) {
     const key = String(label || '').toLowerCase();
     if (key.includes('sprint')) return 'sprint';
+    if (key.includes('fast') || key.includes('run')) return 'sprint';
     if (key.includes('walk')) return 'walk';
     if (key.includes('rest')) return 'rest';
     if (key.includes('cooldown') || key.includes('cool down')) return 'cooldown';
@@ -145,9 +238,11 @@
 
   function loadWorkouts() {
     workouts = readWorkouts() || defaultWorkouts();
-    workouts = workouts.map((workout) => (
-      isOldThursdaySprints(workout) ? updateOldThursdaySprints(workout) : workout
-    ));
+    workouts = workouts.map((workout) => {
+      if (isOldThursdaySprints(workout) || isNumberedThursdaySprints(workout)) return updateOldThursdaySprints(workout);
+      if (isDefaultTabata(workout)) return updateDefaultTabata(workout);
+      return workout;
+    });
     saveWorkouts();
   }
 
@@ -155,7 +250,7 @@
     return {
       id: createId(),
       name: `${workout.name} Copy`,
-      steps: workout.steps.map((step) => ({ id: createId(), label: step.label, duration: step.duration })),
+      steps: workout.steps.map((step) => ({ ...step, id: createId() })),
     };
   }
 
@@ -380,7 +475,7 @@
         </ul>
       </div>`;
 
-    root.addEventListener('click', (event) => {
+    root.addEventListener('click', async (event) => {
       const button = event.target.closest('[data-action]');
       if (!button) return;
       const id = button.dataset.id;
@@ -404,7 +499,11 @@
       }
       if (action === 'delete') {
         const target = workouts.find((workout) => workout.id === id);
-        if (target && confirm(`Delete "${target.name}"?`)) {
+        if (target && await showConfirmationDialog({
+          title: 'Delete Workout?',
+          message: 'This action cannot be undone.',
+          confirmLabel: 'Delete',
+        })) {
           workouts = workouts.filter((workout) => workout.id !== id);
           saveWorkouts();
           showWorkoutList();
@@ -550,6 +649,12 @@
       return isRestStep(currentStep()) && isWorkStep(nextStep());
     }
 
+    function roundLabel(step) {
+      return Number.isFinite(step?.round) && Number.isFinite(step?.totalRounds)
+        ? `Round ${step.round} of ${step.totalRounds}`
+        : '';
+    }
+
     function remainingWorkoutSeconds() {
       let total = secondsLeft;
       if (phase === 'pre_countdown') total += currentStep()?.duration || 0;
@@ -566,6 +671,7 @@
         stepIndex,
         totalSteps: workout.steps.length,
         stepLabel: step?.label || '',
+        roundLabel: phase === 'running' ? roundLabel(step) : '',
         stepTheme: getStepTheme(step?.label),
         secondsLeft,
         countdown: formatDuration(secondsLeft),
@@ -698,6 +804,7 @@
         <div class="sprints-timer-main">
           <div class="sprints-timer-workout">${escapeHtml(state.workoutName)}</div>
           <div class="sprints-timer-step">${escapeHtml(label)}</div>
+          ${state.roundLabel ? `<div class="sprints-timer-round">${escapeHtml(state.roundLabel)}</div>` : ''}
           <div class="sprints-countdown sprints-countdown--${countdownMode}">${escapeHtml(countdown)}</div>
           <div class="sprints-timer-meta">Step ${state.stepIndex + 1} of ${state.totalSteps}</div>
         </div>
@@ -750,7 +857,11 @@
         await unlockAudio();
         activeTimer.back();
       }
-      if (action === 'finish') activeTimer.finish();
+      if (action === 'finish' && await showConfirmationDialog({
+        title: 'Finish Workout?',
+        message: 'Your current workout will end immediately.',
+        confirmLabel: 'Finish Workout',
+      })) activeTimer.finish();
       if (action === 'restart') {
         await unlockAudio();
         activeTimer.restart();
