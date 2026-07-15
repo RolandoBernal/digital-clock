@@ -37,6 +37,19 @@
   --utility-accent-deep: #2e1065;
 }
 
+.clock_utility_card--notecards {
+  --utility-accent: #b43b4a;
+  --utility-accent-soft: #f4d8bd;
+  --utility-accent-bg: #1c1114;
+  --utility-accent-deep: #321018;
+  box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
+    0 6px 20px 0 rgb(255 255 255 / 10%),
+    0 0 30px 0 rgb(180 59 74 / 22%);
+  background:
+    radial-gradient(circle at 20% 16%, rgb(244 216 189 / 14%), transparent 36%),
+    linear-gradient(145deg, #0c0b0c, #321018 58%, #1c1114);
+}
+
 .clock_utility_header {
   display: flex;
   align-items: center;
@@ -50,6 +63,57 @@
   height: clamp(64px, 20vw, 88px);
   flex: 0 0 auto;
   border-radius: 999px;
+}
+
+.clock_utility_icon--text {
+  display: grid;
+  place-items: center;
+  color: #f7ead8;
+  font-size: clamp(1.3rem, 7vw, 2rem);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+
+.death_notecards_icon {
+  position: relative;
+  isolation: isolate;
+  border: 2px solid #b43b4a;
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgb(247 234 216 / 92%), rgb(201 169 132 / 90%));
+  box-shadow: 0 12px 22px rgb(0 0 0 / 38%);
+  color: #321018;
+  transform: rotate(-3deg);
+}
+
+.death_notecards_icon::before,
+.death_notecards_icon::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  z-index: -1;
+  border: 2px solid rgb(180 59 74 / 72%);
+  border-radius: 10px;
+  background: #251015;
+}
+
+.death_notecards_icon::before {
+  transform: translate(8px, 7px) rotate(7deg);
+}
+
+.death_notecards_icon::after {
+  transform: translate(4px, 4px) rotate(3deg);
+}
+
+.clock_utility_card--notecards .clock_utility_title {
+  color: #fff5e8;
+}
+
+.clock_utility_card--notecards .clock_launch_btn {
+  border-color: #e06a74;
+  background: linear-gradient(135deg, #b43b4a, #6e1c28);
+  color: #fff7ed;
 }
 
 .clock_utility_title {
@@ -81,6 +145,11 @@
 }
 
 .clock_launch_btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  text-decoration: none;
   width: min(100%, 420px);
   margin: auto auto 0;
   padding: 0.9rem 1.2rem;
@@ -94,10 +163,14 @@
   border-color: #b49cff;
 }
 
+.clock_launch_btn:hover {
+  filter: brightness(1.08);
+}
+
 .clock_launch_btn:focus-visible,
 .sprints-btn:focus-visible,
 .sprints-input:focus-visible {
-  outline: 2px solid #b49cff;
+  outline: 2px solid var(--utility-accent-soft, #b49cff);
   outline-offset: 3px;
 }
 

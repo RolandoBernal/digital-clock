@@ -673,6 +673,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       { id: 'tepic', city: 'Tepic, MX', timeZone: 'America/Mazatlan' },
       { id: 'vancouver', city: 'Vancouver, BC', timeZone: 'America/Vancouver' },
     ];
+    const DEATH_ON_NOTECARDS_URL = 'https://rolandobernal.github.io/death-on-notecards/';
     const UTILITY_CARDS = [
       {
         id: 'violet-sprints',
@@ -683,6 +684,18 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         buttonId: 'open-sprints',
         buttonLabel: 'Open Violet Sprints',
         accent: 'purple',
+      },
+      {
+        id: 'death-on-notecards',
+        iconText: 'DN',
+        iconClass: 'death_notecards_icon',
+        title: 'Death on Notecards',
+        description: 'A digital adaptation of Levi Bernal’s original notecard battle game.',
+        buttonId: 'open-death-on-notecards',
+        buttonLabel: 'Open App',
+        buttonAriaLabel: 'Open Death on Notecards',
+        href: DEATH_ON_NOTECARDS_URL,
+        accent: 'notecards',
       },
     ];
     const WEATHER_CONFIG = [
@@ -739,6 +752,13 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
           if (!utility.iconAlt) icon.setAttribute('aria-hidden', 'true');
           header.appendChild(icon);
         }
+        if (utility.iconText) {
+          const icon = document.createElement('span');
+          icon.className = `clock_utility_icon clock_utility_icon--text ${utility.iconClass || ''}`;
+          icon.textContent = utility.iconText;
+          icon.setAttribute('aria-hidden', 'true');
+          header.appendChild(icon);
+        }
 
         const title = document.createElement('h2');
         title.className = 'clock_utility_title';
@@ -749,11 +769,20 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         description.className = 'clock_utility_description';
         description.textContent = utility.description;
 
-        const button = document.createElement('button');
-        button.type = 'button';
+        const button = utility.href
+          ? document.createElement('a')
+          : document.createElement('button');
         button.className = 'clock_launch_btn';
         button.id = utility.buttonId;
         button.textContent = utility.buttonLabel;
+        if (utility.buttonAriaLabel) {
+          button.setAttribute('aria-label', utility.buttonAriaLabel);
+        }
+        if (utility.href) {
+          button.href = utility.href;
+        } else {
+          button.type = 'button';
+        }
 
         card.append(header, description, button);
         container.appendChild(card);
