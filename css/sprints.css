@@ -1,11 +1,70 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Roboto+Mono:wght@500;600;700&display=swap');
 
-.clock_launch_bar {
-  display: flex;
-  justify-content: center;
+.clock_utilities_grid {
+  display: contents;
+}
+
+.clock_utility_card {
   width: 100%;
-  max-width: 1500px;
-  margin: 1.5rem auto 0;
+  max-width: min(480px, 100%);
+  box-sizing: border-box;
+  padding: 1rem;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.85rem;
+  justify-self: center;
+  align-self: stretch;
+  border: 2px solid var(--utility-accent, #222);
+  border-radius: 15px;
+  box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
+    0 6px 20px 0 rgb(255 255 255 / 10%),
+    0 0 26px 0 rgb(124 58 237 / 20%);
+  background:
+    radial-gradient(circle at 20% 20%, rgb(168 85 247 / 25%), transparent 42%),
+    linear-gradient(145deg, #10051d, var(--utility-accent-deep, #1b1233));
+  color: #fff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-align: center;
+}
+
+.clock_utility_card--purple {
+  --utility-accent: #7c4dff;
+  --utility-accent-soft: #d8ccff;
+  --utility-accent-bg: #1b1233;
+  --utility-accent-deep: #2e1065;
+}
+
+.clock_utility_header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.clock_utility_icon {
+  display: block;
+  width: clamp(64px, 20vw, 88px);
+  height: clamp(64px, 20vw, 88px);
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.clock_utility_title {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.35rem, 6vw, 2rem);
+}
+
+.clock_utility_description {
+  margin: auto auto;
+  max-width: 32ch;
+  color: var(--utility-accent-soft);
+  font-size: clamp(0.95rem, 4vw, 1.15rem);
+  line-height: 1.45;
+  text-align: center;
 }
 
 .clock_launch_btn,
@@ -23,10 +82,11 @@
 
 .clock_launch_btn {
   width: min(100%, 420px);
+  margin: auto auto 0;
   padding: 0.9rem 1.2rem;
-  border-color: #7c4dff;
-  background: #1b1233;
-  color: #d8ccff;
+  border-color: var(--utility-accent, #7c4dff);
+  background: linear-gradient(135deg, #a855f7, var(--utility-accent, #7c4dff));
+  color: #fff;
 }
 
 .clock_launch_btn:hover,
@@ -39,6 +99,21 @@
 .sprints-input:focus-visible {
   outline: 2px solid #b49cff;
   outline-offset: 3px;
+}
+
+@media only screen and (min-width: 768px) {
+  .clock_utility_card {
+    max-width: none;
+    padding: 25px;
+  }
+
+  .clock_utility_header {
+    justify-content: flex-start;
+  }
+
+  .clock_utility_description {
+    text-align: center;
+  }
 }
 
 [hidden] {
