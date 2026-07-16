@@ -363,6 +363,42 @@
   text-align: center;
 }
 
+.sprints-install-tip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem;
+  border: 1px solid rgb(124 77 255 / 55%);
+  border-radius: 8px;
+  background: rgb(27 18 51 / 78%);
+  color: #f5f2ff;
+}
+
+.sprints-install-tip strong,
+.sprints-install-tip span {
+  display: block;
+}
+
+.sprints-install-tip span {
+  margin-top: 0.2rem;
+  color: #d8ccff;
+  line-height: 1.4;
+}
+
+.sprints-install-tip__close {
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .sprints-sound-enable {
   position: fixed;
   right: max(1rem, env(safe-area-inset-right));
@@ -480,6 +516,14 @@
   text-transform: uppercase;
 }
 
+.sprints-timer-speed {
+  color: #fff;
+  font-size: clamp(1.35rem, 6vw, 2.3rem);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .sprints-timer-round {
   color: #d8ccff;
   font-size: clamp(1rem, 4vw, 1.35rem);
@@ -495,6 +539,10 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   white-space: nowrap;
+}
+
+.sprints-countdown--time {
+  font-size: clamp(7rem, 31vw, 18rem);
 }
 
 .sprints-countdown--seconds {
@@ -614,12 +662,20 @@
     font-size: clamp(1.6rem, 9vh, 3.2rem);
   }
 
+  .sprints-timer-speed {
+    font-size: clamp(0.9rem, 3.6vh, 1.25rem);
+  }
+
   .sprints-timer-round {
     font-size: clamp(0.78rem, 3vh, 1rem);
   }
 
   .sprints-countdown {
     font-size: clamp(4.2rem, 24vh, 7.5rem);
+  }
+
+  .sprints-countdown--time {
+    font-size: clamp(4.8rem, 28vh, 8.6rem);
   }
 
   .sprints-countdown--seconds {

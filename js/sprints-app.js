@@ -1,11 +1,15 @@
 (() => {
   const STORAGE_KEY = 'violet_sprints_workouts_v1';
   const PRE_STEP_COUNTDOWN = 3;
+  const INSTALL_PROMPT_DISMISSED_KEY = 'violet_sprints_install_prompt_dismissed_v1';
 
   let workouts = [];
   let activeTimer = null;
   let audioCtx = null;
   let audioUnlocked = false;
+  let wakeLock = null;
+  let workoutWakeLockWanted = false;
+  let wakeLockNoticeShown = false;
   const activeAudioNodes = new Set();
 
   function createId() {
@@ -20,25 +24,46 @@
     return { id: createId(), name, steps };
   }
 
-  function thursdaySoccerConditioningSteps() {
-    const steps = [createStep('Warm-up Easy Jog', 420)];
+  function treadmillSprintsSteps() {
+    const steps = [
+      createStep('Warmup Walk', 120, { targetSpeed: 3.2, speedUnit: 'MPH' }),
+      createStep('Warmup Fast Walk', 180, { targetSpeed: 4.0, speedUnit: 'MPH' }),
+      createStep('Warmup Easy Jog', 180, { targetSpeed: 5.0, speedUnit: 'MPH' }),
+      createStep('Warmup Fast Run', 120, { targetSpeed: 5.5, speedUnit: 'MPH' }),
+    ];
     for (let round = 1; round <= 8; round += 1) {
       const metadata = { round, totalRounds: 8, blockId: 'fast-run-block' };
-      steps.push(createStep('Fast Run', 20, metadata));
-      steps.push(createStep('Walk', 100, metadata));
+      steps.push(createStep('Fast Walk', 50, { ...metadata, targetSpeed: 4.0, speedUnit: 'MPH' }));
+      steps.push(createStep('Fast Run', 24, { ...metadata, targetSpeed: 5.5, speedUnit: 'MPH' }));
     }
-    steps.push(createStep('Long Rest', 180));
+    steps.push(createStep('Long Rest', 120, { targetSpeed: 3.0, speedUnit: 'MPH' }));
     for (let round = 1; round <= 6; round += 1) {
       const metadata = { round, totalRounds: 6, blockId: 'sprint-block' };
-      steps.push(createStep('Sprint', 10, metadata));
-      steps.push(createStep('Walk', 50, metadata));
+      steps.push(createStep('Fast Jog', 50, { ...metadata, targetSpeed: 5.5, speedUnit: 'MPH' }));
+      steps.push(createStep('Sprint', 14, { ...metadata, targetSpeed: 8.5, speedUnit: 'MPH' }));
     }
-    steps.push(createStep('Cooldown', 300));
+    steps.push(createStep('Cooldown', 300, { targetSpeed: 3.0, speedUnit: 'MPH' }));
     return steps;
   }
 
+  function thursdaySoccerConditioningSteps() {
+    return treadmillSprintsSteps();
+  }
+
   function isNumberedThursdaySprints(workout) {
-    const expected = thursdaySoccerConditioningSteps();
+    const expected = [
+      createStep('Warm-up Easy Jog', 420),
+      ...Array.from({ length: 8 }).flatMap((_, index) => [
+        createStep('Fast Run', 20, { round: index + 1, totalRounds: 8 }),
+        createStep('Walk', 100, { round: index + 1, totalRounds: 8 }),
+      ]),
+      createStep('Long Rest', 180),
+      ...Array.from({ length: 6 }).flatMap((_, index) => [
+        createStep('Sprint', 10, { round: index + 1, totalRounds: 6 }),
+        createStep('Walk', 50, { round: index + 1, totalRounds: 6 }),
+      ]),
+      createStep('Cooldown', 300),
+    ];
     return workout?.name === 'Thursday Sprints'
       && Array.isArray(workout.steps)
       && workout.steps.length === expected.length
@@ -72,8 +97,29 @@
   function updateOldThursdaySprints(workout) {
     return {
       ...workout,
-      steps: thursdaySoccerConditioningSteps(),
+      name: 'Treadmill Sprints',
+      steps: treadmillSprintsSteps(),
     };
+  }
+
+  function isPreviousDefaultThursdaySprints(workout) {
+    return workout?.name === 'Thursday Sprints'
+      && Array.isArray(workout.steps)
+      && workout.steps.length === 31
+      && workout.steps[0]?.label === 'Warm-up Easy Jog'
+      && workout.steps[0]?.duration === 420
+      && workout.steps[17]?.label === 'Long Rest'
+      && workout.steps[17]?.duration === 180
+      && workout.steps[30]?.label === 'Cooldown'
+      && workout.steps[30]?.duration === 300
+      && workout.steps.slice(1, 17).every((step, index) => (
+        step.label === (index % 2 === 0 ? 'Fast Run' : 'Walk')
+        && step.duration === (index % 2 === 0 ? 20 : 100)
+      ))
+      && workout.steps.slice(18, 30).every((step, index) => (
+        step.label === (index % 2 === 0 ? 'Sprint' : 'Walk')
+        && step.duration === (index % 2 === 0 ? 10 : 50)
+      ));
   }
 
   function isDefaultTabata(workout) {
@@ -99,7 +145,7 @@
 
   function defaultWorkouts() {
     return [
-      createWorkout('Thursday Sprints', thursdaySoccerConditioningSteps()),
+      createWorkout('Treadmill Sprints', treadmillSprintsSteps()),
       createWorkout('Tabata', [
         createStep('Exercise', 20),
         createStep('Rest', 10),
@@ -137,6 +183,12 @@
     const mins = Math.floor(s / 60);
     const secs = s % 60;
     return `${mins}:${String(secs).padStart(2, '0')}`;
+  }
+
+  function formatTargetSpeed(step) {
+    return Number.isFinite(step?.targetSpeed)
+      ? `${step.targetSpeed.toFixed(1)} ${step.speedUnit || 'MPH'}`
+      : '';
   }
 
   function showConfirmationDialog({
@@ -211,11 +263,11 @@
   function getStepTheme(label) {
     const key = String(label || '').toLowerCase();
     if (key.includes('sprint')) return 'sprint';
-    if (key.includes('fast') || key.includes('run')) return 'sprint';
     if (key.includes('walk')) return 'walk';
     if (key.includes('rest')) return 'rest';
     if (key.includes('cooldown') || key.includes('cool down')) return 'cooldown';
     if (key.includes('jog')) return 'jog';
+    if (key.includes('fast') || key.includes('run')) return 'sprint';
     return 'default';
   }
 
@@ -239,7 +291,7 @@
   function loadWorkouts() {
     workouts = readWorkouts() || defaultWorkouts();
     workouts = workouts.map((workout) => {
-      if (isOldThursdaySprints(workout) || isNumberedThursdaySprints(workout)) return updateOldThursdaySprints(workout);
+      if (isOldThursdaySprints(workout) || isNumberedThursdaySprints(workout) || isPreviousDefaultThursdaySprints(workout)) return updateOldThursdaySprints(workout);
       if (isDefaultTabata(workout)) return updateDefaultTabata(workout);
       return workout;
     });
@@ -381,6 +433,84 @@
     activeAudioNodes.clear();
   }
 
+  function isStandaloneApp() {
+    return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  function isLikelyIosSafari() {
+    const platform = navigator.platform || '';
+    const ua = navigator.userAgent || '';
+    const isiOS = /iPad|iPhone|iPod/.test(platform) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    return isiOS && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+  }
+
+  function shouldShowInstallSuggestion() {
+    try {
+      return isLikelyIosSafari()
+        && !isStandaloneApp()
+        && localStorage.getItem(INSTALL_PROMPT_DISMISSED_KEY) !== 'true';
+    } catch {
+      return false;
+    }
+  }
+
+  function dismissInstallSuggestion() {
+    try {
+      localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, 'true');
+    } catch {
+      /* storage unavailable */
+    }
+    document.querySelector('[data-install-suggestion]')?.remove();
+  }
+
+  function installSuggestionMarkup() {
+    return shouldShowInstallSuggestion()
+      ? `<div class="sprints-install-tip" data-install-suggestion>
+          <div>
+            <strong>Full-screen workout mode</strong>
+            <span>Install this app on your Home Screen. Tap Share, then choose Add to Home Screen.</span>
+          </div>
+          <button type="button" class="sprints-install-tip__close" data-action="dismiss-install-tip" aria-label="Dismiss install suggestion">x</button>
+        </div>`
+      : '';
+  }
+
+  async function requestWorkoutWakeLock() {
+    if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return false;
+    try {
+      if (wakeLock) return true;
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+        if (workoutWakeLockWanted && document.visibilityState === 'visible') requestWorkoutWakeLock();
+      });
+      return true;
+    } catch (error) {
+      if (!wakeLockNoticeShown) {
+        console.warn('Unable to acquire screen wake lock:', error);
+        wakeLockNoticeShown = true;
+      }
+      return false;
+    }
+  }
+
+  async function releaseWorkoutWakeLock() {
+    workoutWakeLockWanted = false;
+    if (!wakeLock) return;
+    const lock = wakeLock;
+    wakeLock = null;
+    try {
+      await lock.release();
+    } catch {
+      /* already released */
+    }
+  }
+
+  function beginWorkoutWakeLock() {
+    workoutWakeLockWanted = true;
+    requestWorkoutWakeLock();
+  }
+
   function playBeep(frequency = 880, durationMs = 120) {
     try {
       const ctx = getAudioContext();
@@ -400,14 +530,19 @@
       }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'sine';
+      const durationSeconds = Math.max(durationMs, 140) / 1000;
+      const now = ctx.currentTime;
+      osc.type = 'triangle';
       osc.frequency.setValueAtTime(frequency, ctx.currentTime);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.32, now + 0.015);
+      gain.gain.setValueAtTime(0.32, Math.max(now + 0.02, now + durationSeconds - 0.045));
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + durationSeconds);
       osc.connect(gain);
       gain.connect(ctx.destination);
       trackBeepNodes(osc, gain);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + durationMs / 1000);
+      osc.start(now);
+      osc.stop(now + durationSeconds);
     } catch {
       showSoundEnableControl();
     }
@@ -440,6 +575,7 @@
       activeTimer.destroy();
       activeTimer = null;
     }
+    releaseWorkoutWakeLock();
   }
 
   function showClock() {
@@ -459,6 +595,7 @@
           <h1 class="sprints-title">Violet Sprints</h1>
           <button type="button" class="sprints-btn sprints-btn--primary" data-action="create">+ New</button>
         </header>
+        ${installSuggestionMarkup()}
         <ul class="sprints-list" role="list">
           ${workouts.length ? workouts.map((workout) => `
             <li class="sprints-list-item" data-id="${escapeHtml(workout.id)}">
@@ -480,6 +617,7 @@
       if (!button) return;
       const id = button.dataset.id;
       const action = button.dataset.action;
+      if (action === 'dismiss-install-tip') dismissInstallSuggestion();
       if (action === 'back-clock') showClock();
       if (action === 'create') {
         const workout = createWorkout('New Workout', []);
@@ -671,6 +809,7 @@
         stepIndex,
         totalSteps: workout.steps.length,
         stepLabel: step?.label || '',
+        targetSpeed: phase === 'running' ? formatTargetSpeed(step) : '',
         roundLabel: phase === 'running' ? roundLabel(step) : '',
         stepTheme: getStepTheme(step?.label),
         secondsLeft,
@@ -692,6 +831,7 @@
       const step = currentStep();
       if (!step) {
         phase = 'complete';
+        releaseWorkoutWakeLock();
         emitUpdate();
         return;
       }
@@ -711,6 +851,7 @@
       if (stepIndex >= workout.steps.length - 1) {
         phase = 'complete';
         clearTick();
+        releaseWorkoutWakeLock();
         emitUpdate();
         return;
       }
@@ -770,6 +911,7 @@
       finish() {
         clearTick();
         stopActiveBeeps();
+        releaseWorkoutWakeLock();
         phase = 'complete';
         emitUpdate();
       },
@@ -780,6 +922,7 @@
       destroy() {
         clearTick();
         stopActiveBeeps();
+        releaseWorkoutWakeLock();
         phase = 'idle';
       },
     };
@@ -807,6 +950,7 @@
         <div class="sprints-timer-main">
           <div class="sprints-timer-workout">${escapeHtml(state.workoutName)}</div>
           <div class="sprints-timer-step">${escapeHtml(label)}</div>
+          ${state.targetSpeed ? `<div class="sprints-timer-speed">${escapeHtml(state.targetSpeed)}</div>` : ''}
           ${state.roundLabel ? `<div class="sprints-timer-round">${escapeHtml(state.roundLabel)}</div>` : ''}
           <div class="sprints-countdown sprints-countdown--${countdownMode}">${escapeHtml(countdown)}</div>
           <div class="sprints-timer-meta">Step ${state.stepIndex + 1} of ${state.totalSteps}</div>
@@ -843,24 +987,40 @@
       return;
     }
     activeTimer = createWorkoutTimer(workout, { onUpdate: (state) => renderTimer(root, state) });
+    let stepNavigationLocked = false;
+    let finishConfirmationOpen = false;
+
+    function lockStepNavigationBriefly() {
+      stepNavigationLocked = true;
+      window.setTimeout(() => {
+        stepNavigationLocked = false;
+      }, 250);
+    }
+
     root.addEventListener('click', async (event) => {
       const button = event.target.closest('[data-action]');
       if (!button || !activeTimer) return;
       const action = button.dataset.action;
       if (action === 'pause') activeTimer.pause();
       if (action === 'resume') {
-        await unlockAudio();
+        void unlockAudio();
         activeTimer.resume();
       }
       if (action === 'skip') {
-        await unlockAudio();
+        if (stepNavigationLocked) return;
+        lockStepNavigationBriefly();
+        void unlockAudio();
         activeTimer.skip();
       }
       if (action === 'back-step') {
-        await unlockAudio();
+        if (stepNavigationLocked) return;
+        lockStepNavigationBriefly();
+        void unlockAudio();
         activeTimer.back();
       }
       if (action === 'finish') {
+        if (finishConfirmationOpen) return;
+        finishConfirmationOpen = true;
         const timer = activeTimer;
         const wasPausedBeforeConfirmation = timer.isPaused();
         timer.pause();
@@ -869,11 +1029,13 @@
           message: 'Your current workout will end immediately.',
           confirmLabel: 'Finish Workout',
         });
+        finishConfirmationOpen = false;
         if (confirmed) timer.finish();
         else if (!wasPausedBeforeConfirmation) timer.resume();
       }
       if (action === 'restart') {
-        await unlockAudio();
+        void unlockAudio();
+        beginWorkoutWakeLock();
         activeTimer.restart();
       }
       if (action === 'list') {
@@ -881,6 +1043,7 @@
         showWorkoutList();
       }
     });
+    beginWorkoutWakeLock();
     activeTimer.start();
   }
 
@@ -898,6 +1061,9 @@
         ensureAudioIsRunning().then((running) => {
           if (!running) logAudioState('not running after visibility restore');
         });
+      }
+      if (document.visibilityState === 'visible' && workoutWakeLockWanted) {
+        requestWorkoutWakeLock();
       }
     });
     setView('clock');

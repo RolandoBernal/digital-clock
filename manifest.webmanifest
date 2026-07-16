@@ -1,0 +1,37 @@
+{
+  "name": "Digital Clock",
+  "short_name": "Digital Clock",
+  "description": "A digital clock dashboard with utility apps including Violet Sprints.",
+  "start_url": "./index-digital-clock.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Violet Sprints",
+      "short_name": "Sprints",
+      "description": "Open Violet Sprints interval timer.",
+      "url": "./index-digital-clock.html",
+      "icons": [
+        {
+          "src": "violet-sprints-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
