@@ -4,14 +4,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Digital Clock</title>
+  <title>Lando's World</title>
   <link rel="icon" type="image/svg+xml" href="clock-favicon.svg">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Digital Clock">
+  <meta name="apple-mobile-web-app-title" content="Lando's World">
   <meta name="theme-color" content="#000000">
   <!--
 Weather: Open-Meteo (no API key). Optional future provider:
@@ -73,6 +73,14 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       width: 30px;
       height: 30px;
       flex-shrink: 0;
+    }
+
+    .lando_world_brand {
+      color: #f7f7f7;
+    }
+
+    .lando_world_logo {
+      color: #f7f7f7;
     }
 
     .digit_clock_title {
@@ -238,6 +246,26 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       margin: 0 auto;
     }
 
+    #lando-launcher {
+      grid-auto-rows: auto;
+    }
+
+    #lando-launcher > .digital_clock_wrapper {
+      aspect-ratio: 1 / 1;
+      height: auto;
+      min-height: 0;
+    }
+
+    #clock-view .digit_clocks_container {
+      grid-auto-rows: auto;
+    }
+
+    #clock-view .digital_clock_wrapper {
+      aspect-ratio: 1 / 1;
+      height: auto;
+      min-height: 0;
+    }
+
     .digit_clock_city_name,
     .digit_clock_current_weather {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -342,6 +370,48 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       height: 100%;
     }
 
+    .app_back_link {
+      display: inline-flex;
+      align-items: center;
+      align-self: flex-start;
+      min-height: 44px;
+      margin-bottom: 0.75rem;
+      color: #66ff99;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .app_back_link:hover {
+      color: #a8ffcc;
+    }
+
+    .app_back_link:focus-visible {
+      outline: 2px solid #66ff99;
+      outline-offset: 4px;
+      border-radius: 6px;
+    }
+
+    .app_back_link + .digit_clock_header_row {
+      margin-top: 20px;
+    }
+
+    .app_placeholder_content {
+      justify-content: center;
+      min-height: 260px;
+    }
+
+    .clock_utility_footer {
+      margin: auto auto 0;
+      color: var(--utility-accent-soft, #a8ffcc);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
     @media only screen and (min-width: 768px) {
       .digit_clock_title {
         font-size: 18px;
@@ -364,6 +434,15 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         justify-content: flex-start;
         align-items: center;
         width: auto;
+      }
+
+      .digit_clock_header:has(.app_back_link) {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .digit_clock_header:has(.app_back_link) .digit_clock_header_row {
+        width: 100%;
       }
 
       .digit_clock_menu_toggle {
@@ -478,12 +557,72 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       }
     }
   </style>
-  <link rel="stylesheet" href="css/sprints.css">
+  <link rel="stylesheet" href="css/sprints.css?v=20260726-4">
 </head>
 
 <body>
-  <div class="digit_clock_app" id="clock-view">
+  <div class="digit_clock_app" id="lando-home-view">
     <div class="digit_clock_header">
+      <div class="digit_clock_header_row">
+        <div class="digit_clock_brand lando_world_brand">
+          <svg class="digit_clock_logo lando_world_logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none"
+            aria-hidden="true">
+            <circle cx="16" cy="16" r="12" stroke="currentColor" stroke-width="2"></circle>
+            <path d="M5 16c3.4-4 7.1-6 11-6s7.6 2 11 6c-3.4 4-7.1 6-11 6s-7.6-2-11-6z"
+              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M16 4c2.2 3 3.3 7 3.3 12S18.2 25 16 28c-2.2-3-3.3-7-3.3-12S13.8 7 16 4z"
+              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            <circle cx="22.5" cy="9.5" r="1.6" fill="currentColor"></circle>
+          </svg>
+          <span class="digit_clock_title">Lando's World</span>
+        </div>
+      </div>
+    </div>
+    <main class="digit_clocks_row" aria-label="Lando's World apps">
+      <div class="digit_clocks_container" id="lando-launcher"></div>
+    </main>
+  </div>
+
+  <div class="digit_clock_app" id="briefing-view" hidden>
+    <div class="digit_clock_header">
+      <a class="app_back_link" href="#/">← Lando's World</a>
+      <div class="digit_clock_header_row">
+        <div class="digit_clock_brand lando_world_brand">
+          <svg class="digit_clock_logo lando_world_logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none"
+            aria-hidden="true">
+            <rect x="7" y="5" width="18" height="22" rx="3" stroke="currentColor" stroke-width="2"></rect>
+            <path d="M11 12h10M11 17h10M11 22h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+            <circle cx="22" cy="9" r="2" fill="currentColor"></circle>
+          </svg>
+          <span class="digit_clock_title">Daily Chief Briefing</span>
+        </div>
+      </div>
+    </div>
+    <main class="digit_clocks_row">
+      <div class="digit_clocks_container">
+        <section class="digital_clock_wrapper clock_utility_card clock_utility_card--briefing app_placeholder_content" aria-labelledby="briefing-title">
+          <div class="clock_utility_header">
+            <span class="clock_utility_icon clock_utility_icon--svg briefing_icon" aria-hidden="true">
+              <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="22" y="14" width="52" height="68" rx="10" fill="currentColor" opacity="0.16"></rect>
+                <rect x="29" y="22" width="38" height="52" rx="5" stroke="currentColor" stroke-width="6"></rect>
+                <path d="M37 36h22M37 48h22M37 60h14" stroke="currentColor" stroke-width="6" stroke-linecap="round"></path>
+                <circle cx="64" cy="26" r="9" fill="currentColor"></circle>
+                <path d="M61 26l3 3 6-8" stroke="#05201d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </span>
+            <h1 class="clock_utility_title" id="briefing-title">The Daily Chief Briefing</h1>
+          </div>
+          <p class="clock_utility_description">Today's personalized morning briefing</p>
+          <p class="clock_utility_footer">Coming Soon</p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="digit_clock_app" id="clock-view" hidden>
+    <div class="digit_clock_header">
+      <a class="app_back_link" href="#/">← Lando's World</a>
       <div class="digit_clock_header_row">
         <div class="digit_clock_brand">
           <svg class="digit_clock_logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none"
@@ -582,7 +721,6 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
             <span class="weather_desc"></span>
           </div>
         </div>
-        <div class="clock_utilities_grid" id="clock-utilities" aria-label="Utilities"></div>
       </div>
     </div>
   </div>
@@ -678,7 +816,38 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       { id: 'vancouver', city: 'Vancouver, BC', timeZone: 'America/Vancouver' },
     ];
     const DEATH_ON_NOTECARDS_URL = 'https://rolandobernal.github.io/death-on-notecards/';
-    const UTILITY_CARDS = [
+    const DAILY_CHIEF_ICON_SVG = `
+      <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="22" y="14" width="52" height="68" rx="10" fill="currentColor" opacity="0.16"></rect>
+        <rect x="29" y="22" width="38" height="52" rx="5" stroke="currentColor" stroke-width="6"></rect>
+        <path d="M37 36h22M37 48h22M37 60h14" stroke="currentColor" stroke-width="6" stroke-linecap="round"></path>
+        <circle cx="64" cy="26" r="9" fill="currentColor"></circle>
+        <path d="M61 26l3 3 6-8" stroke="#05201d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>`;
+    const APP_CARDS = [
+      {
+        id: 'daily-chief-briefing',
+        iconSvg: DAILY_CHIEF_ICON_SVG,
+        iconClass: 'briefing_icon',
+        title: 'The Daily Chief Briefing',
+        description: "Today's personalized morning briefing",
+        footer: 'Coming Soon',
+        buttonId: 'open-daily-chief-briefing',
+        buttonLabel: 'Open Daily Chief Briefing',
+        route: 'daily-chief-briefing',
+        accent: 'briefing',
+      },
+      {
+        id: 'digital-clock',
+        iconSrc: 'clock-favicon.svg',
+        iconAlt: '',
+        title: 'Digital Clock',
+        description: 'World clocks and current weather for the places that matter most.',
+        buttonId: 'open-digital-clock',
+        buttonLabel: 'Open Digital Clock',
+        route: 'digital-clock',
+        accent: 'clock',
+      },
       {
         id: 'violet-sprints',
         iconSrc: 'violet-sprints-card-icon-128.png',
@@ -687,6 +856,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         description: 'A simple interval timer for sprint, HIIT and conditioning workouts.',
         buttonId: 'open-sprints',
         buttonLabel: 'Open Violet Sprints',
+        route: 'violet-sprints',
         accent: 'purple',
       },
       {
@@ -737,61 +907,138 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       'https://api.open-meteo.com/v1/forecast?current=temperature_2m,weather_code&temperature_unit=fahrenheit';
     let clockBindings = [];
     let clockTimerId = null;
-    function renderUtilityCards() {
-      const container = document.getElementById('clock-utilities');
+    function renderLauncherCards() {
+      const container = document.getElementById('lando-launcher');
       if (!container) return;
       container.textContent = '';
-      UTILITY_CARDS.forEach((utility) => {
+      APP_CARDS.forEach((app) => {
         const card = document.createElement('section');
-        card.className = `digital_clock_wrapper clock_utility_card clock_utility_card--${utility.accent}`;
+        card.className = `digital_clock_wrapper clock_utility_card clock_utility_card--${app.accent}`;
 
         const header = document.createElement('div');
         header.className = 'clock_utility_header';
 
-        if (utility.iconSrc) {
+        if (app.iconSrc) {
           const icon = document.createElement('img');
           icon.className = 'clock_utility_icon';
-          icon.src = utility.iconSrc;
-          icon.alt = utility.iconAlt || '';
-          if (!utility.iconAlt) icon.setAttribute('aria-hidden', 'true');
+          icon.src = app.iconSrc;
+          icon.alt = app.iconAlt || '';
+          if (!app.iconAlt) icon.setAttribute('aria-hidden', 'true');
           header.appendChild(icon);
         }
-        if (utility.iconText) {
+        if (app.iconSvg) {
           const icon = document.createElement('span');
-          icon.className = `clock_utility_icon clock_utility_icon--text ${utility.iconClass || ''}`;
-          icon.textContent = utility.iconText;
+          icon.className = `clock_utility_icon clock_utility_icon--svg ${app.iconClass || ''}`;
+          icon.innerHTML = app.iconSvg;
+          icon.setAttribute('aria-hidden', 'true');
+          header.appendChild(icon);
+        }
+        if (app.iconText) {
+          const icon = document.createElement('span');
+          icon.className = `clock_utility_icon clock_utility_icon--text ${app.iconClass || ''}`;
+          icon.textContent = app.iconText;
           icon.setAttribute('aria-hidden', 'true');
           header.appendChild(icon);
         }
 
         const title = document.createElement('h2');
         title.className = 'clock_utility_title';
-        title.textContent = utility.title;
+        title.textContent = app.title;
         header.appendChild(title);
 
         const description = document.createElement('p');
         description.className = 'clock_utility_description';
-        description.textContent = utility.description;
+        description.textContent = app.description;
 
-        const button = utility.href
+        const button = app.href
           ? document.createElement('a')
           : document.createElement('button');
         button.className = 'clock_launch_btn';
-        button.id = utility.buttonId;
-        button.textContent = utility.buttonLabel;
-        if (utility.buttonAriaLabel) {
-          button.setAttribute('aria-label', utility.buttonAriaLabel);
+        button.id = app.buttonId;
+        button.textContent = app.buttonLabel;
+        if (app.buttonAriaLabel) {
+          button.setAttribute('aria-label', app.buttonAriaLabel);
         }
-        if (utility.href) {
-          button.href = utility.href;
+        if (app.href) {
+          button.href = app.href;
         } else {
           button.type = 'button';
+          button.dataset.route = app.route;
         }
 
-        card.append(header, description, button);
+        card.append(header, description);
+        if (app.footer) {
+          const footer = document.createElement('p');
+          footer.className = 'clock_utility_footer';
+          footer.textContent = app.footer;
+          card.appendChild(footer);
+        }
+        card.appendChild(button);
         container.appendChild(card);
       });
     }
+
+    function setActiveView(viewName) {
+      const views = {
+        home: document.getElementById('lando-home-view'),
+        'daily-chief-briefing': document.getElementById('briefing-view'),
+        'digital-clock': document.getElementById('clock-view'),
+        'violet-sprints': document.getElementById('sprints-view'),
+      };
+      Object.entries(views).forEach(([name, element]) => {
+        if (element) element.hidden = name !== viewName;
+      });
+      document.title = viewName === 'home' ? "Lando's World" : `${getAppTitle(viewName)} - Lando's World`;
+    }
+
+    function getAppTitle(viewName) {
+      if (viewName === 'daily-chief-briefing') return 'Daily Chief Briefing';
+      if (viewName === 'digital-clock') return 'Digital Clock';
+      if (viewName === 'violet-sprints') return 'Violet Sprints';
+      return "Lando's World";
+    }
+
+    function normalizeRouteFromHash() {
+      const route = window.location.hash.replace(/^#\/?/, '').replace(/^\//, '');
+      return route || 'home';
+    }
+
+    function navigateToRoute(route) {
+      window.location.hash = route === 'home' ? '#/' : `#/${route}`;
+    }
+
+    function handleRouteChange() {
+      const route = normalizeRouteFromHash();
+      if (route === 'daily-chief-briefing' || route === 'digital-clock') {
+        setActiveView(route);
+        closeMobileSettingsMenu();
+        return;
+      }
+      if (route === 'violet-sprints') {
+        document.getElementById('open-sprints')?.click();
+        return;
+      }
+      setActiveView('home');
+      closeMobileSettingsMenu();
+    }
+
+    function initLauncherNavigation() {
+      document.getElementById('lando-launcher')?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-route]');
+        if (!button) return;
+        const route = button.dataset.route;
+        if (route === 'violet-sprints') return;
+        navigateToRoute(route);
+      });
+      window.addEventListener('hashchange', handleRouteChange);
+      window.LandosWorld = {
+        setActiveView,
+        navigateHome: () => navigateToRoute('home'),
+        navigateToRoute,
+      };
+      handleRouteChange();
+    }
+
     function detectBrowserLanguage() {
       const lang = (navigator.language || 'en').toLowerCase();
       return lang.startsWith('es') ? 'es' : 'en';
@@ -1217,7 +1464,7 @@ ${dateLongParts.year}`;
       });
     }
     document.addEventListener('DOMContentLoaded', () => {
-      renderUtilityCards();
+      renderLauncherCards();
       initUIState();
       initMobileSettingsMenu();
       initControlPanel();
@@ -1227,9 +1474,10 @@ ${dateLongParts.year}`;
         scheduleClockTimer(clockBindings);
       }
       obtainAllWeather();
+      initLauncherNavigation();
     });
   </script>
-  <script src="js/sprints-app.js"></script>
+  <script src="js/sprints-app.js?v=20260726-4"></script>
 </body>
 
 </html>

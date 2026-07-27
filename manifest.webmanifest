@@ -1,7 +1,7 @@
 {
-  "name": "Digital Clock",
-  "short_name": "Digital Clock",
-  "description": "A digital clock dashboard with utility apps including Violet Sprints.",
+  "name": "Lando's World",
+  "short_name": "Lando",
+  "description": "A personal application ecosystem with Digital Clock, Violet Sprints, and future apps.",
   "start_url": "./index-digital-clock.html",
   "scope": "./",
   "display": "standalone",
@@ -24,7 +24,7 @@
       "name": "Violet Sprints",
       "short_name": "Sprints",
       "description": "Open Violet Sprints interval timer.",
-      "url": "./index-digital-clock.html",
+      "url": "./index-digital-clock.html#/violet-sprints",
       "icons": [
         {
           "src": "violet-sprints-icon-192.png",

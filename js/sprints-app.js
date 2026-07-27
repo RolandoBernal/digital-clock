@@ -2,6 +2,22 @@
   const STORAGE_KEY = 'violet_sprints_workouts_v1';
   const PRE_STEP_COUNTDOWN = 3;
   const INSTALL_PROMPT_DISMISSED_KEY = 'violet_sprints_install_prompt_dismissed_v1';
+  const SOCCER_WORKOUT_ADDED_KEY = 'violet_sprints_soccer_workout_added_v1';
+  const COMPLETION_MESSAGES = [
+    'Great work!',
+    'Good job!',
+    'Strong finish!',
+    'You did it!',
+    'Another workout completed.',
+    'One workout closer to your goal.',
+    'Work hard today. Enjoy the results tomorrow.',
+    "You're adding more days to your journey on this planet.",
+    'Small steps. Big results.',
+    'Discipline beats motivation.',
+    'Keep showing up.',
+    'Your future self thanks you.',
+  ];
+  let lastCompletionMessage = '';
 
   let workouts = [];
   let activeTimer = null;
@@ -22,6 +38,21 @@
 
   function createWorkout(name = 'New Workout', steps = []) {
     return { id: createId(), name, steps };
+  }
+
+  function createWorkoutBlock(title, type, steps = [], options = {}) {
+    return {
+      id: options.id || createId(),
+      title,
+      type,
+      steps,
+      preBlockCountdown: options.preBlockCountdown || 0,
+      metadata: options.metadata || {},
+    };
+  }
+
+  function createBlockedWorkout(name, blocks = [], metadata = {}) {
+    return { id: createId(), name, blocks, ...metadata };
   }
 
   function treadmillSprintsSteps() {
@@ -46,8 +77,159 @@
     return steps;
   }
 
+  function treadmillSprintsBlocks() {
+    const warmupSteps = [
+      createStep('Warmup Walk', 120, { targetSpeed: 3.2, speedUnit: 'MPH' }),
+      createStep('Warmup Fast Walk', 180, { targetSpeed: 4.0, speedUnit: 'MPH' }),
+      createStep('Warmup Easy Jog', 180, { targetSpeed: 5.0, speedUnit: 'MPH' }),
+      createStep('Warmup Fast Run', 120, { targetSpeed: 5.5, speedUnit: 'MPH' }),
+    ];
+    const fastRunSteps = [];
+    for (let round = 1; round <= 8; round += 1) {
+      const metadata = { round, totalRounds: 8, blockId: 'fast-run-block' };
+      fastRunSteps.push(createStep('Fast Walk', 50, { ...metadata, targetSpeed: 4.0, speedUnit: 'MPH' }));
+      fastRunSteps.push(createStep('Fast Run', 24, { ...metadata, targetSpeed: 5.5, speedUnit: 'MPH' }));
+    }
+    const sprintSteps = [];
+    for (let round = 1; round <= 6; round += 1) {
+      const metadata = { round, totalRounds: 6, blockId: 'sprint-block' };
+      sprintSteps.push(createStep('Fast Jog', 50, { ...metadata, targetSpeed: 5.5, speedUnit: 'MPH' }));
+      sprintSteps.push(createStep('Sprint', 14, { ...metadata, targetSpeed: 8.5, speedUnit: 'MPH' }));
+    }
+    return [
+      createWorkoutBlock('Warmup', 'warmup', warmupSteps, { id: 'treadmill-warmup', preBlockCountdown: PRE_STEP_COUNTDOWN }),
+      createWorkoutBlock('Fast Walk / Fast Run', 'work', fastRunSteps, { id: 'treadmill-fast-run', preBlockCountdown: PRE_STEP_COUNTDOWN }),
+      createWorkoutBlock('Halftime Break', 'recovery', [
+        createStep('Halftime Break', 120, { targetSpeed: 3.0, speedUnit: 'MPH' }),
+      ], { id: 'treadmill-halftime' }),
+      createWorkoutBlock('Fast Jog / Sprint', 'work', sprintSteps, { id: 'treadmill-sprint', preBlockCountdown: PRE_STEP_COUNTDOWN }),
+      createWorkoutBlock('Cooldown', 'cooldown', [
+        createStep('Cooldown', 300, { targetSpeed: 3.0, speedUnit: 'MPH' }),
+      ], { id: 'treadmill-cooldown' }),
+    ];
+  }
+
   function thursdaySoccerConditioningSteps() {
     return treadmillSprintsSteps();
+  }
+
+  const SOCCER_DIFFICULTIES = {
+    easy: {
+      label: 'Easy Match',
+      segmentSeconds: 8 * 60,
+      walk: [24, 38],
+      jog: [15, 26],
+      sprint: [8, 10],
+      transitions: {
+        walk: { walk: 0.25, jog: 0.65, sprint: 0.10 },
+        jog: { walk: 0.45, jog: 0.43, sprint: 0.12 },
+        sprint: { walk: 0.78, jog: 0.22, sprint: 0 },
+      },
+    },
+    competitive: {
+      label: 'Competitive Match',
+      segmentSeconds: 9 * 60,
+      walk: [20, 35],
+      jog: [15, 30],
+      sprint: [8, 12],
+      transitions: {
+        walk: { walk: 0.18, jog: 0.67, sprint: 0.15 },
+        jog: { walk: 0.38, jog: 0.44, sprint: 0.18 },
+        sprint: { walk: 0.72, jog: 0.26, sprint: 0.02 },
+      },
+    },
+    championship: {
+      label: 'Championship Match',
+      segmentSeconds: 10 * 60,
+      walk: [18, 30],
+      jog: [16, 30],
+      sprint: [9, 12],
+      transitions: {
+        walk: { walk: 0.12, jog: 0.66, sprint: 0.22 },
+        jog: { walk: 0.32, jog: 0.43, sprint: 0.25 },
+        sprint: { walk: 0.65, jog: 0.30, sprint: 0.05 },
+      },
+    },
+  };
+
+  const SOCCER_MOVEMENTS = {
+    walk: { label: 'Walk', targetSpeed: 3.5, speedUnit: 'MPH', theme: 'walk' },
+    jog: { label: 'Jog', targetSpeed: 5.5, speedUnit: 'MPH', theme: 'jog' },
+    sprint: { label: 'Sprint', targetSpeed: 8.0, speedUnit: 'MPH', theme: 'sprint' },
+  };
+
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function chooseWeighted(weights) {
+    const roll = Math.random();
+    let total = 0;
+    const entries = Object.entries(weights);
+    for (const [key, weight] of entries) {
+      total += weight;
+      if (roll <= total) return key;
+    }
+    return entries[entries.length - 1]?.[0] || 'walk';
+  }
+
+  function fatigueProfile(preset) {
+    return {
+      ...preset,
+      walk: [preset.walk[0] + 3, preset.walk[1] + 5],
+      jog: [preset.jog[0], preset.jog[1] + 3],
+      sprint: preset.sprint,
+      transitions: {
+        walk: { walk: preset.transitions.walk.walk + 0.04, jog: preset.transitions.walk.jog + 0.02, sprint: Math.max(0, preset.transitions.walk.sprint - 0.06) },
+        jog: { walk: preset.transitions.jog.walk + 0.05, jog: preset.transitions.jog.jog + 0.02, sprint: Math.max(0, preset.transitions.jog.sprint - 0.07) },
+        sprint: { walk: Math.min(0.82, preset.transitions.sprint.walk + 0.06), jog: preset.transitions.sprint.jog, sprint: Math.max(0, preset.transitions.sprint.sprint - 0.03) },
+      },
+    };
+  }
+
+  function generateMovementSteps(profile, targetSeconds, blockId) {
+    const steps = [];
+    let elapsed = 0;
+    let movement = 'walk';
+    while (elapsed < targetSeconds) {
+      const movementProfile = SOCCER_MOVEMENTS[movement];
+      const range = profile[movement];
+      const duration = Math.min(randomInt(range[0], range[1]), targetSeconds - elapsed);
+      steps.push(createStep(movementProfile.label, duration, {
+        targetSpeed: movementProfile.targetSpeed,
+        speedUnit: movementProfile.speedUnit,
+        blockId,
+        movement,
+      }));
+      elapsed += duration;
+      movement = chooseWeighted(profile.transitions[movement]);
+    }
+    return steps;
+  }
+
+  function generateSoccerMatchWorkout(difficultyKey = 'competitive') {
+    const preset = SOCCER_DIFFICULTIES[difficultyKey] || SOCCER_DIFFICULTIES.competitive;
+    const firstHalfSteps = generateMovementSteps(preset, preset.segmentSeconds, 'soccer-first-half');
+    const secondHalfSteps = generateMovementSteps(fatigueProfile(preset), preset.segmentSeconds, 'soccer-second-half');
+    return createBlockedWorkout('Soccer Match Simulation', [
+      createWorkoutBlock('Warmup', 'warmup', [
+        createStep('Warmup Walk', 180, { targetSpeed: 3.5, speedUnit: 'MPH' }),
+        createStep('Warmup Jog', 180, { targetSpeed: 5.5, speedUnit: 'MPH' }),
+        createStep('Warmup Build Up', 120, { targetSpeed: 5.5, speedUnit: 'MPH' }),
+      ], { id: 'soccer-warmup', preBlockCountdown: PRE_STEP_COUNTDOWN }),
+      createWorkoutBlock('First Half', 'work', firstHalfSteps, { id: 'soccer-first-half', preBlockCountdown: PRE_STEP_COUNTDOWN }),
+      createWorkoutBlock('Halftime Break', 'recovery', [
+        createStep('Halftime Break', 180, { targetSpeed: 3.5, speedUnit: 'MPH' }),
+      ], { id: 'soccer-halftime' }),
+      createWorkoutBlock('Second Half', 'work', secondHalfSteps, { id: 'soccer-second-half', preBlockCountdown: PRE_STEP_COUNTDOWN }),
+      createWorkoutBlock('Cooldown', 'cooldown', [
+        createStep('Cooldown Walk', 300, { targetSpeed: 3.5, speedUnit: 'MPH' }),
+      ], { id: 'soccer-cooldown' }),
+    ], {
+      generator: 'soccer-match',
+      difficulty: difficultyKey,
+      playerProfile: 'general',
+    });
   }
 
   function isNumberedThursdaySprints(workout) {
@@ -98,8 +280,21 @@
     return {
       ...workout,
       name: 'Treadmill Sprints',
-      steps: treadmillSprintsSteps(),
+      blocks: treadmillSprintsBlocks(),
+      steps: undefined,
     };
+  }
+
+  function isCurrentFlatTreadmillSprints(workout) {
+    return workout?.name === 'Treadmill Sprints'
+      && Array.isArray(workout.steps)
+      && workout.steps.length === 31
+      && workout.steps[0]?.label === 'Warmup Walk'
+      && workout.steps[0]?.duration === 120
+      && workout.steps[17]?.label === 'Long Rest'
+      && workout.steps[17]?.duration === 120
+      && workout.steps[30]?.label === 'Cooldown'
+      && workout.steps[30]?.duration === 300;
   }
 
   function isPreviousDefaultThursdaySprints(workout) {
@@ -145,7 +340,8 @@
 
   function defaultWorkouts() {
     return [
-      createWorkout('Treadmill Sprints', treadmillSprintsSteps()),
+      createBlockedWorkout('Treadmill Sprints', treadmillSprintsBlocks()),
+      createBlockedWorkout('Soccer Match Simulation', [], { generator: 'soccer-match' }),
       createWorkout('Tabata', [
         createStep('Exercise', 20),
         createStep('Rest', 10),
@@ -260,6 +456,41 @@
     return steps.reduce((sum, step) => sum + (step.duration || 0), 0);
   }
 
+  function stepsForWorkout(workout) {
+    if (Array.isArray(workout?.steps)) return workout.steps;
+    if (!Array.isArray(workout?.blocks)) return [];
+    return workout.blocks.flatMap((block) => Array.isArray(block.steps) ? block.steps : []);
+  }
+
+  function workoutStepCount(workout) {
+    if (workout?.generator === 'soccer-match' && !stepsForWorkout(workout).length) return 'Generated match';
+    return `${stepsForWorkout(workout).length} steps`;
+  }
+
+  function normalizeBlocks(workout) {
+    if (Array.isArray(workout?.blocks) && workout.blocks.length) {
+      return workout.blocks.map((block) => ({
+        id: block.id || createId(),
+        title: block.title || 'Workout Block',
+        type: block.type || 'work',
+        preBlockCountdown: block.preBlockCountdown || 0,
+        metadata: block.metadata || {},
+        steps: (Array.isArray(block.steps) ? block.steps : []).map((step) => ({ ...step, id: step.id || createId() })),
+      }));
+    }
+    return [createWorkoutBlock('Workout', 'work', stepsForWorkout(workout).map((step) => ({ ...step, id: step.id || createId() })), {
+      id: `${workout?.id || createId()}-steps`,
+      preBlockCountdown: PRE_STEP_COUNTDOWN,
+    })];
+  }
+
+  function normalizeWorkout(workout) {
+    return {
+      ...workout,
+      blocks: normalizeBlocks(workout),
+    };
+  }
+
   function getStepTheme(label) {
     const key = String(label || '').toLowerCase();
     if (key.includes('sprint')) return 'sprint';
@@ -291,18 +522,43 @@
   function loadWorkouts() {
     workouts = readWorkouts() || defaultWorkouts();
     workouts = workouts.map((workout) => {
-      if (isOldThursdaySprints(workout) || isNumberedThursdaySprints(workout) || isPreviousDefaultThursdaySprints(workout)) return updateOldThursdaySprints(workout);
+      if (isOldThursdaySprints(workout) || isNumberedThursdaySprints(workout) || isPreviousDefaultThursdaySprints(workout) || isCurrentFlatTreadmillSprints(workout)) return updateOldThursdaySprints(workout);
       if (isDefaultTabata(workout)) return updateDefaultTabata(workout);
       return workout;
     });
+    try {
+      if (workouts.some((workout) => workout.generator === 'soccer-match')) {
+        localStorage.setItem(SOCCER_WORKOUT_ADDED_KEY, 'true');
+      }
+      if (!workouts.some((workout) => workout.generator === 'soccer-match') && localStorage.getItem(SOCCER_WORKOUT_ADDED_KEY) !== 'true') {
+        workouts.push(createBlockedWorkout('Soccer Match Simulation', [], { generator: 'soccer-match' }));
+        localStorage.setItem(SOCCER_WORKOUT_ADDED_KEY, 'true');
+      }
+    } catch {
+      /* storage unavailable */
+    }
     saveWorkouts();
   }
 
   function duplicateWorkout(workout) {
+    if (workout.generator === 'soccer-match') {
+      return {
+        id: createId(),
+        name: `${workout.name} Copy`,
+        generator: workout.generator,
+      };
+    }
+    const blocks = Array.isArray(workout.blocks)
+      ? workout.blocks.map((block) => ({
+        ...block,
+        id: createId(),
+        steps: (block.steps || []).map((step) => ({ ...step, id: createId() })),
+      }))
+      : null;
     return {
       id: createId(),
       name: `${workout.name} Copy`,
-      steps: workout.steps.map((step) => ({ ...step, id: createId() })),
+      ...(blocks ? { blocks } : { steps: stepsForWorkout(workout).map((step) => ({ ...step, id: createId() })) }),
     };
   }
 
@@ -557,6 +813,10 @@
   }
 
   function setView(name) {
+    if (window.LandosWorld) {
+      window.LandosWorld.setActiveView(name === 'sprints' ? 'violet-sprints' : 'home');
+      return;
+    }
     const clock = clockView();
     const sprints = sprintsRoot();
     if (clock) clock.hidden = name !== 'clock';
@@ -581,7 +841,13 @@
   function showClock() {
     stopTimer();
     stopActiveBeeps();
-    setView('clock');
+    if (window.LandosWorld) {
+      window.LandosWorld.navigateHome();
+      return;
+    }
+    if (!window.LandosWorld) {
+      setView('clock');
+    }
   }
 
   function showWorkoutList() {
@@ -591,7 +857,7 @@
     root.innerHTML = `
       <div class="sprints-app">
         <header class="sprints-header">
-          <button type="button" class="sprints-btn sprints-btn--ghost" data-action="back-clock">Digital Clock</button>
+          <button type="button" class="sprints-btn sprints-btn--ghost" data-action="back-clock">← Lando's World</button>
           <h1 class="sprints-title">Violet Sprints</h1>
           <button type="button" class="sprints-btn sprints-btn--primary" data-action="create">+ New</button>
         </header>
@@ -599,11 +865,12 @@
         <ul class="sprints-list" role="list">
           ${workouts.length ? workouts.map((workout) => `
             <li class="sprints-list-item" data-id="${escapeHtml(workout.id)}">
-              <button type="button" class="sprints-list-main" data-action="open" data-id="${escapeHtml(workout.id)}">
+              <div class="sprints-list-main">
                 <span class="sprints-list-name">${escapeHtml(workout.name)}</span>
-                <span class="sprints-list-meta">${workout.steps.length} steps</span>
-              </button>
+                <span class="sprints-list-meta">${escapeHtml(workoutStepCount(workout))}</span>
+              </div>
               <div class="sprints-list-actions">
+                <button type="button" class="sprints-btn" data-action="view" data-id="${escapeHtml(workout.id)}">View Steps</button>
                 <button type="button" class="sprints-btn sprints-btn--accent" data-action="start" data-id="${escapeHtml(workout.id)}">Start</button>
                 <button type="button" class="sprints-btn" data-action="duplicate" data-id="${escapeHtml(workout.id)}">Duplicate</button>
                 <button type="button" class="sprints-btn sprints-btn--danger" data-action="delete" data-id="${escapeHtml(workout.id)}">Delete</button>
@@ -625,7 +892,11 @@
         saveWorkouts();
         showEditor(workout.id);
       }
-      if (action === 'open') showEditor(id);
+      if (action === 'view') {
+        const target = workouts.find((workout) => workout.id === id);
+        if (target?.generator === 'soccer-match') showSoccerDifficulty(id, 'preview');
+        else showEditor(id);
+      }
       if (action === 'start') showTimer(id);
       if (action === 'duplicate') {
         const source = workouts.find((workout) => workout.id === id);
@@ -655,6 +926,12 @@
     setView('sprints');
     const root = replaceSprintsRoot();
     let draft = JSON.parse(JSON.stringify(workouts.find((workout) => workout.id === id) || createWorkout()));
+    if (draft.generator === 'soccer-match') {
+      showSoccerDifficulty(id, 'preview');
+      return;
+    }
+    draft.steps = stepsForWorkout(draft).map((step) => ({ ...step }));
+    delete draft.blocks;
 
     function readForm() {
       draft.name = root.querySelector('#sprints-workout-name')?.value.trim() || 'Untitled Workout';
@@ -747,11 +1024,24 @@
   }
 
   function createWorkoutTimer(workout, callbacks) {
+    const normalizedWorkout = normalizeWorkout(workout);
+    const blocks = normalizedWorkout.blocks;
+    const timerSteps = blocks.flatMap((block, blockIndex) => (
+      block.steps.map((step, stepIndexInBlock) => ({
+        ...step,
+        blockIndex,
+        stepIndexInBlock,
+        blockTitle: block.title,
+        blockType: block.type,
+      }))
+    ));
     let stepIndex = 0;
     let phase = 'idle';
     let secondsLeft = 0;
     let tickId = null;
     let paused = false;
+    let warningPulseKey = 0;
+    let warningPulseActive = false;
 
     function clearTick() {
       if (tickId !== null) {
@@ -761,11 +1051,25 @@
     }
 
     function currentStep() {
-      return workout.steps[stepIndex] || null;
+      return timerSteps[stepIndex] || null;
     }
 
     function nextStep() {
-      return workout.steps[stepIndex + 1] || null;
+      return timerSteps[stepIndex + 1] || null;
+    }
+
+    function currentBlock() {
+      const step = currentStep();
+      return step ? blocks[step.blockIndex] : null;
+    }
+
+    function isFirstStepInBlock(index = stepIndex) {
+      return (timerSteps[index]?.stepIndexInBlock || 0) === 0;
+    }
+
+    function blockPreCountdown(index = stepIndex) {
+      const block = blocks[timerSteps[index]?.blockIndex];
+      return block?.preBlockCountdown || 0;
     }
 
     function isWarmupOrCooldownStep(step) {
@@ -783,8 +1087,31 @@
       return Boolean(step) && !isWarmupOrCooldownStep(step) && !isRestStep(step);
     }
 
+    function isRecoveryBreakStep(step) {
+      const label = String(step?.label || '').toLowerCase();
+      return label.includes('halftime')
+        || label.includes('long')
+        || label.includes('break')
+        || label.includes('recovery');
+    }
+
     function shouldPlayRestWarning() {
       return isRestStep(currentStep()) && isWorkStep(nextStep());
+    }
+
+    function shouldBeginPreCountdown(previousStep) {
+      if (isFirstStepInBlock() && blockPreCountdown() > 0) return true;
+      return Boolean(previousStep) && isRecoveryBreakStep(previousStep) && isWorkStep(currentStep());
+    }
+
+    function shouldShowVisualWarning() {
+      return phase === 'running' && secondsLeft > 0 && secondsLeft <= 5;
+    }
+
+    function triggerVisualWarningPulse() {
+      if (!shouldShowVisualWarning()) return;
+      warningPulseKey += 1;
+      warningPulseActive = true;
     }
 
     function roundLabel(step) {
@@ -796,7 +1123,10 @@
     function remainingWorkoutSeconds() {
       let total = secondsLeft;
       if (phase === 'pre_countdown') total += currentStep()?.duration || 0;
-      for (let i = stepIndex + 1; i < workout.steps.length; i += 1) total += workout.steps[i].duration || 0;
+      for (let i = stepIndex + 1; i < timerSteps.length; i += 1) {
+        if (isFirstStepInBlock(i)) total += blockPreCountdown(i);
+        total += timerSteps[i].duration || 0;
+      }
       return total;
     }
 
@@ -805,9 +1135,12 @@
       callbacks.onUpdate({
         phase,
         paused,
-        workoutName: workout.name,
+        workoutName: normalizedWorkout.name,
+        blockTitle: phase === 'pre_countdown'
+          ? (stepIndex === 0 ? 'Workout Starting' : 'Next Workout Block')
+          : currentBlock()?.title || '',
         stepIndex,
-        totalSteps: workout.steps.length,
+        totalSteps: timerSteps.length,
         stepLabel: step?.label || '',
         targetSpeed: phase === 'running' ? formatTargetSpeed(step) : '',
         roundLabel: phase === 'running' ? roundLabel(step) : '',
@@ -817,12 +1150,16 @@
         nextLabel: nextStep()?.label || '',
         remaining: formatDuration(remainingWorkoutSeconds()),
         complete: phase === 'complete',
+        warningActive: shouldShowVisualWarning(),
+        warningPulseActive,
+        warningPulseKey,
       });
+      warningPulseActive = false;
     }
 
     function beginPreCountdown() {
       phase = 'pre_countdown';
-      secondsLeft = PRE_STEP_COUNTDOWN;
+      secondsLeft = blockPreCountdown();
       emitUpdate();
       playBeep(660);
     }
@@ -838,25 +1175,28 @@
       phase = 'running';
       secondsLeft = step.duration;
       playBeep(isWorkStep(step) ? 1760 : 1320, isWorkStep(step) ? 240 : 100);
+      triggerVisualWarningPulse();
       if (isWorkStep(step) && secondsLeft <= 5) {
         playBeep(880);
       }
-      if (shouldPlayRestWarning() && secondsLeft <= 3) {
+      if (shouldPlayRestWarning() && secondsLeft <= 5) {
         playBeep(660);
       }
       emitUpdate();
     }
 
     function advanceStep() {
-      if (stepIndex >= workout.steps.length - 1) {
+      if (stepIndex >= timerSteps.length - 1) {
         phase = 'complete';
         clearTick();
         releaseWorkoutWakeLock();
         emitUpdate();
         return;
       }
+      const previousStep = currentStep();
       stepIndex += 1;
-      beginStep();
+      if (shouldBeginPreCountdown(previousStep)) beginPreCountdown();
+      else beginStep();
     }
 
     function tick() {
@@ -864,8 +1204,13 @@
       secondsLeft -= 1;
       if (secondsLeft > 0) {
         if (phase === 'pre_countdown') playBeep(660);
-        if (phase === 'running' && isWorkStep(currentStep()) && secondsLeft <= 5) playBeep(880);
-        if (phase === 'running' && shouldPlayRestWarning() && secondsLeft <= 3) playBeep(660);
+        if (phase === 'running') triggerVisualWarningPulse();
+        if (phase === 'running' && isWorkStep(currentStep()) && secondsLeft <= 5) {
+          playBeep(880);
+        }
+        if (phase === 'running' && shouldPlayRestWarning() && secondsLeft <= 5) {
+          playBeep(660);
+        }
         emitUpdate();
         return;
       }
@@ -877,10 +1222,11 @@
 
     return {
       start() {
-        if (!workout.steps.length) return;
+        if (!timerSteps.length) return;
         stepIndex = 0;
         paused = false;
-        beginPreCountdown();
+        if (blockPreCountdown() > 0) beginPreCountdown();
+        else beginStep();
         clearTick();
         tickId = setInterval(tick, 1000);
       },
@@ -898,14 +1244,16 @@
       skip() {
         if (phase === 'complete') return;
         clearTick();
-        advanceStep();
+        if (phase === 'pre_countdown') beginStep();
+        else advanceStep();
         if (phase !== 'complete') tickId = setInterval(tick, 1000);
       },
       back() {
         if (phase === 'complete') return;
         clearTick();
         if (stepIndex > 0) stepIndex -= 1;
-        beginStep();
+        if (isFirstStepInBlock() && blockPreCountdown() > 0) beginPreCountdown();
+        else beginStep();
         tickId = setInterval(tick, 1000);
       },
       finish() {
@@ -945,14 +1293,16 @@
     const countdownSeconds = state.phase === 'pre_countdown' ? Number(state.countdown.slice(-2)) : state.secondsLeft;
     const countdown = formatCountdownDisplay(countdownSeconds);
     const countdownMode = countdownSeconds <= 60 ? 'seconds' : 'time';
+    const warningClass = `${state.warningActive ? ' sprints-countdown--warning' : ''}${state.warningPulseActive ? ' sprints-countdown--pulse' : ''}`;
     root.innerHTML = `
       <div class="sprints-timer sprints-timer--${escapeHtml(state.stepTheme)}">
         <div class="sprints-timer-main">
           <div class="sprints-timer-workout">${escapeHtml(state.workoutName)}</div>
+          ${state.blockTitle ? `<div class="sprints-timer-block">${escapeHtml(state.blockTitle)}</div>` : ''}
           <div class="sprints-timer-step">${escapeHtml(label)}</div>
           ${state.targetSpeed ? `<div class="sprints-timer-speed">${escapeHtml(state.targetSpeed)}</div>` : ''}
           ${state.roundLabel ? `<div class="sprints-timer-round">${escapeHtml(state.roundLabel)}</div>` : ''}
-          <div class="sprints-countdown sprints-countdown--${countdownMode}">${escapeHtml(countdown)}</div>
+          <div class="sprints-countdown sprints-countdown--${countdownMode}${warningClass}" style="--pulse-key: ${Number(state.warningPulseKey) || 0}">${escapeHtml(countdown)}</div>
           <div class="sprints-timer-meta">Step ${state.stepIndex + 1} of ${state.totalSteps}</div>
         </div>
         <div class="sprints-timer-grid">
@@ -969,24 +1319,147 @@
       </div>`;
   }
 
-  async function showTimer(id) {
-    await unlockAudio();
-    const workout = workouts.find((item) => item.id === id);
-    if (!workout) {
-      showWorkoutList();
-      return;
-    }
+  function pickCompletionMessage() {
+    const available = COMPLETION_MESSAGES.filter((message) => message !== lastCompletionMessage);
+    const message = available[Math.floor(Math.random() * available.length)] || COMPLETION_MESSAGES[0];
+    lastCompletionMessage = message;
+    return message;
+  }
+
+  function renderCompletion(root, stage, message = '') {
+    const controls = stage === 'controls'
+      ? `<div class="sprints-complete-actions">
+          <button type="button" class="sprints-btn sprints-btn--accent" data-action="restart">Restart</button>
+          <button type="button" class="sprints-btn sprints-btn--primary" data-action="list">Workout List</button>
+        </div>`
+      : '';
+    root.innerHTML = `
+      <div class="sprints-complete">
+        <h1 class="sprints-complete-title">${escapeHtml(stage === 'message' ? message : 'Workout Complete')}</h1>
+        ${controls}
+      </div>`;
+  }
+
+  function workoutPreviewMarkup(workout) {
+    const normalizedWorkout = normalizeWorkout(workout);
+    return normalizedWorkout.blocks.map((block) => `
+      <section class="sprints-preview-block">
+        <h2 class="sprints-preview-title">${escapeHtml(block.title)}</h2>
+        <ul class="sprints-preview-steps" role="list">
+          ${block.steps.map((step) => `
+            <li class="sprints-preview-step">
+              <span>${escapeHtml(step.label)}</span>
+              <span>${escapeHtml(formatDuration(step.duration))}${formatTargetSpeed(step) ? ` · ${escapeHtml(formatTargetSpeed(step))}` : ''}</span>
+            </li>`).join('')}
+        </ul>
+      </section>`).join('');
+  }
+
+  function showGeneratedWorkoutPreview(id, difficultyKey) {
+    const generatedWorkout = generateSoccerMatchWorkout(difficultyKey);
+    const difficulty = SOCCER_DIFFICULTIES[difficultyKey] || SOCCER_DIFFICULTIES.competitive;
     stopTimer();
     setView('sprints');
     const root = replaceSprintsRoot();
-    if (!workout.steps.length) {
+    root.innerHTML = `
+      <div class="sprints-app">
+        <header class="sprints-header">
+          <button type="button" class="sprints-btn sprints-btn--ghost" data-action="difficulty">Difficulties</button>
+          <h1 class="sprints-title">${escapeHtml(difficulty.label)}</h1>
+          <button type="button" class="sprints-btn sprints-btn--accent sprints-btn--large" data-action="start-preview">Start</button>
+        </header>
+        <div class="sprints-preview">
+          ${workoutPreviewMarkup(generatedWorkout)}
+        </div>
+      </div>`;
+    root.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      if (button.dataset.action === 'difficulty') showSoccerDifficulty(id);
+      if (button.dataset.action === 'start-preview') showTimer(id, { generatedWorkout });
+    });
+  }
+
+  function showSoccerDifficulty(id, mode = 'start') {
+    stopTimer();
+    setView('sprints');
+    const root = replaceSprintsRoot();
+    const isPreviewMode = mode === 'preview';
+    root.innerHTML = `
+      <div class="sprints-app">
+        <header class="sprints-header">
+          <button type="button" class="sprints-btn sprints-btn--ghost" data-action="list">Workouts</button>
+          <h1 class="sprints-title">${isPreviewMode ? 'View Soccer Steps' : 'Soccer Match Simulation'}</h1>
+        </header>
+        <div class="sprints-difficulty">
+          ${Object.entries(SOCCER_DIFFICULTIES).map(([key, difficulty]) => `
+            <div class="sprints-difficulty-card">
+              <button type="button" class="sprints-difficulty-main" data-action="${isPreviewMode ? 'preview-soccer' : 'start-soccer'}" data-difficulty="${escapeHtml(key)}">
+                <span>${escapeHtml(difficulty.label)}</span>
+              </button>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    root.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      if (button.dataset.action === 'list') showWorkoutList();
+      if (button.dataset.action === 'start-soccer') showTimer(id, { difficulty: button.dataset.difficulty || 'competitive' });
+      if (button.dataset.action === 'preview-soccer') showGeneratedWorkoutPreview(id, button.dataset.difficulty || 'competitive');
+    });
+  }
+
+  async function showTimer(id, options = {}) {
+    const savedWorkout = workouts.find((item) => item.id === id);
+    if (!savedWorkout) {
+      showWorkoutList();
+      return;
+    }
+    if (savedWorkout.generator === 'soccer-match' && !options.difficulty && !options.generatedWorkout) {
+      showSoccerDifficulty(id);
+      return;
+    }
+    await Promise.race([
+      unlockAudio(),
+      new Promise((resolve) => setTimeout(resolve, 350)),
+    ]);
+    const workout = options.generatedWorkout || (savedWorkout?.generator === 'soccer-match'
+      ? generateSoccerMatchWorkout(options.difficulty || 'competitive')
+      : savedWorkout);
+    stopTimer();
+    setView('sprints');
+    const root = replaceSprintsRoot();
+    if (!stepsForWorkout(workout).length) {
       root.innerHTML = '<div class="sprints-app"><button type="button" class="sprints-btn sprints-btn--ghost" data-action="list">Workouts</button><div class="sprints-empty">Add at least one workout step before starting.</div></div>';
       root.addEventListener('click', (event) => {
         if (event.target.closest('[data-action="list"]')) showWorkoutList();
       });
       return;
     }
-    activeTimer = createWorkoutTimer(workout, { onUpdate: (state) => renderTimer(root, state) });
+    let completionStarted = false;
+    let completionTimeouts = [];
+    function clearCompletionSequence() {
+      completionTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+      completionTimeouts = [];
+      completionStarted = false;
+    }
+    function runCompletionSequence() {
+      if (completionStarted) return;
+      completionStarted = true;
+      renderCompletion(root, 'complete');
+      const message = pickCompletionMessage();
+      completionTimeouts.push(window.setTimeout(() => renderCompletion(root, 'message', message), 2000));
+      completionTimeouts.push(window.setTimeout(() => renderCompletion(root, 'controls'), 5500));
+    }
+    activeTimer = createWorkoutTimer(workout, {
+      onUpdate: (state) => {
+        if (state.complete) runCompletionSequence();
+        else {
+          clearCompletionSequence();
+          renderTimer(root, state);
+        }
+      },
+    });
     let stepNavigationLocked = false;
     let finishConfirmationOpen = false;
 
@@ -1034,11 +1507,13 @@
         else if (!wasPausedBeforeConfirmation) timer.resume();
       }
       if (action === 'restart') {
+        clearCompletionSequence();
         void unlockAudio();
         beginWorkoutWakeLock();
         activeTimer.restart();
       }
       if (action === 'list') {
+        clearCompletionSequence();
         stopActiveBeeps();
         showWorkoutList();
       }
@@ -1049,12 +1524,14 @@
 
   function init() {
     loadWorkouts();
-    document.getElementById('open-sprints')?.addEventListener('click', async () => {
-      const audioEnabled = await unlockAudio();
-      showWorkoutList();
-      if (!audioEnabled) {
-        showSoundEnableControl();
+    document.getElementById('open-sprints')?.addEventListener('click', () => {
+      if (window.LandosWorld && window.location.hash !== '#/violet-sprints') {
+        window.LandosWorld.navigateToRoute('violet-sprints');
       }
+      showWorkoutList();
+      unlockAudio().then((audioEnabled) => {
+        if (!audioEnabled) showSoundEnableControl();
+      });
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && audioCtx) {
@@ -1066,7 +1543,11 @@
         requestWorkoutWakeLock();
       }
     });
-    setView('clock');
+    if (window.location.hash === '#/violet-sprints') {
+      showWorkoutList();
+    } else if (!window.LandosWorld) {
+      setView('clock');
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);
