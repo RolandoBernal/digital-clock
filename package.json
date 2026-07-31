@@ -1,0 +1,13 @@
+{
+  "name": "landos-world",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:js": "node --check js/daily-chief-briefing.js && node --check js/levi-diabetes-tracker.js && node --check js/sprints-app.js && node --check api/daily-chief-briefing/status.js && node --check api/daily-chief-briefing/generate.js"
+  },
+  "dependencies": {
+    "openai": "^5.11.0"
+  },
+  "devDependencies": {}
+}
