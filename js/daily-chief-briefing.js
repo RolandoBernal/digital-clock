@@ -52,6 +52,12 @@
   let refreshInProgress = false;
   let generationInProgress = false;
   let generationError = '';
+  let weatherRefreshInProgress = false;
+  let weatherState = {
+    status: 'idle',
+    snapshot: null,
+    error: '',
+  };
   let initialized = false;
 
   const briefingGenerationClient = {
@@ -81,6 +87,16 @@
             displayName: store.preferences.displayName,
             preferredLocation: store.preferences.preferredLocation,
             timeFormat: store.preferences.timeFormat,
+            weather: weatherState.snapshot ? {
+              locationName: weatherState.snapshot.locationName,
+              currentTemperature: weatherState.snapshot.currentTemperature,
+              currentConditionLabel: weatherState.snapshot.currentConditionLabel,
+              todayHigh: weatherState.snapshot.todayHigh,
+              todayLow: weatherState.snapshot.todayLow,
+              precipitationProbability: weatherState.snapshot.precipitationProbability,
+              windSpeed: weatherState.snapshot.windSpeed,
+              fetchedAt: weatherState.snapshot.fetchedAt,
+            } : null,
           },
           history: createGenerationHistory(),
         }),
@@ -565,6 +581,28 @@
     return new Intl.DateTimeFormat(navigator.language || undefined, options).format(date);
   }
 
+  function readWeatherUnitSystem() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('digit_clock_preferences_v1') || 'null');
+      return parsed?.unit === 'C' ? 'metric' : 'imperial';
+    } catch {
+      return 'imperial';
+    }
+  }
+
+  function formatWeatherTime(timestamp) {
+    const date = new Date(timestamp || Date.now());
+    return new Intl.DateTimeFormat(navigator.language || undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(date);
+  }
+
+  function formatWeatherNumber(value, suffix = '') {
+    if (value == null || value === '') return '—';
+    return `${value}${suffix}`;
+  }
+
   function createGenerationHistory() {
     const documents = Object.values(store.documents).sort((a, b) => b.date.localeCompare(a.date));
     const collect = (sectionId, blockKind, selector) => documents.flatMap((document) => {
@@ -592,6 +630,7 @@
     root.className = `daily_briefing_shell is-text-${store.preferences.textSize} is-density-${store.preferences.density}`;
     root.innerHTML = `
       ${renderDocumentHeader(document)}
+      ${store.preferences.visibleSections.weather !== false ? renderLiveWeatherSection() : ''}
       ${document ? renderDocument(document) : renderNoBriefingState()}
       ${renderDialogLayer()}
     `;
@@ -654,7 +693,7 @@
   }
 
   function renderDocument(document) {
-    const visibleSections = document.sections.filter((section) => store.preferences.visibleSections[section.id] !== false);
+    const visibleSections = document.sections.filter((section) => section.id !== 'weather' && store.preferences.visibleSections[section.id] !== false);
     const isStale = document.date !== getLocalDateKey();
     return `
       <main class="daily_briefing_document" aria-label="Daily Chief Briefing document">
@@ -664,6 +703,94 @@
         ${visibleSections.map(renderSection).join('')}
         ${renderDocumentWarnings(document)}
       </main>
+    `;
+  }
+
+  function renderLiveWeatherSection() {
+    const location = store.preferences.preferredLocation;
+    const snapshot = weatherState.snapshot;
+    const chipLabel = weatherRefreshInProgress ? 'updating' : weatherState.status === 'stale' ? 'stale' : snapshot ? 'ready' : weatherState.status;
+    return `
+      <article class="daily_briefing_section daily_briefing_section--weather" id="briefing-section-weather">
+        <div class="daily_briefing_section_header daily_briefing_weather_header">
+          <h2><span aria-hidden="true">🌤️</span> Weather</h2>
+          <div class="daily_briefing_weather_actions">
+            <span class="daily_briefing_status_chip">${escapeHtml(chipLabel || 'idle')}</span>
+            <button type="button" class="daily_briefing_icon_button daily_briefing_weather_refresh" data-briefing-action="refresh-weather" aria-label="Refresh weather" ${weatherRefreshInProgress || !location ? 'disabled' : ''}>↻</button>
+          </div>
+        </div>
+        ${renderWeatherBody()}
+      </article>
+    `;
+  }
+
+  function renderWeatherBody() {
+    const location = store.preferences.preferredLocation;
+    const snapshot = weatherState.snapshot;
+    if (!location) {
+      return `<div class="daily_briefing_weather_empty">
+        <p>Set your weather location in settings.</p>
+        <button type="button" class="daily_briefing_button daily_briefing_button--tiny" data-briefing-action="open-settings">Open Settings</button>
+      </div>`;
+    }
+    if (weatherState.status === 'loading' && !snapshot) {
+      return `<div class="daily_briefing_weather_skeleton" role="status" aria-live="polite">
+        <span></span><span></span><span></span>
+        <p>Loading weather...</p>
+      </div>`;
+    }
+    if (!snapshot) {
+      return `<div class="daily_briefing_weather_empty">
+        <p>Weather unavailable right now.</p>
+        <button type="button" class="daily_briefing_button daily_briefing_button--tiny" data-briefing-action="refresh-weather">Retry</button>
+      </div>`;
+    }
+    const unit = snapshot.temperatureUnit || '°F';
+    const windUnit = snapshot.windSpeedUnit || 'mph';
+    const dayparts = [
+      snapshot.morningForecast,
+      snapshot.afternoonForecast,
+      snapshot.eveningForecast,
+    ].filter(Boolean);
+    return `
+      <div class="daily_briefing_weather_grid">
+        <div class="daily_briefing_weather_current">
+          <div class="daily_briefing_weather_location">${escapeHtml(snapshot.locationName || location)}</div>
+          <div class="daily_briefing_weather_now">
+            <span class="daily_briefing_weather_icon" role="img" aria-label="${escapeHtml(snapshot.currentConditionLabel || 'Current weather')}">${escapeHtml(snapshot.currentConditionIcon || '🌤️')}</span>
+            <div>
+              <strong>${escapeHtml(formatWeatherNumber(snapshot.currentTemperature, unit))}</strong>
+              <span>${escapeHtml(snapshot.currentConditionLabel || 'Current conditions')}</span>
+              <span>Feels like ${escapeHtml(formatWeatherNumber(snapshot.apparentTemperature, unit))}</span>
+            </div>
+          </div>
+          <div class="daily_briefing_weather_metrics">
+            <span>High ${escapeHtml(formatWeatherNumber(snapshot.todayHigh, unit))}</span>
+            <span>Low ${escapeHtml(formatWeatherNumber(snapshot.todayLow, unit))}</span>
+            <span>Rain ${escapeHtml(formatWeatherNumber(snapshot.precipitationProbability, '%'))}</span>
+            <span>Wind ${escapeHtml(formatWeatherNumber(snapshot.windSpeed, ` ${windUnit}`))}</span>
+          </div>
+          <p class="daily_briefing_weather_updated">Updated ${escapeHtml(formatWeatherTime(snapshot.fetchedAt))}${snapshot.isStale || weatherState.status === 'stale' ? ' · showing cached weather' : ''}</p>
+        </div>
+        <div class="daily_briefing_weather_dayparts" aria-label="Today-focused forecast">
+          ${dayparts.map(renderWeatherDaypart).join('')}
+        </div>
+      </div>
+      ${snapshot.callout ? `<aside class="daily_briefing_weather_callout">${escapeHtml(snapshot.callout)}</aside>` : ''}
+      ${weatherState.error && weatherState.status !== 'ready' ? `<p class="daily_briefing_section_error">${escapeHtml(weatherState.error)}</p>` : ''}
+    `;
+  }
+
+  function renderWeatherDaypart(daypart) {
+    const unit = weatherState.snapshot?.temperatureUnit || '°F';
+    return `
+      <div class="daily_briefing_weather_daypart">
+        <span class="daily_briefing_weather_daypart_label">${escapeHtml(daypart.label)}</span>
+        <span class="daily_briefing_weather_daypart_icon" role="img" aria-label="${escapeHtml(daypart.conditionLabel)}">${escapeHtml(daypart.conditionIcon || '🌤️')}</span>
+        <strong>${escapeHtml(formatWeatherNumber(daypart.temperature, unit))}</strong>
+        <span>${escapeHtml(daypart.conditionLabel || 'Conditions')}</span>
+        <small>Rain ${escapeHtml(formatWeatherNumber(daypart.precipitationProbability, '%'))}</small>
+      </div>
     `;
   }
 
@@ -876,8 +1003,8 @@
             <label class="daily_briefing_label">Display name
               <input class="daily_briefing_field" name="displayName" maxlength="40" value="${escapeHtml(prefs.displayName)}">
             </label>
-            <label class="daily_briefing_label">Preferred location
-              <input class="daily_briefing_field" name="preferredLocation" maxlength="90" value="${escapeHtml(prefs.preferredLocation)}">
+            <label class="daily_briefing_label">Weather Location
+              <input class="daily_briefing_field" name="preferredLocation" maxlength="90" value="${escapeHtml(prefs.preferredLocation)}" placeholder="Nashville, Tennessee">
             </label>
             <label class="daily_briefing_label">Time format
               <select class="daily_briefing_select" name="timeFormat">
@@ -963,6 +1090,7 @@
     activeDemoDocument = null;
     refreshInProgress = false;
     renderBriefing();
+    loadWeatherForBriefing();
   }
 
   function saveImportedBriefing() {
@@ -987,6 +1115,7 @@
   }
 
   function saveSettings(form) {
+    const previousLocation = store.preferences.preferredLocation;
     const visibleSections = { ...store.preferences.visibleSections };
     SECTION_REGISTRY.forEach((section) => {
       const control = form.elements[`section-${section.id}`];
@@ -1005,7 +1134,61 @@
       visibleSections,
     });
     saveDocumentStore();
+    const locationChanged = previousLocation !== store.preferences.preferredLocation;
+    if (locationChanged) {
+      window.LandosWeatherService?.clearLocation(previousLocation);
+      weatherState = {
+        status: store.preferences.preferredLocation ? 'loading' : 'needs-location',
+        snapshot: null,
+        error: '',
+      };
+    }
     closeDialog();
+    if (locationChanged) {
+      window.dispatchEvent(new CustomEvent('daily-chief-briefing:weather-location-changed'));
+      loadWeatherForBriefing({ force: true });
+    }
+  }
+
+  async function loadWeatherForBriefing(options = {}) {
+    const service = window.LandosWeatherService;
+    if (!service || store.preferences.visibleSections.weather === false) return;
+    const location = store.preferences.preferredLocation;
+    if (!location) {
+      weatherState = { status: 'needs-location', snapshot: null, error: '' };
+      renderBriefing();
+      return;
+    }
+    const cached = service.getCachedWeather(location);
+    if (cached) {
+      weatherState = {
+        status: cached.isStale ? 'stale' : 'ready',
+        snapshot: cached,
+        error: '',
+      };
+      renderBriefing();
+      if (!cached.isStale && !options.force) return;
+    } else {
+      weatherState = {
+        status: 'loading',
+        snapshot: null,
+        error: '',
+      };
+      renderBriefing();
+    }
+    weatherRefreshInProgress = true;
+    renderBriefing();
+    const result = await service.getWeather(location, {
+      force: Boolean(options.force),
+      unitSystem: readWeatherUnitSystem(),
+    });
+    weatherRefreshInProgress = false;
+    weatherState = {
+      status: result.status,
+      snapshot: result.snapshot,
+      error: result.error || '',
+    };
+    renderBriefing();
   }
 
   async function generateTodayBriefing() {
@@ -1079,6 +1262,7 @@
     if (!button) return;
     const action = button.dataset.briefingAction;
     if (action === 'refresh-view') refreshView();
+    if (action === 'refresh-weather') loadWeatherForBriefing({ force: true });
     if (action === 'generate-briefing') generateTodayBriefing();
     if (action === 'go-today') {
       activeDemoDocument = null;
@@ -1128,6 +1312,7 @@
     document.addEventListener('click', handleClick);
     document.addEventListener('keydown', handleKeydown);
     renderBriefing();
+    loadWeatherForBriefing();
   }
 
   document.addEventListener('DOMContentLoaded', initDailyChiefBriefing);
@@ -1143,5 +1328,6 @@
     createDemoBriefing,
     briefingGenerationClient,
     getLocalDateKey,
+    loadWeatherForBriefing,
   };
 })();

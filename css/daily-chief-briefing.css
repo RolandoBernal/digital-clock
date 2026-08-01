@@ -2,7 +2,8 @@
   --briefing-ink: #f8fbff;
   --briefing-muted: #aeb8c4;
   --briefing-soft: #dce8f3;
-  --briefing-accent: #c7e8ff;
+  --briefing-accent: var(--app-accent, #2ee6c5);
+  --briefing-accent-soft: var(--app-accent-soft, #b7fff2);
   --briefing-paper: rgb(255 255 255 / 7%);
   --briefing-paper-soft: rgb(255 255 255 / 4%);
   --briefing-line: rgb(255 255 255 / 13%);
@@ -48,7 +49,7 @@
   border: 1px solid var(--briefing-line);
   border-radius: 8px;
   background:
-    radial-gradient(circle at top right, rgb(199 232 255 / 15%), transparent 34rem),
+    radial-gradient(circle at top right, rgb(var(--app-accent-rgb, 46 230 197) / 15%), transparent 34rem),
     linear-gradient(180deg, rgb(255 255 255 / 8%), rgb(255 255 255 / 3%));
   box-shadow: 0 28px 90px rgb(0 0 0 / 32%);
 }
@@ -141,11 +142,17 @@
   padding: 0;
 }
 
+.daily_briefing_button:not(.daily_briefing_button--quiet):not(.daily_briefing_button--danger) {
+  border-color: rgb(var(--app-accent-rgb, 46 230 197) / 58%);
+  background: rgb(var(--app-accent-rgb, 46 230 197) / 12%);
+  color: var(--briefing-accent-soft);
+}
+
 .daily_briefing_button:hover,
 .daily_briefing_icon_button:hover {
-  border-color: rgb(199 232 255 / 70%);
-  background: rgb(199 232 255 / 13%);
-  box-shadow: 0 10px 34px rgb(137 207 247 / 10%);
+  border-color: rgb(var(--app-accent-rgb, 46 230 197) / 70%);
+  background: rgb(var(--app-accent-rgb, 46 230 197) / 13%);
+  box-shadow: 0 10px 34px rgb(var(--app-accent-rgb, 46 230 197) / 10%);
 }
 
 .daily_briefing_button:disabled,
@@ -225,9 +232,9 @@
 }
 
 .daily_briefing_banner--stale {
-  border-color: rgb(199 232 255 / 24%);
+  border-color: rgb(var(--app-accent-rgb, 46 230 197) / 24%);
   color: var(--briefing-soft);
-  background: rgb(199 232 255 / 8%);
+  background: rgb(var(--app-accent-rgb, 46 230 197) / 8%);
 }
 
 .daily_briefing_section_nav {
@@ -363,6 +370,185 @@
   margin: 0.25rem 0 0;
   color: var(--briefing-ink);
   font-weight: 800;
+}
+
+.daily_briefing_section--weather {
+  border-color: rgb(var(--app-accent-rgb, 46 230 197) / 28%);
+  background:
+    linear-gradient(180deg, rgb(var(--app-accent-rgb, 46 230 197) / 9%), rgb(255 255 255 / 4%));
+}
+
+.daily_briefing_weather_header {
+  align-items: center;
+}
+
+.daily_briefing_weather_actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.daily_briefing_weather_refresh {
+  color: var(--briefing-accent-soft);
+}
+
+.daily_briefing_weather_grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.daily_briefing_weather_current {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.daily_briefing_weather_location {
+  color: var(--briefing-muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.daily_briefing_weather_now {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.daily_briefing_weather_icon {
+  color: var(--briefing-accent);
+  font-size: clamp(2.4rem, 8vw, 3.4rem);
+  line-height: 1;
+}
+
+.daily_briefing_weather_now strong {
+  display: block;
+  color: var(--briefing-ink);
+  font-size: clamp(2.2rem, 8vw, 3.4rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.daily_briefing_weather_now span {
+  display: block;
+  color: var(--briefing-soft);
+  line-height: 1.45;
+}
+
+.daily_briefing_weather_metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.daily_briefing_weather_metrics span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid rgb(var(--app-accent-rgb, 46 230 197) / 22%);
+  border-radius: 999px;
+  color: var(--briefing-soft);
+  background: rgb(0 0 0 / 16%);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.daily_briefing_weather_updated {
+  margin: 0;
+  color: var(--briefing-muted);
+  font-size: 0.82rem;
+}
+
+.daily_briefing_weather_dayparts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.daily_briefing_weather_daypart {
+  min-width: 0;
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.72rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 14%);
+}
+
+.daily_briefing_weather_daypart_label,
+.daily_briefing_weather_daypart small {
+  color: var(--briefing-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.daily_briefing_weather_daypart_icon {
+  color: var(--briefing-accent);
+  font-size: 1.25rem;
+}
+
+.daily_briefing_weather_daypart strong {
+  color: var(--briefing-ink);
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.daily_briefing_weather_daypart span:not(.daily_briefing_weather_daypart_label, .daily_briefing_weather_daypart_icon) {
+  overflow: hidden;
+  color: var(--briefing-soft);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.daily_briefing_weather_callout,
+.daily_briefing_weather_empty {
+  margin-top: 0.9rem;
+  padding: 0.78rem 0.85rem;
+  border: 1px solid rgb(var(--app-accent-rgb, 46 230 197) / 24%);
+  border-radius: 8px;
+  color: var(--briefing-accent-soft);
+  background: rgb(var(--app-accent-rgb, 46 230 197) / 8%);
+  font-weight: 800;
+}
+
+.daily_briefing_weather_empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--briefing-soft);
+}
+
+.daily_briefing_weather_empty p {
+  margin: 0;
+}
+
+.daily_briefing_weather_skeleton {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.daily_briefing_weather_skeleton span {
+  display: block;
+  height: 1rem;
+  max-width: 22rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(var(--app-accent-rgb, 46 230 197) / 8%), rgb(var(--app-accent-rgb, 46 230 197) / 20%), rgb(var(--app-accent-rgb, 46 230 197) / 8%));
+}
+
+.daily_briefing_weather_skeleton span:nth-child(2) {
+  max-width: 14rem;
+}
+
+.daily_briefing_weather_skeleton span:nth-child(3) {
+  max-width: 18rem;
+}
+
+.daily_briefing_weather_skeleton p {
+  margin: 0;
+  color: var(--briefing-muted);
 }
 
 .daily_briefing_callout strong,
@@ -612,6 +798,11 @@
   .daily_briefing_settings_grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .daily_briefing_weather_grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(260px, 0.95fr);
+    align-items: start;
+  }
 }
 
 @media (max-width: 560px) {
@@ -630,6 +821,15 @@
 
   .daily_briefing_row_actions {
     justify-content: flex-start;
+  }
+
+  .daily_briefing_weather_dayparts {
+    grid-template-columns: 1fr;
+  }
+
+  .daily_briefing_weather_empty {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

@@ -1,0 +1,55 @@
+.app_theme {
+  --utility-accent: var(--app-accent);
+  --utility-accent-soft: var(--app-accent-soft);
+  --utility-accent-bg: var(--app-accent-bg);
+  --utility-accent-deep: var(--app-accent-deep);
+}
+
+.app_theme :where(input[type="checkbox"], input[type="radio"], input[type="range"], progress) {
+  accent-color: var(--app-accent);
+}
+
+.app_theme--daily-chief-briefing {
+  --app-accent: #2ee6c5;
+  --app-accent-rgb: 46 230 197;
+  --app-accent-soft: #b7fff2;
+  --app-accent-bg: #082f2a;
+  --app-accent-deep: #0f3d36;
+  --app-accent-contrast: #041414;
+}
+
+.app_theme--digital-clock {
+  --app-accent: #3dff8a;
+  --app-accent-rgb: 61 255 138;
+  --app-accent-soft: #a8ffcc;
+  --app-accent-bg: #0c2115;
+  --app-accent-deep: #133321;
+  --app-accent-contrast: #041008;
+}
+
+.app_theme--lee-lees-tracker {
+  --app-accent: #3aa0ff;
+  --app-accent-rgb: 58 160 255;
+  --app-accent-soft: #c6f2ff;
+  --app-accent-bg: #071c3b;
+  --app-accent-deep: #0b49b5;
+  --app-accent-contrast: #041326;
+}
+
+.app_theme--violet-sprints {
+  --app-accent: #b265ff;
+  --app-accent-rgb: 178 101 255;
+  --app-accent-soft: #d8ccff;
+  --app-accent-bg: #1b1233;
+  --app-accent-deep: #2e1065;
+  --app-accent-contrast: #12091f;
+}
+
+.app_theme--death-on-notecards {
+  --app-accent: #ff4d4d;
+  --app-accent-rgb: 255 77 77;
+  --app-accent-soft: #ffd1d1;
+  --app-accent-bg: #1c1114;
+  --app-accent-deep: #321018;
+  --app-accent-contrast: #190606;
+}

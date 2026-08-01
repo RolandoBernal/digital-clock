@@ -3,6 +3,7 @@
   const PRIMARY_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Bedtime', '2 AM'];
   const EXTRA_TYPES = [...PRIMARY_TYPES, 'Correction', 'Snack', 'Exercise', 'Other'];
 
+  let storageNeedsMigration = false;
   let records = loadRecords();
   let currentEditor = null;
 
@@ -42,6 +43,19 @@
     }).format(new Date(timestamp));
   }
 
+  function createLocalTimestamp(dateKey, timeKey) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateKey || ''))) return null;
+    if (!/^\d{2}:\d{2}$/.test(String(timeKey || ''))) return null;
+    const date = new Date(`${dateKey}T${timeKey}`);
+    const timestamp = date.getTime();
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }
+
+  function getRecordTimestamp(record) {
+    const timestamp = Number(record?.recordTimestamp);
+    return Number.isFinite(timestamp) ? timestamp : Date.now();
+  }
+
   function escapeHtml(value) {
     return String(value ?? '')
       .replaceAll('&', '&amp;')
@@ -63,10 +77,29 @@
 
   function normalizeRecord(record) {
     if (!record || typeof record !== 'object') return null;
-    const timestamp = Number(record.timestamp);
+    const legacyTimestamp = Number(record.timestamp);
+    const combinedTimestamp = createLocalTimestamp(record.date, record.time);
+    const fallbackTimestamp = Number.isFinite(legacyTimestamp)
+      ? legacyTimestamp
+      : (combinedTimestamp || Date.now());
+    const rawRecordTimestamp = Number(record.recordTimestamp);
+    const recordTimestamp = Number.isFinite(rawRecordTimestamp) ? rawRecordTimestamp : fallbackTimestamp;
+    const rawCreatedAt = Number(record.createdAt);
+    const rawUpdatedAt = Number(record.updatedAt);
     const type = EXTRA_TYPES.includes(record.type) ? record.type : 'Other';
-    const date = typeof record.date === 'string' ? record.date : getLocalDateKey(new Date(timestamp || Date.now()));
-    const time = typeof record.time === 'string' ? record.time : getLocalTimeKey(new Date(timestamp || Date.now()));
+    const recordDate = new Date(recordTimestamp);
+    const date = getLocalDateKey(recordDate);
+    const time = getLocalTimeKey(recordDate);
+    if (
+      !Number.isFinite(rawRecordTimestamp)
+      || !Number.isFinite(rawCreatedAt)
+      || !Number.isFinite(rawUpdatedAt)
+      || record.date !== date
+      || record.time !== time
+      || Object.prototype.hasOwnProperty.call(record, 'timestamp')
+    ) {
+      storageNeedsMigration = true;
+    }
     return {
       id: typeof record.id === 'string' ? record.id : createId(),
       date,
@@ -75,7 +108,9 @@
       bloodSugar: normalizeNumber(record.bloodSugar),
       insulinUnits: normalizeNumber(record.insulinUnits),
       notes: sanitizeNotes(record.notes),
-      timestamp: Number.isFinite(timestamp) ? timestamp : Date.now(),
+      recordTimestamp,
+      createdAt: Number.isFinite(rawCreatedAt) ? rawCreatedAt : fallbackTimestamp,
+      updatedAt: Number.isFinite(rawUpdatedAt) ? rawUpdatedAt : fallbackTimestamp,
     };
   }
 
@@ -83,7 +118,15 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed.map(normalizeRecord).filter(Boolean) : [];
+      const loaded = Array.isArray(parsed) ? parsed.map(normalizeRecord).filter(Boolean) : [];
+      if (storageNeedsMigration) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(loaded));
+        } catch (error) {
+          console.warn('Lee-Lee’s Tracker migrated storage could not be saved.', error);
+        }
+      }
+      return loaded;
     } catch (error) {
       console.warn('Lee-Lee’s Tracker storage could not be read.', error);
       return [];
@@ -102,7 +145,7 @@
     const today = getLocalDateKey();
     return records
       .filter((record) => record.date === today)
-      .sort((a, b) => b.timestamp - a.timestamp);
+      .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
   }
 
   function latestRecordForType(type) {
@@ -176,7 +219,7 @@
           <div class="levi_diabetes_timeline_values">${escapeHtml(formatBloodSugar(record.bloodSugar) || 'No blood sugar')} · ${escapeHtml(formatInsulin(record.insulinUnits) || 'No insulin')}</div>
           ${notes}
         </div>
-        <time class="levi_diabetes_timeline_time" datetime="${escapeHtml(new Date(record.timestamp).toISOString())}">${escapeHtml(formatTime(record.timestamp))}</time>
+        <time class="levi_diabetes_timeline_time" datetime="${escapeHtml(new Date(getRecordTimestamp(record)).toISOString())}">${escapeHtml(formatTime(getRecordTimestamp(record)))}</time>
       </article>
     `;
   }
@@ -191,6 +234,12 @@
       id: record.id || null,
       type: record.type || options.type || 'Correction',
     };
+    const now = new Date();
+    const recordTimestamp = record.recordTimestamp != null
+      ? getRecordTimestamp(record)
+      : now.getTime();
+    const eventDate = record.date || getLocalDateKey(new Date(recordTimestamp));
+    const eventTime = record.time || getLocalTimeKey(new Date(recordTimestamp));
     root.innerHTML = `
       <form class="levi_diabetes_editor" data-levi-editor>
         <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">${escapeHtml(isExtra ? 'Extra Check' : currentEditor.type)}</h1>
@@ -204,16 +253,34 @@
           <input class="levi_diabetes_input" name="insulinUnits" type="number" inputmode="decimal" min="0" step="0.5" autocomplete="off" value="${escapeHtml(record.insulinUnits ?? '')}">
         </label>
         <label class="levi_diabetes_field">
+          Date
+          <input class="levi_diabetes_input" name="date" type="date" required value="${escapeHtml(eventDate)}">
+        </label>
+        <label class="levi_diabetes_field">
+          Time
+          <input class="levi_diabetes_input" name="time" type="time" required value="${escapeHtml(eventTime)}">
+        </label>
+        <label class="levi_diabetes_field">
           Notes
           <textarea class="levi_diabetes_textarea" name="notes" rows="4">${escapeHtml(record.notes || '')}</textarea>
         </label>
         <div class="levi_diabetes_actions">
           <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="cancel">Cancel</button>
-          <button type="submit" class="levi_diabetes_button levi_diabetes_button--primary">Save</button>
+          <button type="submit" class="levi_diabetes_button levi_diabetes_button--primary" data-save-record>Save</button>
         </div>
       </form>
     `;
+    updateEditorSaveState(root.querySelector('[data-levi-editor]'));
     root.querySelector('[name="bloodSugar"]')?.focus();
+  }
+
+  function updateEditorSaveState(form) {
+    if (!form) return;
+    const saveButton = form.querySelector('[data-save-record]');
+    if (!saveButton) return;
+    const hasDate = Boolean(form.elements.date?.value);
+    const hasTime = Boolean(form.elements.time?.value);
+    saveButton.disabled = !(hasDate && hasTime);
   }
 
   function renderTypeSelect(selectedType) {
@@ -257,20 +324,29 @@
     const existing = currentEditor?.id
       ? records.find((record) => record.id === currentEditor.id)
       : null;
+    const eventDate = form.elements.date.value;
+    const eventTime = form.elements.time.value;
+    const recordTimestamp = createLocalTimestamp(eventDate, eventTime);
+    if (!recordTimestamp) {
+      updateEditorSaveState(form);
+      return;
+    }
     const typeInput = form.elements.type;
     const type = typeInput && EXTRA_TYPES.includes(typeInput.value)
       ? typeInput.value
       : currentEditor?.type || 'Other';
-    const timestamp = existing?.timestamp || now.getTime();
+    const nowTimestamp = now.getTime();
     upsertRecord({
       id: existing?.id || createId(),
-      date: existing?.date || getLocalDateKey(now),
-      time: existing?.time || getLocalTimeKey(now),
+      date: getLocalDateKey(new Date(recordTimestamp)),
+      time: getLocalTimeKey(new Date(recordTimestamp)),
       type,
       bloodSugar: normalizeNumber(form.elements.bloodSugar.value),
       insulinUnits: normalizeNumber(form.elements.insulinUnits.value),
       notes: sanitizeNotes(form.elements.notes.value),
-      timestamp,
+      recordTimestamp,
+      createdAt: existing?.createdAt ?? nowTimestamp,
+      updatedAt: nowTimestamp,
     });
     renderHome();
   }
@@ -296,6 +372,14 @@
       if (!event.target.matches('[data-levi-editor]')) return;
       event.preventDefault();
       handleSave(event.target);
+    });
+    root.addEventListener('input', (event) => {
+      if (!event.target.closest('[data-levi-editor]')) return;
+      updateEditorSaveState(event.target.closest('[data-levi-editor]'));
+    });
+    root.addEventListener('change', (event) => {
+      if (!event.target.closest('[data-levi-editor]')) return;
+      updateEditorSaveState(event.target.closest('[data-levi-editor]'));
     });
     renderHome();
   }

@@ -1,15 +1,11 @@
 .clock_utility_card--levi-diabetes {
-  --utility-accent: #3aa0ff;
-  --utility-accent-soft: #c6f2ff;
-  --utility-accent-bg: #071c3b;
-  --utility-accent-deep: #0b49b5;
   box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
     0 6px 20px 0 rgb(255 255 255 / 10%),
-    0 0 30px 0 rgb(29 155 240 / 24%);
+    0 0 30px 0 rgb(var(--app-accent-rgb, 29 155 240) / 24%);
   background:
-    radial-gradient(circle at 20% 16%, rgb(198 242 255 / 24%), transparent 38%),
-    radial-gradient(circle at 82% 72%, rgb(239 35 60 / 18%), transparent 26%),
-    linear-gradient(145deg, #06142b, #0b49b5 58%, #04205f);
+    radial-gradient(circle at 20% 16%, rgb(var(--app-accent-rgb, 198 242 255) / 24%), transparent 38%),
+    radial-gradient(circle at 82% 72%, rgb(var(--app-accent-rgb, 58 160 255) / 16%), transparent 26%),
+    linear-gradient(145deg, #06142b, var(--app-accent-deep, #0b49b5) 58%, #04205f);
 }
 
 .levi_diabetes_header_icon {
@@ -22,12 +18,12 @@
   --levi-panel: rgb(255 255 255 / 7%);
   --levi-panel-strong: rgb(255 255 255 / 11%);
   --levi-border: rgb(255 255 255 / 15%);
-  --levi-border-strong: rgb(198 242 255 / 38%);
+  --levi-border-strong: rgb(var(--app-accent-rgb, 198 242 255) / 38%);
   --levi-text: #f7fbff;
   --levi-muted: #aebfd5;
-  --levi-soft: #c6f2ff;
-  --levi-accent: #ef233c;
-  --levi-blue: #60c7ff;
+  --levi-soft: var(--app-accent-soft, #c6f2ff);
+  --levi-accent: var(--app-accent, #3aa0ff);
+  --levi-blue: var(--app-accent, #3aa0ff);
   --levi-green: #9dffcf;
   width: min(760px, 100%);
   margin: 0 auto;
@@ -238,9 +234,14 @@
   cursor: pointer;
 }
 
+.levi_diabetes_button[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .levi_diabetes_button--primary {
-  background: linear-gradient(135deg, #0ea5e9, #0b49b5 64%, #ef233c);
-  border-color: rgb(255 255 255 / 32%);
+  background: linear-gradient(135deg, var(--app-accent, #3aa0ff), var(--app-accent-deep, #0b49b5));
+  border-color: rgb(var(--app-accent-rgb, 58 160 255) / 62%);
 }
 
 .levi_diabetes_button--ghost {

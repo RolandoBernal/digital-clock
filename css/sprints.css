@@ -17,60 +17,46 @@
   border-radius: 15px;
   box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
     0 6px 20px 0 rgb(255 255 255 / 10%),
-    0 0 26px 0 rgb(124 58 237 / 20%);
+    0 0 26px 0 rgb(var(--app-accent-rgb, 124 58 237) / 20%);
   background:
-    radial-gradient(circle at 20% 20%, rgb(168 85 247 / 25%), transparent 42%),
-    linear-gradient(145deg, #10051d, var(--utility-accent-deep, #1b1233));
+    radial-gradient(circle at 20% 20%, rgb(var(--app-accent-rgb, 168 85 247) / 25%), transparent 42%),
+    linear-gradient(145deg, #10051d, var(--app-accent-deep, var(--utility-accent-deep, #1b1233)));
   color: #fff;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   text-align: center;
 }
 
 .clock_utility_card--purple {
-  --utility-accent: #7c4dff;
-  --utility-accent-soft: #d8ccff;
-  --utility-accent-bg: #1b1233;
-  --utility-accent-deep: #2e1065;
+  --app-card-glow-alpha: 20%;
+  --app-card-radial-alpha: 25%;
 }
 
 
 .clock_utility_card--briefing {
-  --utility-accent: #2ee6c5;
-  --utility-accent-soft: #b7fff2;
-  --utility-accent-bg: #082f2a;
-  --utility-accent-deep: #0f3d36;
   box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
     0 6px 20px 0 rgb(255 255 255 / 10%),
-    0 0 26px 0 rgb(45 212 191 / 18%);
+    0 0 26px 0 rgb(var(--app-accent-rgb, 45 212 191) / 18%);
   background:
-    radial-gradient(circle at 20% 20%, rgb(45 212 191 / 18%), transparent 40%),
-    linear-gradient(145deg, #051d1b, #0f3d36);
+    radial-gradient(circle at 20% 20%, rgb(var(--app-accent-rgb, 45 212 191) / 18%), transparent 40%),
+    linear-gradient(145deg, #051d1b, var(--app-accent-deep, #0f3d36));
 }
 
 .clock_utility_card--clock {
-  --utility-accent: #3dff8a;
-  --utility-accent-soft: #a8ffcc;
-  --utility-accent-bg: #0c2115;
-  --utility-accent-deep: #133321;
   box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
     0 6px 20px 0 rgb(255 255 255 / 10%),
-    0 0 26px 0 rgb(102 255 153 / 16%);
+    0 0 26px 0 rgb(var(--app-accent-rgb, 102 255 153) / 16%);
   background:
-    radial-gradient(circle at 20% 20%, rgb(102 255 153 / 16%), transparent 40%),
-    linear-gradient(145deg, #06130b, #133321);
+    radial-gradient(circle at 20% 20%, rgb(var(--app-accent-rgb, 102 255 153) / 16%), transparent 40%),
+    linear-gradient(145deg, #06130b, var(--app-accent-deep, #133321));
 }
 
 .clock_utility_card--notecards {
-  --utility-accent: #ff4d4d;
-  --utility-accent-soft: #f4d8bd;
-  --utility-accent-bg: #1c1114;
-  --utility-accent-deep: #321018;
   box-shadow: 0 10px 16px 0 rgb(255 255 255 / 10%),
     0 6px 20px 0 rgb(255 255 255 / 10%),
-    0 0 30px 0 rgb(180 59 74 / 22%);
+    0 0 30px 0 rgb(var(--app-accent-rgb, 180 59 74) / 22%);
   background:
-    radial-gradient(circle at 20% 16%, rgb(244 216 189 / 14%), transparent 36%),
-    linear-gradient(145deg, #0c0b0c, #321018 58%, #1c1114);
+    radial-gradient(circle at 20% 16%, rgb(var(--app-accent-rgb, 255 77 77) / 14%), transparent 36%),
+    linear-gradient(145deg, #0c0b0c, var(--app-accent-deep, #321018) 58%, var(--app-accent-bg, #1c1114));
 }
 
 .clock_utility_header {
@@ -120,8 +106,8 @@
 }
 
 .clock_utility_card--notecards .clock_launch_btn {
-  border-color: #e06a74;
-  background: linear-gradient(135deg, #b43b4a, #6e1c28);
+  border-color: var(--app-accent, #ff4d4d);
+  background: linear-gradient(135deg, var(--app-accent, #ff4d4d), #6e1c28);
   color: #fff7ed;
 }
 
@@ -162,14 +148,14 @@
   width: min(100%, 420px);
   margin: auto auto 0;
   padding: 0.9rem 1.2rem;
-  border-color: var(--utility-accent, #7c4dff);
-  background: linear-gradient(135deg, #a855f7, var(--utility-accent, #7c4dff));
+  border-color: var(--app-accent, var(--utility-accent, #7c4dff));
+  background: linear-gradient(135deg, var(--app-accent, #a855f7), var(--app-accent-deep, var(--utility-accent, #7c4dff)));
   color: #fff;
 }
 
 .clock_launch_btn:hover,
 .sprints-btn:hover {
-  border-color: #b49cff;
+  border-color: var(--app-accent-soft, #b49cff);
 }
 
 .clock_launch_btn:hover {
@@ -198,11 +184,22 @@
   }
 }
 
+@media only screen and (min-width: 1024px) {
+  #lando-launcher > .clock_utility_card {
+    max-width: var(--launcher-card-max-size);
+  }
+}
+
 [hidden] {
   display: none !important;
 }
 
 .sprints-view {
+  --sprints-accent: var(--app-accent, #b265ff);
+  --sprints-accent-rgb: var(--app-accent-rgb, 178 101 255);
+  --sprints-accent-soft: var(--app-accent-soft, #d8ccff);
+  --sprints-accent-bg: var(--app-accent-bg, #1b1233);
+  --sprints-accent-deep: var(--app-accent-deep, #2e1065);
   min-height: 100vh;
   background: #050507;
   color: #f7f3ff;
@@ -227,14 +224,14 @@
 
 .sprints-title {
   margin: 0;
-  color: #d8ccff;
+  color: var(--sprints-accent-soft);
   font-size: clamp(1.5rem, 5vw, 3rem);
   text-align: center;
 }
 
 .sprints-subtitle {
   margin: 1.5rem 0 0.75rem;
-  color: #d8ccff;
+  color: var(--sprints-accent-soft);
   font-size: 1rem;
 }
 
@@ -248,15 +245,15 @@
 }
 
 .sprints-btn--primary {
-  background: #2a174d;
-  border-color: #7c4dff;
+  background: var(--sprints-accent-bg);
+  border-color: var(--sprints-accent);
   color: #efeaff;
 }
 
 .sprints-btn--accent {
-  background: #142b1f;
-  border-color: #3fd97f;
-  color: #d8ffe6;
+  background: var(--sprints-accent-bg);
+  border-color: var(--sprints-accent);
+  color: var(--sprints-accent-soft);
 }
 
 .sprints-btn--danger {
@@ -267,7 +264,7 @@
 
 .sprints-btn--ghost {
   background: transparent;
-  color: #d8ccff;
+  color: var(--sprints-accent-soft);
 }
 
 .sprints-btn--large {
@@ -374,9 +371,9 @@
   gap: 0.75rem;
   margin-bottom: 1rem;
   padding: 0.85rem;
-  border: 1px solid rgb(124 77 255 / 55%);
+  border: 1px solid rgb(var(--sprints-accent-rgb) / 55%);
   border-radius: 8px;
-  background: rgb(27 18 51 / 78%);
+  background: rgb(var(--sprints-accent-rgb) / 18%);
   color: #f5f2ff;
 }
 
@@ -387,7 +384,7 @@
 
 .sprints-install-tip span {
   margin-top: 0.2rem;
-  color: #d8ccff;
+  color: var(--sprints-accent-soft);
   line-height: 1.4;
 }
 
@@ -410,9 +407,9 @@
   z-index: 5;
   min-height: 48px;
   padding: 0.75rem 1rem;
-  border: 1px solid #7c4dff;
+  border: 1px solid var(--sprints-accent);
   border-radius: 8px;
-  background: #1b1233;
+  background: var(--sprints-accent-bg);
   color: #f5f2ff;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 0.9rem;
@@ -459,7 +456,7 @@
 
 .sprints-confirm__message {
   margin: 0.7rem 0 1rem;
-  color: #d8ccff;
+  color: var(--sprints-accent-soft);
   line-height: 1.45;
 }
 
@@ -508,13 +505,13 @@
 }
 
 .sprints-timer-workout {
-  color: #d8ccff;
+  color: var(--sprints-accent-soft);
   font-size: clamp(1rem, 4vw, 1.6rem);
   text-transform: uppercase;
 }
 
 .sprints-timer-block {
-  color: #a855f7;
+  color: var(--sprints-accent);
   font-size: clamp(0.9rem, 3.4vw, 1.2rem);
   font-weight: 700;
   text-transform: uppercase;
@@ -536,7 +533,7 @@
 }
 
 .sprints-timer-round {
-  color: #d8ccff;
+  color: var(--sprints-accent-soft);
   font-size: clamp(1rem, 4vw, 1.35rem);
   font-weight: 700;
   text-transform: uppercase;
@@ -631,9 +628,9 @@
   gap: 0.65rem;
   min-height: 84px;
   padding: 0.8rem;
-  border: 1px solid rgb(168 85 247 / 55%);
+  border: 1px solid rgb(var(--sprints-accent-rgb) / 55%);
   border-radius: 8px;
-  background: linear-gradient(135deg, #130820, #2e1065);
+  background: linear-gradient(135deg, #130820, var(--sprints-accent-deep));
   color: #fff;
 }
 
@@ -661,7 +658,7 @@
 
 .sprints-preview-title {
   margin: 0;
-  color: #d8ccff;
+  color: var(--sprints-accent-soft);
   font-size: 1rem;
   text-transform: uppercase;
 }
@@ -686,7 +683,7 @@
 }
 
 .sprints-preview-step span:last-child {
-  color: #d8ccff;
+  color: var(--sprints-accent-soft);
   white-space: nowrap;
 }
 
