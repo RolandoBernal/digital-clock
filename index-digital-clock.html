@@ -20,7 +20,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
 -->
   <link rel="stylesheet" href="css/digital-clock.css?v=20260731-1">
   <link rel="stylesheet" href="css/app-themes.css?v=20260731-2">
-  <link rel="stylesheet" href="css/daily-chief-briefing.css?v=20260731-3">
+  <link rel="stylesheet" href="css/weather-app.css?v=20260803-1">
   <link rel="stylesheet" href="css/levi-diabetes.css?v=20260802-4">
   <link rel="stylesheet" href="css/sprints.css?v=20260731-1">
 </head>
@@ -48,23 +48,23 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     </main>
   </div>
 
-  <div class="digit_clock_app app_theme app_theme--daily-chief-briefing" id="briefing-view" hidden>
+  <div class="digit_clock_app app_theme app_theme--weather" id="weather-view" hidden>
     <div class="digit_clock_header">
       <a class="app_back_link" href="#/">← Lando's World</a>
       <div class="digit_clock_header_row">
         <div class="digit_clock_brand lando_world_brand">
           <svg class="digit_clock_logo lando_world_logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none"
             aria-hidden="true">
-            <rect x="7" y="5" width="18" height="22" rx="3" stroke="currentColor" stroke-width="2"></rect>
-            <path d="M11 12h10M11 17h10M11 22h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
-            <circle cx="22" cy="9" r="2" fill="currentColor"></circle>
+            <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"></circle>
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+            <path d="M12.5 24h9.3a4.7 4.7 0 0 0 .6-9.4 6.5 6.5 0 0 0-12.2 2.6A3.5 3.5 0 0 0 12.5 24z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
           </svg>
-          <span class="digit_clock_title">Daily Chief Briefing</span>
+          <span class="digit_clock_title">Weather</span>
         </div>
       </div>
     </div>
-    <main class="daily_briefing_shell" id="daily-chief-briefing-root" aria-labelledby="briefing-title">
-      <p class="daily_briefing_loading">Preparing briefing...</p>
+    <main class="weather_app_shell" id="weather-root" aria-labelledby="weather-title">
+      <p class="weather_initial_loading">Loading weather...</p>
     </main>
   </div>
 
@@ -193,6 +193,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     // Optional future providers (do not commit real keys):
     // const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     const PREFERENCES_KEY = 'digit_clock_preferences_v1';
+    const WEATHER_APP_PREFERENCES_KEY = 'weather_app_preferences_v1';
     const DAILY_CHIEF_DOCUMENTS_KEY = 'daily_chief_briefing_documents_v1';
     const TRANSLATIONS = {
       en: {
@@ -283,18 +284,16 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     const DEATH_ON_NOTECARDS_URL = 'https://rolandobernal.github.io/death-on-notecards/';
     const APP_CARDS = [
       {
-        id: 'daily-chief-briefing',
-        iconSrc: 'icons/daily-chief-briefing.svg',
-        iconAlt: '',
-        iconClass: 'clock_utility_icon--exact',
-        title: 'The Daily Chief Briefing',
-        description: "Today's personalized morning briefing",
-        footer: 'Local Preview',
-        buttonId: 'open-daily-chief-briefing',
-        buttonLabel: 'Open Daily Chief Briefing',
-        route: 'daily-chief-briefing',
-        accent: 'briefing',
-        theme: 'daily-chief-briefing',
+        id: 'weather',
+        iconText: '☀️',
+        iconClass: 'clock_utility_icon--text',
+        title: 'Weather',
+        description: '',
+        buttonId: 'open-weather',
+        buttonLabel: 'Open Weather',
+        route: 'weather',
+        accent: 'weather',
+        theme: 'weather',
       },
       {
         id: 'digital-clock',
@@ -424,9 +423,11 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
         title.textContent = app.title;
         header.appendChild(title);
 
-        const description = document.createElement('p');
-        description.className = 'clock_utility_description';
-        description.textContent = app.description;
+        const description = app.description ? document.createElement('p') : null;
+        if (description) {
+          description.className = 'clock_utility_description';
+          description.textContent = app.description;
+        }
 
         const button = app.href
           ? document.createElement('a')
@@ -444,13 +445,13 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
           button.dataset.route = app.route;
         }
 
-        card.append(header, description);
-        if (app.id === 'daily-chief-briefing') {
+        card.appendChild(header);
+        if (description) card.appendChild(description);
+        if (app.id === 'weather') {
           const weatherSummary = document.createElement('div');
-          weatherSummary.className = 'clock_utility_weather_summary';
-          weatherSummary.dataset.launcherWeather = 'daily-chief-briefing';
+          weatherSummary.className = 'clock_utility_weather_summary is-loading';
+          weatherSummary.dataset.launcherWeather = 'weather';
           weatherSummary.setAttribute('aria-live', 'polite');
-          weatherSummary.hidden = true;
           card.appendChild(weatherSummary);
         }
         if (app.footer) {
@@ -467,7 +468,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     function setActiveView(viewName) {
       const views = {
         home: document.getElementById('lando-home-view'),
-        'daily-chief-briefing': document.getElementById('briefing-view'),
+        weather: document.getElementById('weather-view'),
         'lee-lees-tracker': document.getElementById('lee-lees-tracker-view'),
         'digital-clock': document.getElementById('clock-view'),
         'violet-sprints': document.getElementById('sprints-view'),
@@ -479,7 +480,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     }
 
     function getAppTitle(viewName) {
-      if (viewName === 'daily-chief-briefing') return 'Daily Chief Briefing';
+      if (viewName === 'weather') return 'Weather';
       if (viewName === 'lee-lees-tracker') return 'Lee-Lee’s Tracker';
       if (viewName === 'digital-clock') return 'Digital Clock';
       if (viewName === 'violet-sprints') return 'Violet Sprints';
@@ -497,7 +498,11 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
 
     function handleRouteChange() {
       const route = normalizeRouteFromHash();
-      if (route === 'daily-chief-briefing' || route === 'lee-lees-tracker' || route === 'digital-clock') {
+      if (route === 'daily-chief-briefing') {
+        navigateToRoute('weather');
+        return;
+      }
+      if (route === 'weather' || route === 'lee-lees-tracker' || route === 'digital-clock') {
         setActiveView(route);
         closeMobileSettingsMenu();
         return;
@@ -550,31 +555,41 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       }
     }
 
-    function getDailyChiefPreferredLocation() {
+    function getWeatherAppLocation() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(WEATHER_APP_PREFERENCES_KEY) || 'null');
+        if (parsed?.location) return String(parsed.location).trim();
+      } catch {
+        /* ignore */
+      }
       try {
         const parsed = JSON.parse(localStorage.getItem(DAILY_CHIEF_DOCUMENTS_KEY) || 'null');
-        return String(parsed?.preferences?.preferredLocation || '').trim();
+        if (parsed?.preferences?.preferredLocation) return String(parsed.preferences.preferredLocation).trim();
       } catch {
-        return '';
+        /* ignore */
       }
+      return 'Nashville, Tennessee';
     }
 
     function getWeatherUnitSystem() {
       return uiState.unit === 'C' ? 'metric' : 'imperial';
     }
 
-    function renderDailyChiefLauncherWeather(result) {
-      const el = document.querySelector('[data-launcher-weather="daily-chief-briefing"]');
+    function renderWeatherLauncherCard(result) {
+      const el = document.querySelector('[data-launcher-weather="weather"]');
       if (!el) return;
       const snapshot = result?.snapshot || null;
       if (!snapshot) {
-        el.hidden = result?.status !== 'error';
-        el.textContent = result?.status === 'error' ? t('weatherUnavailable') : '';
+        el.classList.toggle('is-loading', result?.status !== 'error');
+        el.innerHTML = result?.status === 'error'
+          ? '<div class="clock_utility_weather_unavailable">Weather unavailable</div>'
+          : '<div class="clock_utility_weather_skeleton"><span></span><span></span><span></span></div>';
         return;
       }
-      el.hidden = false;
+      el.classList.remove('is-loading');
       const unit = snapshot.temperatureUnit || (uiState.unit === 'C' ? '°C' : '°F');
       el.innerHTML = `
+        <div class="clock_utility_weather_location">${snapshot.locationName || getWeatherAppLocation()}</div>
         <div class="clock_utility_weather_now">
           <span class="clock_utility_weather_icon" aria-hidden="true">${snapshot.currentConditionIcon || '🌤️'}</span>
           <span class="clock_utility_weather_temp">${snapshot.currentTemperature}${unit}</span>
@@ -584,24 +599,25 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       `;
     }
 
-    async function loadDailyChiefLauncherWeather(options = {}) {
+    async function loadWeatherLauncherCard(options = {}) {
       const weatherService = window.LandosWeatherService;
       if (!weatherService) return;
-      const location = getDailyChiefPreferredLocation();
+      const location = getWeatherAppLocation();
       if (!location) {
-        renderDailyChiefLauncherWeather({ status: 'needs-location', snapshot: null });
+        renderWeatherLauncherCard({ status: 'needs-location', snapshot: null });
         return;
       }
       const cached = weatherService.getCachedWeather(location);
       if (cached) {
-        renderDailyChiefLauncherWeather({ status: cached.isStale ? 'stale' : 'ready', snapshot: cached });
+        renderWeatherLauncherCard({ status: cached.isStale ? 'stale' : 'ready', snapshot: cached });
         if (!cached.isStale && !options.force) return;
       }
+      if (!cached) renderWeatherLauncherCard({ status: 'loading', snapshot: null });
       const result = await weatherService.getWeather(location, {
         force: Boolean(options.force),
         unitSystem: getWeatherUnitSystem(),
       });
-      renderDailyChiefLauncherWeather(result);
+      renderWeatherLauncherCard(result);
     }
     function savePreferences() {
       try {
@@ -842,7 +858,7 @@ ${dateLongParts.year}`;
       savePreferences();
       updateControlPanelUI();
       renderAllWeather();
-      loadDailyChiefLauncherWeather({ force: true });
+      loadWeatherLauncherCard({ force: true });
       if (isMobileViewport()) {
         closeMobileSettingsMenu();
       }
@@ -855,7 +871,7 @@ ${dateLongParts.year}`;
       savePreferences();
       updateControlPanelUI();
       renderAllWeather();
-      loadDailyChiefLauncherWeather();
+      loadWeatherLauncherCard();
       if (clockBindings.length) {
         tickAllClocks(clockBindings);
       }
@@ -1019,13 +1035,13 @@ ${dateLongParts.year}`;
       }
       obtainAllWeather();
       initLauncherNavigation();
-      loadDailyChiefLauncherWeather();
-      window.addEventListener('daily-chief-briefing:weather-location-changed', () => {
-        loadDailyChiefLauncherWeather({ force: true });
+      loadWeatherLauncherCard();
+      window.addEventListener('weather:location-changed', () => {
+        loadWeatherLauncherCard({ force: true });
       });
     });
   </script>
-  <script src="js/daily-chief-briefing.js?v=20260731-2"></script>
+  <script src="js/weather-app.js?v=20260803-1"></script>
   <script src="js/levi-diabetes-tracker.js?v=20260802-5"></script>
   <script src="js/sprints-app.js?v=20260726-4"></script>
 </body>

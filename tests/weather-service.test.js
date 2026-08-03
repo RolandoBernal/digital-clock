@@ -41,25 +41,38 @@ function mockForecastPayload() {
     current: {
       temperature_2m: 72.4,
       apparent_temperature: 73.2,
+      relative_humidity_2m: 58,
       weather_code: 2,
       wind_speed_10m: 7.1,
     },
     daily: {
-      temperature_2m_max: [84.2],
-      temperature_2m_min: [65.8],
-      precipitation_probability_max: [30],
+      time: [
+        '2026-08-01',
+        '2026-08-02',
+        '2026-08-03',
+        '2026-08-04',
+        '2026-08-05',
+        '2026-08-06',
+        '2026-08-07',
+      ],
+      weather_code: [2, 1, 3, 61, 0, 2, 95],
+      temperature_2m_max: [84.2, 86, 82, 79, 88, 87, 81],
+      temperature_2m_min: [65.8, 66, 64, 62, 67, 69, 63],
+      precipitation_probability_max: [30, 10, 15, 45, 5, 20, 60],
+      wind_speed_10m_max: [9, 8, 10, 12, 7, 11, 15],
     },
     hourly: {
       time: [
         '2026-08-01T08:00',
         '2026-08-01T14:00',
         '2026-08-01T19:00',
+        '2026-08-01T22:00',
       ],
-      temperature_2m: [70.1, 83.8, 76.2],
-      apparent_temperature: [71, 84, 76],
-      weather_code: [1, 2, 63],
-      precipitation_probability: [5, 10, 30],
-      wind_speed_10m: [4, 7, 5],
+      temperature_2m: [70.1, 83.8, 76.2, 71.5],
+      apparent_temperature: [71, 84, 76, 72],
+      weather_code: [1, 2, 63, 3],
+      precipitation_probability: [5, 10, 30, 20],
+      wind_speed_10m: [4, 7, 5, 3],
     },
   };
 }
@@ -94,12 +107,18 @@ test('normalizes forecast payload into the WeatherSnapshot model', () => {
   assert.equal(snapshot.locationName, 'Nashville, Tennessee');
   assert.equal(snapshot.currentTemperature, 72);
   assert.equal(snapshot.apparentTemperature, 73);
+  assert.equal(snapshot.humidity, 58);
   assert.equal(snapshot.currentConditionLabel, 'Partly cloudy');
   assert.equal(snapshot.todayHigh, 84);
   assert.equal(snapshot.todayLow, 66);
   assert.equal(snapshot.precipitationProbability, 30);
   assert.equal(snapshot.windSpeed, 7);
   assert.equal(snapshot.eveningForecast.conditionLabel, 'Rain');
+  assert.equal(snapshot.nightForecast.conditionLabel, 'Cloudy');
+  assert.equal(snapshot.weeklyForecast.length, 7);
+  assert.equal(snapshot.weeklyForecast[0].label, 'Today');
+  assert.equal(snapshot.weeklyForecast[3].conditionLabel, 'Light rain');
+  assert.equal(snapshot.weeklyForecast[6].windSpeed, 15);
   assert.equal(snapshot.callout, 'Rain is most likely around 7 PM.');
 });
 

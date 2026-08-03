@@ -8,6 +8,7 @@
     Morning: 8,
     Afternoon: 14,
     Evening: 19,
+    Night: 22,
   };
   const inFlight = new Map();
 
@@ -179,10 +180,10 @@
     const params = new URLSearchParams({
       latitude: String(location.latitude),
       longitude: String(location.longitude),
-      current: 'temperature_2m,apparent_temperature,weather_code,wind_speed_10m',
+      current: 'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m',
       hourly: 'temperature_2m,apparent_temperature,weather_code,precipitation_probability,wind_speed_10m',
-      daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max',
-      forecast_days: '1',
+      daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max',
+      forecast_days: '7',
       timezone: 'auto',
       temperature_unit: unitSystem === 'metric' ? 'celsius' : 'fahrenheit',
       wind_speed_unit: unitSystem === 'metric' ? 'kmh' : 'mph',
@@ -206,6 +207,7 @@
       windSpeedUnit: unitSystem === 'metric' ? 'km/h' : 'mph',
       currentTemperature: round(current.temperature_2m),
       apparentTemperature: round(current.apparent_temperature),
+      humidity: round(current.relative_humidity_2m),
       currentConditionCode: condition.code,
       currentConditionLabel: condition.label,
       currentConditionIcon: condition.icon,
@@ -216,12 +218,38 @@
       morningForecast: createDaypartForecast('Morning', hourly),
       afternoonForecast: createDaypartForecast('Afternoon', hourly),
       eveningForecast: createDaypartForecast('Evening', hourly),
+      nightForecast: createDaypartForecast('Night', hourly),
+      weeklyForecast: createWeeklyForecast(daily),
       fetchedAt,
       source: 'Open-Meteo',
       isStale: false,
     };
     snapshot.callout = createWeatherCallout(snapshot, hourly);
     return snapshot;
+  }
+
+  function createWeeklyForecast(daily) {
+    const times = Array.isArray(daily.time) ? daily.time : [];
+    return times.slice(0, 7).map((dateKey, index) => {
+      const condition = getCondition(daily.weather_code?.[index]);
+      return {
+        dateKey,
+        label: index === 0 ? 'Today' : formatWeekday(dateKey),
+        conditionCode: condition.code,
+        conditionLabel: condition.label,
+        conditionIcon: condition.icon,
+        high: round(daily.temperature_2m_max?.[index]),
+        low: round(daily.temperature_2m_min?.[index]),
+        precipitationProbability: round(daily.precipitation_probability_max?.[index]),
+        windSpeed: round(daily.wind_speed_10m_max?.[index]),
+      };
+    });
+  }
+
+  function formatWeekday(dateKey) {
+    const date = new Date(`${dateKey}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(date);
   }
 
   function readCache() {
@@ -307,6 +335,7 @@
     getCondition,
     normalizeForecastPayload,
     createDaypartForecast,
+    createWeeklyForecast,
     createWeatherCallout,
     geocodeLocation,
     getWeather,

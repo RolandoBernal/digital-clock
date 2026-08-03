@@ -10,12 +10,21 @@
 }
 
 .app_theme--daily-chief-briefing {
-  --app-accent: #2ee6c5;
-  --app-accent-rgb: 46 230 197;
-  --app-accent-soft: #b7fff2;
-  --app-accent-bg: #082f2a;
-  --app-accent-deep: #0f3d36;
-  --app-accent-contrast: #041414;
+  --app-accent: #ffd400;
+  --app-accent-rgb: 255 212 0;
+  --app-accent-soft: #ffe566;
+  --app-accent-bg: #302800;
+  --app-accent-deep: #f5c400;
+  --app-accent-contrast: #171100;
+}
+
+.app_theme--weather {
+  --app-accent: #ffd400;
+  --app-accent-rgb: 255 212 0;
+  --app-accent-soft: #ffe566;
+  --app-accent-bg: #302800;
+  --app-accent-deep: #f5c400;
+  --app-accent-contrast: #171100;
 }
 
 .app_theme--digital-clock {
