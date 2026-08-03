@@ -173,3 +173,49 @@ test('print styles hide controls and use a white printable report', () => {
 test('export print action uses the browser print dialog', () => {
   assert.match(trackerSource, /window\.print\(\)/);
 });
+
+test('history visible window returns the newest day groups first', () => {
+  const reports = createTrackerReports();
+  const groups = reports.groupRecordsByLocalDate(Array.from({ length: 45 }, (_, index) => record({
+    id: `day-${index}`,
+    recordTimestamp: new Date(Date.UTC(2026, 7, 1 + index, 12)).toISOString(),
+  })));
+  const visible = reports.getVisibleHistoryGroups(groups, 30);
+
+  assert.equal(visible.length, 30);
+  assert.equal(visible[0].dateKey, '2026-09-14');
+  assert.equal(visible[29].dateKey, '2026-08-16');
+});
+
+test('history filter summary and badge count reflect active filters', () => {
+  const reports = createTrackerReports();
+
+  assert.equal(reports.getHistoryFilterSummary({ range: 'all', type: 'All' }), 'All records · All Entries');
+  assert.equal(reports.getHistoryFilterCount({ range: 'all', type: 'All' }), 0);
+  assert.equal(reports.getHistoryFilterSummary({ range: 'last30', type: 'Breakfast' }), 'Last 30 days · Breakfast');
+  assert.equal(reports.getHistoryFilterCount({ range: 'last30', type: 'Breakfast' }), 2);
+});
+
+test('daily summaries are memoized for identical record groups', () => {
+  const reports = createTrackerReports();
+  const source = [
+    record({ id: 'memo-a', bloodSugar: 100, updatedAt: '2026-08-01T12:00:00.000Z' }),
+    record({ id: 'memo-b', bloodSugar: 200, updatedAt: '2026-08-01T12:05:00.000Z' }),
+  ];
+  const first = reports.calculateDailySummary(source);
+  const cacheAfterFirst = reports.getDailySummaryCacheSize();
+  const second = reports.calculateDailySummary([...source].reverse());
+
+  assert.equal(first, second);
+  assert.equal(reports.getDailySummaryCacheSize(), cacheAfterFirst);
+});
+
+test('report registry describes current reports independently from export rendering', () => {
+  const reports = createTrackerReports();
+  const ids = Array.from(reports.reportRegistry, (report) => report.id);
+
+  assert.deepEqual(ids, ['clinical', 'detailed']);
+  assert.equal(reports.reportRegistry[0].printLayout, 'landscape');
+  assert.equal(reports.buildClinicalReport([record({ id: 'clinical-source' })]).id, 'clinical');
+  assert.equal(reports.buildDetailedReportData([record({ id: 'detailed-source' })]).id, 'detailed');
+});

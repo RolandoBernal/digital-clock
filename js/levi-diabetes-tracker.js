@@ -18,6 +18,7 @@
   const EXTRA_TYPES = [...PRIMARY_TYPES, 'Correction', 'Snack', 'Exercise', 'Other'];
   const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner'];
   const DATE_RANGE_OPTIONS = [
+    { value: 'today', label: 'Today', days: 1 },
     { value: 'last7', label: 'Last 7 days', days: 7 },
     { value: 'last14', label: 'Last 14 days', days: 14 },
     { value: 'last30', label: 'Last 30 days', days: 30 },
@@ -25,10 +26,14 @@
     { value: 'custom', label: 'Custom range', days: null },
   ];
   const EXPORT_RANGE_OPTIONS = DATE_RANGE_OPTIONS.filter((option) => option.value !== 'all');
-  const EXPORT_LAYOUTS = [
-    { value: 'clinical', label: 'Clinical Log' },
-    { value: 'detailed', label: 'Detailed Report' },
+  const HISTORY_WINDOW_OPTIONS = [
+    { value: '7', label: '7 Days', days: 7 },
+    { value: '14', label: '14 Days', days: 14 },
+    { value: '30', label: '30 Days', days: 30 },
+    { value: '60', label: '60 Days', days: 60 },
+    { value: 'all', label: 'All Records', days: null },
   ];
+  const DEFAULT_HISTORY_WINDOW_DAYS = 30;
   const DEFAULT_PLAN_EFFECTIVE_FROM = '2026-07-31';
   const DEFAULT_INSULIN_PLAN = {
     id: 'meal_plan_2026_07_31',
@@ -59,11 +64,15 @@
   let records = trackerData.records;
   let insulinPlans = trackerData.insulinPlans;
   let historyFilters = {
-    range: 'last14',
+    range: 'all',
     type: 'All',
     startDate: '',
     endDate: '',
   };
+  let historyDraftFilters = { ...historyFilters };
+  let historyVisibleDayCount = null;
+  let historyFilterSheetOpen = false;
+  let lastFocusedElement = null;
   let exportOptions = {
     range: 'last7',
     layout: 'clinical',
@@ -878,7 +887,24 @@
       }));
   }
 
+  const dailySummaryCache = new Map();
+
+  function getDailySummaryCacheKey(sourceRecords) {
+    return sourceRecords
+      .slice()
+      .sort((a, b) => getRecordTimestamp(a) - getRecordTimestamp(b) || String(a.id || '').localeCompare(String(b.id || '')))
+      .map((record) => [
+        record.id,
+        record.bloodSugar ?? '',
+        getRecordActualInsulin(record) ?? '',
+        record.updatedAt ?? '',
+      ].join(':'))
+      .join('|');
+  }
+
   function calculateDailySummary(sourceRecords) {
+    const cacheKey = getDailySummaryCacheKey(sourceRecords);
+    if (dailySummaryCache.has(cacheKey)) return dailySummaryCache.get(cacheKey);
     const glucoseValues = sourceRecords
       .map((record) => normalizeBloodSugar(record.bloodSugar))
       .filter((value) => value != null);
@@ -887,13 +913,19 @@
       .filter((value) => value != null);
     const totalGlucose = glucoseValues.reduce((sum, value) => sum + value, 0);
     const totalInsulin = insulinValues.reduce((sum, value) => sum + value, 0);
-    return {
+    const summary = {
       entryCount: sourceRecords.length,
       averageBloodSugar: glucoseValues.length ? Math.round(totalGlucose / glucoseValues.length) : null,
       highestBloodSugar: glucoseValues.length ? Math.max(...glucoseValues) : null,
       lowestBloodSugar: glucoseValues.length ? Math.min(...glucoseValues) : null,
       totalInsulin: insulinValues.length ? totalInsulin : null,
     };
+    dailySummaryCache.set(cacheKey, summary);
+    return summary;
+  }
+
+  function getDailySummaryCacheSize() {
+    return dailySummaryCache.size;
   }
 
   function buildClinicalLog(sourceRecords) {
@@ -921,6 +953,74 @@
       ...group,
       summary: calculateDailySummary(group.records),
     }));
+  }
+
+  function buildClinicalReport(sourceRecords) {
+    return {
+      id: 'clinical',
+      title: 'Clinical Log',
+      groups: buildClinicalLog(sourceRecords),
+    };
+  }
+
+  function buildDetailedReportData(sourceRecords) {
+    return {
+      id: 'detailed',
+      title: 'Detailed Report',
+      groups: buildDetailedReport(sourceRecords),
+    };
+  }
+
+  const REPORT_REGISTRY = [
+    {
+      id: 'clinical',
+      title: 'Clinical Log',
+      description: 'A compact table modeled after a paper blood-sugar log.',
+      builder: buildClinicalReport,
+      printLayout: 'landscape',
+    },
+    {
+      id: 'detailed',
+      title: 'Detailed Report',
+      description: 'Every selected record with dose details and notes.',
+      builder: buildDetailedReportData,
+      printLayout: 'portrait',
+    },
+  ];
+
+  function getReportDefinition(reportId) {
+    return REPORT_REGISTRY.find((report) => report.id === reportId) || REPORT_REGISTRY[0];
+  }
+
+  function getHistoryInitialWindowDays() {
+    const value = trackerData.settings?.historyInitialWindowDays;
+    if (value === 'all') return null;
+    const numeric = Number(value);
+    return HISTORY_WINDOW_OPTIONS.some((option) => option.days === numeric)
+      ? numeric
+      : DEFAULT_HISTORY_WINDOW_DAYS;
+  }
+
+  function resetHistoryVisibleWindow() {
+    historyVisibleDayCount = getHistoryInitialWindowDays();
+  }
+
+  function getVisibleHistoryGroups(groups, visibleDayCount) {
+    if (visibleDayCount == null) return groups;
+    return groups.slice(0, visibleDayCount);
+  }
+
+  function getHistoryFilterCount(filters) {
+    return [
+      filters.range !== 'all',
+      filters.type !== 'All',
+    ].filter(Boolean).length;
+  }
+
+  function getHistoryFilterSummary(filters) {
+    const rangeLabel = DATE_RANGE_OPTIONS.find((option) => option.value === filters.range)?.label || 'All Records';
+    const typeLabel = filters.type === 'All' ? 'All Entries' : filters.type;
+    return `${rangeLabel} · ${typeLabel}`;
   }
 
   function formatDateKey(dateKey) {
@@ -1119,6 +1219,56 @@
     `;
   }
 
+  function renderHistoryFilterTrigger() {
+    const count = getHistoryFilterCount(historyFilters);
+    return `
+      <div class="levi_diabetes_history_filter_bar">
+        <p class="levi_diabetes_filter_summary">${escapeHtml(getHistoryFilterSummary(historyFilters))}</p>
+        <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost levi_diabetes_filter_button" data-action="open-history-filters">
+          Filters${count ? ` <span class="levi_diabetes_filter_badge">${escapeHtml(count)}</span>` : ''}
+        </button>
+      </div>
+    `;
+  }
+
+  function renderHistoryFilterSheet() {
+    if (!historyFilterSheetOpen) return '';
+    const filters = historyDraftFilters;
+    return `
+      <div class="levi_diabetes_sheet_backdrop" data-action="cancel-history-filters"></div>
+      <section class="levi_diabetes_sheet" role="dialog" aria-modal="true" aria-labelledby="levi-history-filter-title" data-history-filter-sheet>
+        <h2 class="levi_diabetes_editor_title" id="levi-history-filter-title">History Filters</h2>
+        <form class="levi_diabetes_filters" data-history-filter-draft>
+          <label class="levi_diabetes_field">
+            Date Range
+            <select class="levi_diabetes_select" name="range">
+              ${DATE_RANGE_OPTIONS.map((option) => `<option value="${escapeHtml(option.value)}" ${filters.range === option.value ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
+            </select>
+          </label>
+          <label class="levi_diabetes_field">
+            Entry Type
+            <select class="levi_diabetes_select" name="type">
+              ${['All', ...EXTRA_TYPES].map((type) => `<option value="${escapeHtml(type)}" ${filters.type === type ? 'selected' : ''}>${escapeHtml(type === 'All' ? 'All Entry Types' : type)}</option>`).join('')}
+            </select>
+          </label>
+          <label class="levi_diabetes_field ${filters.range === 'custom' ? '' : 'is-hidden'}" data-custom-range-field="history-draft">
+            Start Date
+            <input class="levi_diabetes_input" name="startDate" type="date" value="${escapeHtml(filters.startDate || '')}">
+          </label>
+          <label class="levi_diabetes_field ${filters.range === 'custom' ? '' : 'is-hidden'}" data-custom-range-field="history-draft">
+            End Date
+            <input class="levi_diabetes_input" name="endDate" type="date" value="${escapeHtml(filters.endDate || '')}">
+          </label>
+        </form>
+        <div class="levi_diabetes_actions">
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="cancel-history-filters">Cancel</button>
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="clear-history-filters">Clear Filters</button>
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="apply-history-filters">Apply</button>
+        </div>
+      </section>
+    `;
+  }
+
   function renderSummaryGrid(summary) {
     const items = [
       ['Entries', summary.entryCount],
@@ -1143,8 +1293,13 @@
     currentEditor = { mode: 'history' };
     const root = getRoot();
     if (!root) return;
+    if (historyVisibleDayCount === null && getHistoryInitialWindowDays() !== null) {
+      resetHistoryVisibleWindow();
+    }
     const filtered = getFilteredRecords(records, historyFilters);
     const groups = groupRecordsByLocalDate(filtered);
+    const visibleGroups = getVisibleHistoryGroups(groups, historyVisibleDayCount);
+    const hasOlderGroups = visibleGroups.length < groups.length;
     const emptyMessage = records.length
       ? `
         <p class="levi_diabetes_empty" role="status">No records match these filters.</p>
@@ -1161,11 +1316,14 @@
         ${renderPersistenceStatus()}
       </section>
       ${renderTrackerNav('history')}
-      ${renderFilterControls(historyFilters, 'history')}
+      ${renderHistoryFilterTrigger()}
       <section class="levi_diabetes_history_list" aria-label="History dates">
-        ${groups.length ? groups.map(renderHistoryDateCard).join('') : emptyMessage}
+        ${visibleGroups.length ? visibleGroups.map(renderHistoryDateCard).join('') : emptyMessage}
       </section>
+      ${hasOlderGroups ? `<button type="button" class="levi_diabetes_button levi_diabetes_button--ghost levi_diabetes_extra" data-action="load-older-history">Load Older Records</button>` : ''}
+      ${renderHistoryFilterSheet()}
     `;
+    focusHistorySheet(root);
   }
 
   function renderHistoryDateCard(group) {
@@ -1297,7 +1455,7 @@
         <label class="levi_diabetes_field">
           Report Layout
           <select class="levi_diabetes_select" name="layout" data-filter-scope="export">
-            ${EXPORT_LAYOUTS.map((layout) => `<option value="${escapeHtml(layout.value)}" ${exportOptions.layout === layout.value ? 'selected' : ''}>${escapeHtml(layout.label)}</option>`).join('')}
+            ${REPORT_REGISTRY.map((layout) => `<option value="${escapeHtml(layout.id)}" ${exportOptions.layout === layout.id ? 'selected' : ''}>${escapeHtml(layout.title)}</option>`).join('')}
           </select>
         </label>
         <p class="levi_diabetes_help">${escapeHtml(exportRecords.length)} ${exportRecords.length === 1 ? 'record' : 'records'} from ${escapeHtml(rangeText)}.</p>
@@ -1311,12 +1469,14 @@
   }
 
   function renderReportPreview(exportRecords, rangeText) {
+    const report = getReportDefinition(exportOptions.layout);
+    const reportData = report.builder(exportRecords);
     return `
-      <article class="levi_diabetes_report ${exportOptions.layout === 'clinical' ? 'levi_diabetes_report--landscape' : ''}">
+      <article class="levi_diabetes_report ${report.printLayout === 'landscape' ? 'levi_diabetes_report--landscape' : ''}">
         ${renderReportHeader(rangeText)}
-        ${exportOptions.layout === 'clinical'
-          ? renderClinicalLogReport(exportRecords)
-          : renderDetailedReport(exportRecords)}
+        ${report.id === 'clinical'
+          ? renderClinicalLogReport(reportData)
+          : renderDetailedReport(reportData)}
       </article>
     `;
   }
@@ -1352,8 +1512,8 @@
     `;
   }
 
-  function renderClinicalLogReport(exportRecords) {
-    const rows = buildClinicalLog(exportRecords);
+  function renderClinicalLogReport(reportData) {
+    const rows = reportData.groups;
     if (!rows.length) return '';
     return `
       <section class="levi_diabetes_report_section">
@@ -1400,8 +1560,8 @@
     `;
   }
 
-  function renderDetailedReport(exportRecords) {
-    const groups = buildDetailedReport(exportRecords);
+  function renderDetailedReport(reportData) {
+    const groups = reportData.groups;
     if (!groups.length) return '';
     return `
       <section class="levi_diabetes_report_section">
@@ -1805,6 +1965,19 @@
           </label>
           <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="save-patient-settings">Save Patient Info</button>
         </section>
+        <section class="levi_diabetes_settings_section" aria-labelledby="levi-history-preferences-title">
+          <h2 class="levi_diabetes_section_title" id="levi-history-preferences-title">History Preferences</h2>
+          <label class="levi_diabetes_field">
+            History Initial Window
+            <select class="levi_diabetes_select" name="historyInitialWindow">
+              ${HISTORY_WINDOW_OPTIONS.map((option) => {
+                const currentValue = trackerData.settings?.historyInitialWindowDays || String(DEFAULT_HISTORY_WINDOW_DAYS);
+                return `<option value="${escapeHtml(option.value)}" ${String(currentValue) === String(option.value) ? 'selected' : ''}>${escapeHtml(option.label)}</option>`;
+              }).join('')}
+            </select>
+          </label>
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="save-history-preference">Save History Preference</button>
+        </section>
         <section class="levi_diabetes_settings_section" aria-labelledby="levi-insulin-plan-title">
           <h2 class="levi_diabetes_section_title" id="levi-insulin-plan-title">Insulin Plan</h2>
           ${errorMessage ? `<p class="levi_diabetes_error">${escapeHtml(errorMessage)}</p>` : ''}
@@ -2012,6 +2185,20 @@
     renderSettings();
   }
 
+  function saveHistoryPreference(form) {
+    if (!form) return;
+    setPersistenceStatus('saving');
+    updateTrackerData((current) => ({
+      ...current,
+      settings: {
+        ...(current.settings || {}),
+        historyInitialWindowDays: form.elements.historyInitialWindow?.value || String(DEFAULT_HISTORY_WINDOW_DAYS),
+      },
+    }));
+    resetHistoryVisibleWindow();
+    renderSettings();
+  }
+
   function handleCancel() {
     if (currentEditor?.returnTo === 'history-day' && currentEditor.returnDateKey) {
       renderHistoryDay(currentEditor.returnDateKey);
@@ -2065,6 +2252,83 @@
     renderHistory();
   }
 
+  function openHistoryFilters() {
+    lastFocusedElement = document.activeElement;
+    historyDraftFilters = { ...historyFilters };
+    historyFilterSheetOpen = true;
+    renderHistory();
+  }
+
+  function closeHistoryFilters() {
+    historyFilterSheetOpen = false;
+    renderHistory();
+    lastFocusedElement?.focus?.();
+    lastFocusedElement = null;
+  }
+
+  function updateHistoryDraftFilters(form) {
+    if (!form) return;
+    historyDraftFilters = {
+      range: form.elements.range?.value || 'all',
+      type: form.elements.type?.value || 'All',
+      startDate: form.elements.startDate?.value || '',
+      endDate: form.elements.endDate?.value || '',
+    };
+    historyFilterSheetOpen = true;
+    renderHistory();
+  }
+
+  function applyHistoryFilters() {
+    historyFilters = { ...historyDraftFilters };
+    historyFilterSheetOpen = false;
+    resetHistoryVisibleWindow();
+    renderHistory();
+  }
+
+  function clearHistoryFilters() {
+    historyFilters = { range: 'all', type: 'All', startDate: '', endDate: '' };
+    historyDraftFilters = { ...historyFilters };
+    historyFilterSheetOpen = false;
+    resetHistoryVisibleWindow();
+    renderHistory();
+  }
+
+  function loadOlderHistory() {
+    const previousScrollY = window.scrollY;
+    const increment = getHistoryInitialWindowDays() || DEFAULT_HISTORY_WINDOW_DAYS;
+    historyVisibleDayCount = historyVisibleDayCount == null
+      ? null
+      : historyVisibleDayCount + increment;
+    renderHistory();
+    window.scrollTo?.(0, previousScrollY);
+  }
+
+  function focusHistorySheet(root) {
+    if (!historyFilterSheetOpen) return;
+    const sheet = root.querySelector('[data-history-filter-sheet]');
+    const firstControl = sheet?.querySelector('select, input, button');
+    firstControl?.focus();
+  }
+
+  function trapHistorySheetFocus(event) {
+    if (!historyFilterSheetOpen || event.key !== 'Tab') return;
+    const root = getRoot();
+    const sheet = root?.querySelector('[data-history-filter-sheet]');
+    if (!sheet) return;
+    const controls = [...sheet.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+      .filter((element) => !element.disabled && element.offsetParent !== null);
+    if (!controls.length) return;
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   function updateExportOptions(root) {
     const filtersForm = root.querySelector('[data-export-filters]');
     const layoutInput = root.querySelector('[name="layout"][data-filter-scope="export"]');
@@ -2094,6 +2358,7 @@
         renderHome();
       }
       if (action === 'history') {
+        resetHistoryVisibleWindow();
         renderHistory();
       }
       if (action === 'export') {
@@ -2135,8 +2400,7 @@
         renderHistoryDay(target.dataset.date);
       }
       if (action === 'reset-history-filters') {
-        historyFilters = { range: 'last14', type: 'All', startDate: '', endDate: '' };
-        renderHistory();
+        clearHistoryFilters();
       }
       if (action === 'edit-record') {
         openRecordEditor(target.dataset.id);
@@ -2153,8 +2417,26 @@
       if (action === 'save-patient-settings') {
         savePatientSettings(target.closest('[data-plan-editor]'));
       }
+      if (action === 'save-history-preference') {
+        saveHistoryPreference(target.closest('[data-plan-editor]'));
+      }
       if (action === 'print-report') {
         window.print();
+      }
+      if (action === 'open-history-filters') {
+        openHistoryFilters();
+      }
+      if (action === 'cancel-history-filters') {
+        closeHistoryFilters();
+      }
+      if (action === 'apply-history-filters') {
+        applyHistoryFilters();
+      }
+      if (action === 'clear-history-filters') {
+        clearHistoryFilters();
+      }
+      if (action === 'load-older-history') {
+        loadOlderHistory();
       }
     });
     root.addEventListener('submit', (event) => {
@@ -2199,9 +2481,21 @@
       if (historyForm) {
         updateHistoryFilters(historyForm);
       }
+      const historyDraftForm = event.target.closest('[data-history-filter-draft]');
+      if (historyDraftForm) {
+        updateHistoryDraftFilters(historyDraftForm);
+      }
       if (event.target.closest('[data-export-filters]') || event.target.matches('[name="layout"][data-filter-scope="export"]')) {
         updateExportOptions(root);
       }
+    });
+    root.addEventListener('keydown', (event) => {
+      if (historyFilterSheetOpen && event.key === 'Escape') {
+        event.preventDefault();
+        closeHistoryFilters();
+        return;
+      }
+      trapHistorySheetFocus(event);
     });
     window.addEventListener('storage', handleExternalStorageUpdate);
     requestPersistentStorage();
@@ -2233,6 +2527,13 @@
     formatTime,
     formatBloodSugar,
     formatInsulin,
+    getVisibleHistoryGroups,
+    getHistoryFilterCount,
+    getHistoryFilterSummary,
+    getDailySummaryCacheSize,
+    buildClinicalReport,
+    buildDetailedReportData,
+    reportRegistry: REPORT_REGISTRY.map(({ id, title, description, printLayout }) => ({ id, title, description, printLayout })),
   };
 
   document.addEventListener('DOMContentLoaded', init);

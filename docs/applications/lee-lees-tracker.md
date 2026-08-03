@@ -26,6 +26,38 @@ History supports:
 - Opening an existing record in the shared record editor
 - Deleting a record after explicit confirmation
 
+## History Filters
+
+History uses a compact Filters button with a short summary above the date list, such as `All Records - All Entries` or `Last 30 days - Breakfast`. On small screens the filters open in a bottom sheet. Filter selections are drafted in the sheet and apply only when the user chooses Apply.
+
+Clear Filters restores All Records and All Entry Types.
+
+## Incremental History Loading
+
+History avoids numbered pagination. When it opens, it renders the newest date groups first using the configured initial window. The Load Older Records button appends the next window of older date groups while preserving scroll position.
+
+Filtering, grouping, sorting, and visible-window selection are separate steps:
+
+1. Filter records.
+2. Group by local `recordTimestamp` date.
+3. Sort date groups newest first.
+4. Render the visible window.
+5. Load older groups on request.
+
+Changing filters resets the visible window so older results from a previous filter are not mixed into the new view.
+
+## History Preferences
+
+Settings includes History Initial Window:
+
+- 7 Days
+- 14 Days
+- 30 Days
+- 60 Days
+- All Records
+
+The default is 30 Days. This preference affects only the initial History view. It does not affect Export ranges or stored records.
+
 ## Daily Summary
 
 Each History day detail calculates:
@@ -51,6 +83,12 @@ Export supports:
 - Custom date range
 
 The default export range is last 7 days.
+
+## Report Builder Architecture
+
+Export uses a small report registry. Each report declares an ID, title, description, builder, and print layout. The current registered reports are Clinical Log and Detailed Report.
+
+This keeps future report types, such as weekly summaries or dose review reports, isolated from the Export screen. Those future reports are not implemented yet.
 
 ## Clinical Log
 
