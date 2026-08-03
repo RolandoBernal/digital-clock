@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="Weather">
+  <defs>
+    <linearGradient id="weather-bg" x1="25" y1="18" x2="156" y2="165" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#312300"/>
+      <stop offset="0.56" stop-color="#111827"/>
+      <stop offset="1" stop-color="#2a1800"/>
+    </linearGradient>
+    <linearGradient id="weather-line" x1="49" y1="48" x2="136" y2="132" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff27a"/>
+      <stop offset="0.52" stop-color="#ffd400"/>
+      <stop offset="1" stop-color="#ff9f1c"/>
+    </linearGradient>
+    <radialGradient id="weather-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(73 66) rotate(48) scale(88 75)">
+      <stop stop-color="#ffd400" stop-opacity="0.32"/>
+      <stop offset="0.54" stop-color="#ffd400" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#ffd400" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="outer-glow" x="-35%" y="-35%" width="170%" height="170%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 1  0 0.74 0 0 0.72  0 0 0.08 0 0  0 0 0 0.58 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#ffd400" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect x="17" y="18" width="146" height="145" rx="28" fill="url(#weather-bg)"/>
+  <rect x="17" y="18" width="146" height="145" rx="28" fill="url(#weather-glow)"/>
+  <rect x="17.8" y="18.8" width="144.4" height="143.4" rx="27.2" fill="none" stroke="url(#weather-line)" stroke-width="1.6" opacity="0.86"/>
+  <g filter="url(#outer-glow)" stroke="url(#weather-line)" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="70" cy="68" r="23" fill="none" stroke-width="7"/>
+    <path d="M70 31v14M70 91v14M33 68h14M94 68h14M44.5 42.5l10 10M85.5 83.5l10 10M95.5 42.5l-10 10" fill="none" stroke-width="6"/>
+    <path d="M66 123h49.5c13.8 0 25-10.5 25-23.5 0-12.4-10.2-22.6-23-23.5-6.2-11.3-18.2-18.3-31.5-18.3-18.2 0-33.1 13.1-35.4 30.2-10.2 1.7-18.1 9.2-18.1 18.3 0 9.3 8.3 16.8 18.5 16.8H66z" fill="#07100c" fill-opacity="0.78" stroke-width="7" filter="url(#soft-shadow)"/>
+    <path d="M63 123h55" fill="none" stroke-width="7"/>
+  </g>
+  <path d="M66 123h49.5c13.8 0 25-10.5 25-23.5 0-12.4-10.2-22.6-23-23.5-6.2-11.3-18.2-18.3-31.5-18.3-18.2 0-33.1 13.1-35.4 30.2-10.2 1.7-18.1 9.2-18.1 18.3 0 9.3 8.3 16.8 18.5 16.8H66z" fill="none" stroke="#fff6a3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.46"/>
+</svg>

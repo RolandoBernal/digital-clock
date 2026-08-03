@@ -53,12 +53,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
       <a class="app_back_link" href="#/">← Lando's World</a>
       <div class="digit_clock_header_row">
         <div class="digit_clock_brand lando_world_brand">
-          <svg class="digit_clock_logo lando_world_logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none"
-            aria-hidden="true">
-            <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"></circle>
-            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
-            <path d="M12.5 24h9.3a4.7 4.7 0 0 0 .6-9.4 6.5 6.5 0 0 0-12.2 2.6A3.5 3.5 0 0 0 12.5 24z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
-          </svg>
+          <img class="digit_clock_logo" src="icons/weather.svg" alt="" aria-hidden="true">
           <span class="digit_clock_title">Weather</span>
         </div>
       </div>
@@ -285,8 +280,9 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     const APP_CARDS = [
       {
         id: 'weather',
-        iconText: '☀️',
-        iconClass: 'clock_utility_icon--text',
+        iconSrc: 'icons/weather.svg',
+        iconAlt: '',
+        iconClass: 'clock_utility_icon--exact',
         title: 'Weather',
         description: '',
         buttonId: 'open-weather',
