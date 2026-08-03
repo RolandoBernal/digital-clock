@@ -57,14 +57,17 @@
 }
 
 .levi_diabetes_cards,
-.levi_diabetes_timeline {
+.levi_diabetes_timeline,
+.levi_diabetes_history_list {
   display: grid;
   gap: 0.75rem;
 }
 
 .levi_diabetes_card,
 .levi_diabetes_timeline_item,
-.levi_diabetes_editor {
+.levi_diabetes_editor,
+.levi_diabetes_history_date,
+.levi_diabetes_report_preview {
   border: 1px solid var(--levi-border);
   border-radius: 8px;
   background: var(--levi-panel);
@@ -86,11 +89,38 @@
   cursor: pointer;
 }
 
+.levi_diabetes_nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+}
+
+.levi_diabetes_nav_button {
+  min-height: 44px;
+  border: 1px solid var(--levi-border);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 6%);
+  color: var(--levi-muted);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.levi_diabetes_nav_button.is-active {
+  border-color: var(--levi-border-strong);
+  background: rgb(var(--app-accent-rgb, 58 160 255) / 16%);
+  color: var(--levi-soft);
+}
+
 .levi_diabetes_card:focus-visible,
 .levi_diabetes_button:focus-visible,
+.levi_diabetes_nav_button:focus-visible,
 .levi_diabetes_input:focus-visible,
 .levi_diabetes_textarea:focus-visible,
-.levi_diabetes_select:focus-visible {
+.levi_diabetes_select:focus-visible,
+.levi_diabetes_history_date:focus-visible {
   outline: 2px solid var(--levi-soft);
   outline-offset: 3px;
 }
@@ -174,6 +204,80 @@
   white-space: nowrap;
 }
 
+.levi_diabetes_filters {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.levi_diabetes_field.is-hidden {
+  display: none;
+}
+
+.levi_diabetes_history_date {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.9rem;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.levi_diabetes_history_record {
+  align-items: start;
+}
+
+.levi_diabetes_record_details {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.45rem;
+  color: var(--levi-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.levi_diabetes_record_details p {
+  margin: 0;
+}
+
+.levi_diabetes_record_actions {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 92px;
+}
+
+.levi_diabetes_summary_grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0 0 1rem;
+}
+
+.levi_diabetes_summary_grid div {
+  padding: 0.75rem;
+  border: 1px solid var(--levi-border);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 14%);
+}
+
+.levi_diabetes_summary_grid dt {
+  color: var(--levi-muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.levi_diabetes_summary_grid dd {
+  margin: 0.15rem 0 0;
+  color: var(--levi-text);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
 .levi_diabetes_editor {
   display: grid;
   gap: 0.85rem;
@@ -214,6 +318,184 @@
   line-height: 1.45;
 }
 
+.levi_diabetes_help,
+.levi_diabetes_error,
+.levi_diabetes_save_status {
+  margin: 0;
+  color: var(--levi-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.levi_diabetes_error,
+.levi_diabetes_save_status--failed,
+.levi_diabetes_save_status--unavailable {
+  color: var(--levi-soft);
+  font-weight: 800;
+}
+
+.levi_diabetes_save_status {
+  margin-top: 0.55rem;
+}
+
+.levi_diabetes_status_retry {
+  margin-left: 0.45rem;
+  border: 0;
+  background: transparent;
+  color: var(--levi-accent);
+  font: inherit;
+  font-weight: 900;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.levi_diabetes_dose_card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid var(--levi-border-strong);
+  border-radius: 8px;
+  background: rgb(var(--app-accent-rgb, 58 160 255) / 10%);
+}
+
+.levi_diabetes_dose_card p {
+  margin: 0;
+  color: var(--levi-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.levi_diabetes_dose_card--notice {
+  background: rgb(255 255 255 / 7%);
+}
+
+.levi_diabetes_dose_label {
+  color: var(--levi-soft);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.levi_diabetes_dose_total {
+  margin-top: 0.15rem;
+  color: var(--levi-text);
+  font-size: 1.7rem;
+  font-weight: 900;
+}
+
+.levi_diabetes_dose_breakdown,
+.levi_diabetes_dose_range {
+  margin-top: 0.18rem;
+  color: var(--levi-muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.levi_diabetes_confirm_list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.levi_diabetes_confirm_list div {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.75rem;
+  border: 1px solid var(--levi-border);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 18%);
+}
+
+.levi_diabetes_confirm_list dt {
+  color: var(--levi-muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.levi_diabetes_confirm_list dd {
+  margin: 0;
+  color: var(--levi-text);
+  font-weight: 900;
+}
+
+.levi_diabetes_settings_section,
+.levi_diabetes_ranges {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.levi_diabetes_ranges {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.levi_diabetes_ranges legend {
+  margin-bottom: 0.65rem;
+  color: var(--levi-soft);
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.levi_diabetes_range_row {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border: 1px solid var(--levi-border);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 14%);
+}
+
+.levi_diabetes_range_row label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--levi-muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.levi_diabetes_plan_meta {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--levi-muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.levi_diabetes_backup_actions {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.levi_diabetes_backup_input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.levi_diabetes_checkline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 52px;
+  color: var(--levi-soft);
+  font-weight: 800;
+}
+
+.levi_diabetes_checkline input {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  accent-color: var(--levi-accent);
+}
+
 .levi_diabetes_actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -249,8 +531,185 @@
   color: var(--levi-soft);
 }
 
+.levi_diabetes_button--danger {
+  border-color: rgb(255 77 77 / 62%);
+  background: rgb(255 77 77 / 12%);
+  color: #ff8f8f;
+}
+
+.levi_diabetes_export_controls {
+  margin-bottom: 1rem;
+}
+
+.levi_diabetes_report_preview {
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.levi_diabetes_report {
+  min-width: 720px;
+  color: #172033;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.levi_diabetes_report_header {
+  border-bottom: 2px solid #1f6fe5;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.levi_diabetes_report_header h2,
+.levi_diabetes_report_section h3,
+.levi_diabetes_report_day h4 {
+  margin: 0 0 0.6rem;
+  color: #10213f;
+}
+
+.levi_diabetes_report_header dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem 1rem;
+  margin: 0;
+}
+
+.levi_diabetes_report_header div {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.levi_diabetes_report_header dt {
+  color: #59667a;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.levi_diabetes_report_header dd {
+  margin: 0;
+  font-weight: 800;
+}
+
+.levi_diabetes_clinical_table,
+.levi_diabetes_detail_table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.levi_diabetes_clinical_table th,
+.levi_diabetes_clinical_table td,
+.levi_diabetes_detail_table th,
+.levi_diabetes_detail_table td {
+  border: 1px solid #c9d2e3;
+  padding: 0.38rem;
+  vertical-align: top;
+}
+
+.levi_diabetes_clinical_table th,
+.levi_diabetes_detail_table th {
+  background: #eef4ff;
+  color: #10213f;
+  text-align: left;
+}
+
+.levi_diabetes_report_day {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-top: 1rem;
+}
+
 @media only screen and (min-width: 680px) {
   .levi_diabetes_cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .levi_diabetes_filters {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .levi_diabetes_summary_grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .levi_diabetes_range_row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media only screen and (max-width: 520px) {
+  .levi_diabetes_nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .levi_diabetes_timeline_item,
+  .levi_diabetes_history_record {
+    grid-template-columns: 1fr;
+  }
+
+  .levi_diabetes_record_actions {
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.45in;
+  }
+
+  html,
+  body,
+  .digit_clock_app,
+  .app_theme,
+  .levi_diabetes_shell {
+    background: #ffffff !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+  }
+
+  .digit_clock_header,
+  .levi_diabetes_top,
+  .levi_diabetes_nav,
+  .levi_diabetes_export_controls,
+  .levi_diabetes_filters,
+  .levi_diabetes_button,
+  .levi_diabetes_record_actions,
+  .levi_diabetes_save_status {
+    display: none !important;
+  }
+
+  .levi_diabetes_shell {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .levi_diabetes_report_preview {
+    display: block !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .levi_diabetes_report {
+    min-width: 0 !important;
+    padding: 0 !important;
+    color: #111827 !important;
+    background: #ffffff !important;
+  }
+
+  .levi_diabetes_report_header,
+  .levi_diabetes_report_section,
+  .levi_diabetes_report_day,
+  table,
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }

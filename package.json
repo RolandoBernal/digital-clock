@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check:js": "node --check js/weather-service.js && node --check js/daily-chief-briefing.js && node --check js/levi-diabetes-tracker.js && node --check js/sprints-app.js && node --check api/daily-chief-briefing/status.js && node --check api/daily-chief-briefing/generate.js && node --check tests/weather-service.test.js",
-    "test": "node --test tests/weather-service.test.js"
+    "check:js": "node --check js/weather-service.js && node --check js/daily-chief-briefing.js && node --check js/levi-diabetes-tracker.js && node --check js/sprints-app.js && node --check api/daily-chief-briefing/status.js && node --check api/daily-chief-briefing/generate.js && node --check tests/weather-service.test.js && node --check tests/lee-lees-tracker-storage.test.js && node --check tests/lee-lees-tracker-reporting.test.js",
+    "test": "node --test tests/weather-service.test.js tests/lee-lees-tracker-storage.test.js tests/lee-lees-tracker-reporting.test.js"
   },
   "dependencies": {
     "openai": "^5.11.0"
