@@ -46,6 +46,9 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     <main class="digit_clocks_row" aria-label="Lando's World apps">
       <div class="digit_clocks_container" id="lando-launcher"></div>
     </main>
+    <footer class="lando_home_footer">
+      © Copyright <a href="http://rolandobernal.github.io">Rolando Bernal</a> <span id="lando-copyright-year">2026</span>
+    </footer>
   </div>
 
   <div class="digit_clock_app app_theme app_theme--weather" id="weather-view" hidden>
@@ -190,6 +193,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     const PREFERENCES_KEY = 'digit_clock_preferences_v1';
     const WEATHER_APP_PREFERENCES_KEY = 'weather_app_preferences_v1';
     const DAILY_CHIEF_DOCUMENTS_KEY = 'daily_chief_briefing_documents_v1';
+    document.getElementById('lando-copyright-year').textContent = String(new Date().getFullYear());
     const TRANSLATIONS = {
       en: {
         currentWeather: 'Current Weather',
