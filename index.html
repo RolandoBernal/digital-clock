@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lando's World</title>
+  <meta name="description" content="Lando's World is a personal application ecosystem for family tools.">
+  <link rel="canonical" href="https://rolandobernal.github.io/landos-world/">
+  <link rel="icon" type="image/svg+xml" href="favicon-landos-world.svg?v=2">
+  <link rel="manifest" href="manifest.webmanifest?v=20260804-1">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-landos-world-v2.png">
+  <meta name="theme-color" content="#000000">
+  <script>
+    const currentUrl = new URL(window.location.href);
+    const targetUrl = new URL('index-digital-clock.html', currentUrl);
+    targetUrl.search = currentUrl.search;
+    targetUrl.hash = currentUrl.hash;
+    if (currentUrl.pathname !== targetUrl.pathname) {
+      window.location.replace(targetUrl.href);
+    }
+  </script>
+</head>
+
+<body>
+  <a href="index-digital-clock.html">Open Lando's World</a>
+</body>
+
+</html>

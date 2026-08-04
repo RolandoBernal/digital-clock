@@ -50,6 +50,12 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000/index-digital-clock.html`.
 
+The production GitHub Pages shell is intended to live at:
+
+```text
+https://rolandobernal.github.io/landos-world/
+```
+
 ## Database
 
 Supabase SQL migrations live in `supabase/migrations`.

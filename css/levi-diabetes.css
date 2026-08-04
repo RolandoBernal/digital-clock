@@ -305,6 +305,42 @@
   margin: 0;
 }
 
+.levi_diabetes_conflict_grid {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.55rem 0 0;
+}
+
+.levi_diabetes_conflict_grid div {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.65rem;
+  border: 1px solid var(--levi-border);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 14%);
+}
+
+.levi_diabetes_conflict_grid div.is-different {
+  border-color: var(--levi-border-strong);
+  background: rgb(var(--app-accent-rgb, 58 160 255) / 10%);
+}
+
+.levi_diabetes_conflict_grid dt {
+  color: var(--levi-soft);
+  font-weight: 900;
+}
+
+.levi_diabetes_conflict_grid dd {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  color: var(--levi-muted);
+}
+
+.levi_diabetes_conflict_grid dd span {
+  color: var(--levi-text);
+}
+
 .levi_diabetes_record_actions {
   display: grid;
   gap: 0.5rem;

@@ -187,12 +187,17 @@ test('history visible window returns the newest day groups first', () => {
   assert.equal(visible[29].dateKey, '2026-08-16');
 });
 
-test('history filter summary and badge count reflect active filters', () => {
+test('history visible summary and badge count reflect the displayed history', () => {
   const reports = createTrackerReports();
+  const groups = [
+    { dateKey: '2026-08-03', records: [record({ id: 'a' }), record({ id: 'b' })] },
+    { dateKey: '2026-08-02', records: [record({ id: 'c' })] },
+  ];
 
-  assert.equal(reports.getHistoryFilterSummary({ range: 'all', type: 'All' }), 'All records · All Entries');
+  assert.equal(reports.getHistoryVisibleSummary(groups), '2 Days • 3 Entries');
+  assert.equal(reports.getHistoryVisibleSummary([{ dateKey: '2026-08-03', records: [record({ id: 'single' })] }]), '1 Day • 1 Entry');
+  assert.equal(reports.getHistoryVisibleSummary([]), '0 Days • 0 Entries');
   assert.equal(reports.getHistoryFilterCount({ range: 'all', type: 'All' }), 0);
-  assert.equal(reports.getHistoryFilterSummary({ range: 'last30', type: 'Breakfast' }), 'Last 30 days · Breakfast');
   assert.equal(reports.getHistoryFilterCount({ range: 'last30', type: 'Breakfast' }), 2);
 });
 
@@ -259,4 +264,31 @@ test('migration UX stores explicit shared sync metadata outside tracker records'
   assert.match(trackerSource, /migrationCompletedAt/);
   assert.match(trackerSource, /migrationVersion/);
   assert.match(trackerSource, /recordsMigrated/);
+  assert.match(trackerSource, /migrationId/);
+  assert.match(trackerSource, /originalTotal/);
+  assert.match(trackerSource, /pendingFingerprints/);
+  assert.match(trackerSource, /completedFingerprints/);
+  assert.match(trackerSource, /alreadyExistingFingerprints/);
+  assert.match(trackerSource, /duplicateFingerprints/);
+  assert.match(trackerSource, /lastErrorCategory/);
+  assert.match(trackerSource, /Migration Diagnostics/);
+  assert.match(trackerSource, /scheduleMigrationContinuation/);
+});
+
+test('migration session summary preserves original total and counts conflicts as processed', () => {
+  const reports = createTrackerReports();
+  const summary = reports.getMigrationSessionSummary({
+    originalTotal: 14,
+    uploadedFingerprints: Array.from({ length: 8 }, (_, index) => `uploaded-${index}`),
+    alreadyExistingFingerprints: ['already-1'],
+    duplicateFingerprints: ['duplicate-1'],
+    conflictFingerprints: ['conflict-1', 'conflict-2'],
+    failedFingerprints: [],
+    pendingFingerprints: ['pending-1', 'pending-2'],
+  });
+
+  assert.equal(summary.total, 14);
+  assert.equal(summary.processed, 12);
+  assert.equal(summary.remaining, 2);
+  assert.equal(summary.percent, 86);
 });

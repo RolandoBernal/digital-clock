@@ -55,6 +55,9 @@ SQL Editor:
 2. Open `supabase/migrations/202608030001_create_lee_lee_tracker_records.sql`.
 3. Paste the full file.
 4. Run it.
+5. Open `supabase/migrations/202608040001_create_lee_lee_shared_settings.sql`.
+6. Paste the full file.
+7. Run it.
 
 Supabase CLI:
 
@@ -63,7 +66,9 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
 
-The migration creates `public.lee_lee_records`, useful indexes, optimistic concurrency fields, soft-delete fields, attribution fields, RLS policies, and Realtime publication registration.
+The first migration creates `public.lee_lee_records`, useful indexes, optimistic concurrency fields, soft-delete fields, attribution fields, RLS policies, and Realtime publication registration.
+
+The second migration creates `public.lee_lee_shared_settings` for patient and clinic information only. It uses one row per authenticated shared account, RLS, blocked direct updates/deletes, and a version-aware RPC named `public.update_lee_lee_shared_settings_with_version`.
 
 ## 4. Confirm RLS
 
@@ -71,10 +76,14 @@ In Supabase Table Editor:
 
 1. Open `lee_lee_records`.
 2. Confirm Row Level Security is enabled.
-3. Confirm policies exist for authenticated select, insert, and update.
-4. Confirm there are no anonymous read/write policies.
+3. Confirm policies exist for authenticated select and insert.
+4. Confirm direct update/delete grants are not present.
+5. Open `lee_lee_shared_settings`.
+6. Confirm Row Level Security is enabled.
+7. Confirm policies exist for authenticated select and insert only.
+8. Confirm there are no anonymous read/write policies.
 
-The policies restrict every row to `user_id = auth.uid()`.
+The policies restrict every row to `user_id = auth.uid()`. Updates are performed by version-aware security-definer RPCs so stale writes become conflicts instead of last-write-wins overwrites.
 
 ## 5. Create The Shared App Account
 
@@ -91,14 +100,14 @@ Set the Site URL to the GitHub Pages app URL.
 Use this pattern unless the repository Pages URL differs:
 
 ```text
-https://rolandobernal.github.io/digital-clock/
+https://rolandobernal.github.io/landos-world/
 ```
 
 Add the same URL to Allowed Redirect URLs. If password reset is used, Supabase should redirect back to the same app URL.
 
 ## 7. Enable Realtime
 
-The SQL migration attempts to add `lee_lee_records` to `supabase_realtime`. In Supabase, confirm Realtime is enabled for the table. The app also performs full reconciliation on launch, resume, reconnect, manual sync, and periodic refresh, so Realtime is an enhancement rather than the only sync path.
+The SQL migrations attempt to add `lee_lee_records` and `lee_lee_shared_settings` to `supabase_realtime`. In Supabase, confirm Realtime is enabled for both tables. The app also performs full reconciliation on launch, resume, reconnect, manual sync, and periodic refresh, so Realtime is an enhancement rather than the only sync path.
 
 ## 8. Test With Two Devices
 
@@ -110,6 +119,8 @@ The SQL migration attempts to add `lee_lee_records` to `supabase_realtime`. In S
 6. Choose `Emily` for that device.
 7. Add a test record with non-real medical values.
 8. Confirm it syncs to the other device.
+9. Update Patient & Clinic in Settings on one device.
+10. Confirm the same patient and clinic values appear on the other device.
 
 ## 9. Legacy Local Data
 
@@ -121,6 +132,8 @@ The app keeps local data as:
 - Pending sync queue
 - Safety backup source
 - Recovery fallback
+
+Patient and clinic information also remains local until the user confirms the guided shared-settings upload. Device identity and History Initial Window stay local and are not uploaded.
 
 ## 10. Rollback
 

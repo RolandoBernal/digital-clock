@@ -39,6 +39,8 @@ Records save locally first, then queue a remote operation. Sync runs:
 
 Sync status is intentionally compact: Saved, Syncing, Synced, Offline, Waiting to sync, Sync problem, or Conflict needs review.
 
+Patient and clinic information uses a separate shared-settings sync path backed by `public.lee_lee_shared_settings`. It is still local-first in the browser, but it syncs independently from glucose and insulin records.
+
 ## History
 
 History reviews active saved records without creating a separate history store. Records are grouped by the local calendar date derived from `recordTimestamp`, which is the actual event time for the blood-sugar reading or insulin dose.
@@ -54,7 +56,7 @@ History supports:
 
 ## History Filters
 
-History uses a compact Filters button with a short summary above the date list, such as `All Records - All Entries` or `Last 30 days - Breakfast`. On small screens the filters open in a bottom sheet. Filter selections are drafted in the sheet and apply only when the user chooses Apply.
+History uses a compact Filters button with a short summary above the date list, such as `13 Days - 36 Entries` or `1 Day - 1 Entry`. On small screens the filters open in a bottom sheet. Filter selections are drafted in the sheet and apply only when the user chooses Apply.
 
 Clear Filters restores All Records and All Entry Types.
 
@@ -152,14 +154,22 @@ Print styles hide Lando's World navigation, filters, buttons, and other controls
 
 ## Settings Metadata
 
-Settings may optionally store local patient and clinic fields for report headers:
+Settings may optionally store patient and clinic fields for report headers:
 
 - Patient name
 - Date of birth
 - Clinic name
 - Clinic phone
 
-These fields remain on the device and are omitted from reports when blank.
+These patient and clinic fields sync across signed-in devices after the user confirms shared-settings upload or saves them while signed in.
+
+The following settings intentionally remain local to each device:
+
+- This device is used by
+- History Initial Window
+- Local migration metadata
+- Backup reminder state
+- Auth/session state
 
 ## Recently Deleted
 
@@ -168,6 +178,10 @@ Delete is a soft delete. Deleted records are hidden from normal Today, History, 
 ## Conflict Review
 
 If another device edits the same record first, the local pending edit is not allowed to silently overwrite it. The record is marked for review. Settings can open the conflict review screen, where the user can keep the shared version or explicitly use this device's version.
+
+Before showing the review list, conflicts with identical user-visible values are resolved automatically in favor of the shared canonical row. The review screen supports selecting entries, Select All, Select None, Bulk Keep Shared, and Bulk Use This Device. Bulk Use This Device still rebases each selected item onto the latest shared version through the same optimistic-concurrency path as individual conflict resolution.
+
+Patient and clinic settings conflicts are labeled separately as Patient & Clinic Settings and use the same Keep Shared / Use This Device choices.
 
 ## Manual Test Checklist
 
@@ -182,12 +196,13 @@ If another device edits the same record first, the local pending edit is not all
 9. Confirm both remain.
 10. Edit the same record from both devices.
 11. Confirm conflict review appears.
-12. Delete and restore a record.
-13. Turn on airplane mode, add a record, close and reopen, reconnect, and confirm it syncs once.
-14. Export a JSON backup.
-15. Preview/import that same JSON and confirm it does not duplicate records.
-16. Export CSV and verify escaping for commas, quotes, and line breaks.
-17. Verify existing localStorage data is still present before any production migration.
+12. Select multiple conflicts and confirm bulk Keep Shared or bulk Use This Device preserves unresolved failures.
+13. Delete and restore a record.
+14. Turn on airplane mode, add a record or edit Patient & Clinic, close and reopen, reconnect, and confirm it syncs once.
+15. Export a JSON backup.
+16. Preview/import that same JSON and confirm it does not duplicate records.
+17. Export CSV and verify escaping for commas, quotes, and line breaks.
+18. Verify existing localStorage data is still present before any production migration.
 
 ## Legacy Compatibility
 

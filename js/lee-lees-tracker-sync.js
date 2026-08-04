@@ -5,9 +5,13 @@
   const SYNC_METADATA_KEY = 'lando-world:lee-lees-tracker:sync-metadata:v1';
   const SYNC_QUEUE_KEY = 'lando-world:lee-lees-tracker:sync-queue:v1';
   const SYNC_CONFLICTS_KEY = 'lando-world:lee-lees-tracker:sync-conflicts:v1';
+  const SHARED_SETTINGS_CACHE_KEY = 'lando-world:lee-lees-tracker:shared-settings-cache:v1';
+  const SHARED_SETTINGS_QUEUE_KEY = 'lando-world:lee-lees-tracker:shared-settings-queue:v1';
+  const SHARED_SETTINGS_MIGRATION_KEY = 'lando-world:lee-lees-tracker:shared-settings-migration:v1';
   const LEGACY_MIGRATION_KEY = 'lando-world:lee-lees-tracker:legacy-migration:v1';
   const LEGACY_SNAPSHOT_PREFIX = 'lando-world:lee-lees-tracker:legacy-snapshot:';
   const REMOTE_RECORDS_TABLE = 'lee_lee_records';
+  const REMOTE_SHARED_SETTINGS_TABLE = 'lee_lee_shared_settings';
   const DEVICE_USERS = ['Rolando', 'Emily', 'Unknown'];
 
   function nowIso() {
@@ -90,6 +94,109 @@
 
   function setConflicts(conflicts) {
     writeJson(SYNC_CONFLICTS_KEY, conflicts);
+  }
+
+  function getSharedSettingsCache() {
+    return normalizeSharedSettings(readJson(SHARED_SETTINGS_CACHE_KEY, null));
+  }
+
+  function setSharedSettingsCache(settings) {
+    const normalized = normalizeSharedSettings(settings);
+    writeJson(SHARED_SETTINGS_CACHE_KEY, normalized);
+    return normalized;
+  }
+
+  function getSharedSettingsQueue() {
+    return readJson(SHARED_SETTINGS_QUEUE_KEY, []).filter((operation) => operation && operation.id);
+  }
+
+  function setSharedSettingsQueue(queue) {
+    writeJson(SHARED_SETTINGS_QUEUE_KEY, queue);
+  }
+
+  function getSharedSettingsMigration() {
+    return {
+      prompted: false,
+      completed: false,
+      completedAt: null,
+      dismissedAt: null,
+      ...readJson(SHARED_SETTINGS_MIGRATION_KEY, {}),
+    };
+  }
+
+  function setSharedSettingsMigration(patch) {
+    const next = { ...getSharedSettingsMigration(), ...patch };
+    writeJson(SHARED_SETTINGS_MIGRATION_KEY, next);
+    return next;
+  }
+
+  function normalizeSharedSettings(settings = {}) {
+    const source = settings && typeof settings === 'object' ? settings : {};
+    return {
+      patientName: String(source.patientName || source.patient_name || '').trim().slice(0, 80),
+      patientBirthDate: /^\d{4}-\d{2}-\d{2}$/.test(String(source.patientBirthDate || source.patient_date_of_birth || ''))
+        ? String(source.patientBirthDate || source.patient_date_of_birth)
+        : '',
+      clinicName: String(source.clinicName || source.clinic_name || '').trim().slice(0, 120),
+      clinicPhone: String(source.clinicPhone || source.clinic_phone || '').trim().slice(0, 40),
+      version: Number(source.version || 0) || null,
+      lastEditedBy: DEVICE_USERS.includes(source.lastEditedBy || source.last_edited_by) ? (source.lastEditedBy || source.last_edited_by) : null,
+      updatedAt: source.updatedAt || source.updated_at || null,
+      syncStatus: source.syncStatus || 'local',
+      syncError: source.syncError || '',
+    };
+  }
+
+  function sharedSettingsHaveValues(settings) {
+    const normalized = normalizeSharedSettings(settings);
+    return Boolean(normalized.patientName || normalized.patientBirthDate || normalized.clinicName || normalized.clinicPhone);
+  }
+
+  function sharedSettingsFingerprint(settings) {
+    const normalized = normalizeSharedSettings(settings);
+    return [
+      normalized.patientName,
+      normalized.patientBirthDate,
+      normalized.clinicName,
+      normalized.clinicPhone,
+    ].join('|');
+  }
+
+  function sharedSettingsAreSame(left, right) {
+    return sharedSettingsFingerprint(left) === sharedSettingsFingerprint(right);
+  }
+
+  function sharedSettingsFromRemote(row) {
+    if (!row) return null;
+    return normalizeSharedSettings({
+      patientName: row.patient_name,
+      patientBirthDate: row.patient_date_of_birth,
+      clinicName: row.clinic_name,
+      clinicPhone: row.clinic_phone,
+      version: row.version,
+      lastEditedBy: row.last_edited_by,
+      updatedAt: row.updated_at,
+      syncStatus: 'synced',
+    });
+  }
+
+  function sharedSettingsToRemote(settings, userId) {
+    const normalized = normalizeSharedSettings(settings);
+    return {
+      user_id: userId,
+      patient_name: normalized.patientName || null,
+      patient_date_of_birth: normalized.patientBirthDate || null,
+      clinic_name: normalized.clinicName || null,
+      clinic_phone: normalized.clinicPhone || null,
+      last_edited_by: normalized.lastEditedBy || getDeviceIdentity() || null,
+      payload: {
+        patientName: normalized.patientName,
+        patientBirthDate: normalized.patientBirthDate,
+        clinicName: normalized.clinicName,
+        clinicPhone: normalized.clinicPhone,
+      },
+      app_schema_version: 1,
+    };
   }
 
   function publicRecord(record) {
@@ -220,10 +327,37 @@
     ].join('|');
   }
 
+  function stableJson(value) {
+    if (value == null) return '';
+    if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+    if (typeof value === 'object') {
+      return `{${Object.keys(value).sort().map((key) => `${key}:${stableJson(value[key])}`).join(',')}}`;
+    }
+    return String(value);
+  }
+
+  function recordMeaningFingerprint(record = {}) {
+    const source = record && typeof record === 'object' ? record : {};
+    return [
+      source.type || 'Other',
+      source.bloodSugar ?? '',
+      source.insulinUnits ?? '',
+      source.administeredInsulinUnits ?? '',
+      source.suggestedBaseUnits ?? '',
+      source.suggestedCorrectionUnits ?? '',
+      source.suggestedTotalUnits ?? '',
+      source.insulinPlanId || '',
+      stableJson(source.insulinPlanSnapshot || null),
+      source.doseCalculationStatus || 'manual',
+      source.notes || '',
+      source.recordTimestamp || '',
+      source.deletedAt || '',
+      source.deletedBy || '',
+    ].join('|');
+  }
+
   function recordsHaveSameContent(left, right) {
-    return fingerprintRecord(left) === fingerprintRecord(right)
-      && String(left.deletedAt || '') === String(right.deletedAt || '')
-      && String(left.deletedBy || '') === String(right.deletedBy || '');
+    return recordMeaningFingerprint(left) === recordMeaningFingerprint(right);
   }
 
   function createRepository(options) {
@@ -233,6 +367,8 @@
       normalizeRecord,
       mergeDocuments,
       onRemoteChange,
+      onSharedSettingsChange,
+      getLocalSharedSettings,
       legacyRecordKeys = [],
     } = options;
     const listeners = new Set();
@@ -240,18 +376,55 @@
     let session = null;
     let initialized = false;
     let processing = false;
+    let processingSharedSettings = false;
     let realtimeChannel = null;
+    let sharedSettingsChannel = null;
 
     function emit() {
       listeners.forEach((listener) => listener(getSyncStatus()));
     }
 
+    function getSharedSettingsStatus() {
+      const cache = getSharedSettingsCache();
+      const queue = getSharedSettingsQueue();
+      const conflicts = getConflicts().filter((conflict) => conflict.entityType === 'shared-settings');
+      const migration = getSharedSettingsMigration();
+      let state = cache.syncStatus || 'local';
+      let message = 'Patient and clinic information is saved on this device.';
+      if (conflicts.length) {
+        state = 'conflict';
+        message = 'Conflict needs review';
+      } else if (queue.length && !navigator.onLine) {
+        state = 'offline';
+        message = 'Offline — waiting to sync';
+      } else if (queue.length) {
+        state = processingSharedSettings ? 'syncing' : 'waiting';
+        message = processingSharedSettings ? 'Saving…' : 'Waiting to sync';
+      } else if (cache.version) {
+        state = 'synced';
+        message = 'Shared settings synced';
+      }
+      return {
+        state,
+        message,
+        hasRemote: Boolean(cache.version),
+        version: cache.version,
+        updatedAt: cache.updatedAt,
+        conflictCount: conflicts.length,
+        pendingCount: queue.length,
+        migration,
+      };
+    }
+
     function getSyncStatus() {
       const config = getConfig();
       const queue = getQueue();
+      const sharedSettingsQueue = getSharedSettingsQueue();
       const conflicts = getConflicts();
       const metadata = getMetadata();
       const pendingCount = queue.filter((operation) => operation.state !== 'conflicted').length;
+      const sharedPendingCount = sharedSettingsQueue.filter((operation) => operation.state !== 'conflicted').length;
+      const totalPendingCount = pendingCount + sharedPendingCount;
       let state = 'saved';
       let message = 'Saved on this device';
       if (!config.configured) {
@@ -263,12 +436,12 @@
       } else if (conflicts.length) {
         state = 'conflict';
         message = 'Conflict needs review';
-      } else if (pendingCount && !navigator.onLine) {
+      } else if (totalPendingCount && !navigator.onLine) {
         state = 'offline';
-        message = `Offline — ${pendingCount} waiting to sync`;
-      } else if (pendingCount) {
-        state = processing ? 'syncing' : 'waiting';
-        message = processing ? 'Syncing…' : `${pendingCount} waiting to sync`;
+        message = `Offline — ${totalPendingCount} waiting to sync`;
+      } else if (totalPendingCount) {
+        state = processing || processingSharedSettings ? 'syncing' : 'waiting';
+        message = processing || processingSharedSettings ? 'Syncing…' : `${totalPendingCount} waiting to sync`;
       } else if (metadata.lastSuccessfulSyncAt) {
         state = 'synced';
         message = 'Synced';
@@ -277,14 +450,28 @@
         configured: config.configured,
         signedIn: Boolean(session),
         deviceIdentity: getDeviceIdentity(),
-        pendingCount,
+        pendingCount: totalPendingCount,
+        recordPendingCount: pendingCount,
+        sharedSettingsPendingCount: sharedPendingCount,
         conflictCount: conflicts.length,
+        sharedSettingsStatus: getSharedSettingsStatus(),
         lastSuccessfulSyncAt: metadata.lastSuccessfulSyncAt,
         realtimeStatus: metadata.realtimeStatus || 'idle',
         lastError: metadata.lastError || '',
         state,
         message,
       };
+    }
+
+    function getRecordQueueSnapshot() {
+      return getQueue().map((operation) => ({
+        id: operation.id,
+        recordId: operation.recordId,
+        type: operation.type,
+        retryCount: Number(operation.retryCount || 0),
+        lastErrorCategory: operation.lastErrorCategory || '',
+        state: operation.state || 'pending',
+      }));
     }
 
     function subscribe(listener) {
@@ -321,15 +508,20 @@
             session = nextSession || null;
             if (session) {
               reconcile().catch(() => {});
+              reconcileSharedSettings().catch(() => {});
               subscribeRealtime();
+              subscribeSharedSettingsRealtime();
             } else {
               unsubscribeRealtime();
+              unsubscribeSharedSettingsRealtime();
             }
             emit();
           });
           if (session) {
             subscribeRealtime();
+            subscribeSharedSettingsRealtime();
             await reconcile();
+            await reconcileSharedSettings();
           }
         }
       } catch (error) {
@@ -350,7 +542,9 @@
       }
       session = data?.session || null;
       await reconcile();
+      await reconcileSharedSettings();
       subscribeRealtime();
+      subscribeSharedSettingsRealtime();
       emit();
       return { ok: true };
     }
@@ -360,6 +554,7 @@
       if (client) await client.auth.signOut({ scope: 'local' });
       session = null;
       unsubscribeRealtime();
+      unsubscribeSharedSettingsRealtime();
       emit();
     }
 
@@ -555,6 +750,168 @@
       return getSyncStatus();
     }
 
+    async function fetchSharedSettings() {
+      const client = await ensureClient();
+      if (!client || !session?.user?.id) return null;
+      const { data, error } = await client
+        .from(REMOTE_SHARED_SETTINGS_TABLE)
+        .select('*')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? sharedSettingsFromRemote(data) : null;
+    }
+
+    function mergeSharedSettings(settings) {
+      if (!settings) return;
+      const normalized = setSharedSettingsCache({ ...settings, syncStatus: 'synced', syncError: '' });
+      onSharedSettingsChange?.(normalized);
+    }
+
+    async function reconcileSharedSettings() {
+      const client = await ensureClient();
+      if (!client || !session?.user?.id) return getSyncStatus();
+      try {
+        const remoteSettings = await fetchSharedSettings();
+        if (remoteSettings) {
+          const pendingSettings = getSharedSettingsQueue()[0]?.payload;
+          const migration = getSharedSettingsMigration();
+          const localSettings = normalizeSharedSettings(getLocalSharedSettings?.() || null);
+          if (!migration.completed && sharedSettingsHaveValues(localSettings) && !sharedSettingsAreSame(localSettings, remoteSettings)) {
+            await registerSharedSettingsConflict(createSharedSettingsOperation({
+              ...localSettings,
+              version: remoteSettings.version,
+              lastEditedBy: getDeviceIdentity() || null,
+            }, remoteSettings.version), remoteSettings);
+            return getSyncStatus();
+          }
+          if (!migration.completed && sharedSettingsHaveValues(localSettings) && sharedSettingsAreSame(localSettings, remoteSettings)) {
+            setSharedSettingsMigration({ completed: true, completedAt: nowIso() });
+          }
+          if (!pendingSettings || sharedSettingsAreSame(pendingSettings, remoteSettings)) {
+            mergeSharedSettings(remoteSettings);
+          }
+        }
+        await processSharedSettingsQueue();
+      } catch (error) {
+        setMetadata({ lastError: 'Patient and clinic information could not be refreshed.' });
+      }
+      emit();
+      return getSyncStatus();
+    }
+
+    function createSharedSettingsOperation(settings, baseVersion = null) {
+      return {
+        id: createId(),
+        recordId: 'shared-settings',
+        entityType: 'shared-settings',
+        type: baseVersion ? 'update-shared-settings' : 'insert-shared-settings',
+        payload: normalizeSharedSettings(settings),
+        baseVersion,
+        createdAt: nowIso(),
+        retryCount: 0,
+        lastErrorCategory: '',
+        state: 'pending',
+      };
+    }
+
+    function saveSharedSettings(settings) {
+      const normalized = normalizeSharedSettings({
+        ...settings,
+        lastEditedBy: getDeviceIdentity() || null,
+        syncStatus: navigator.onLine ? 'waiting' : 'offline',
+      });
+      setSharedSettingsCache(normalized);
+      const baseVersion = normalized.version || getSharedSettingsCache().version || null;
+      const operation = createSharedSettingsOperation(normalized, baseVersion);
+      setSharedSettingsQueue([...getSharedSettingsQueue(), operation]);
+      emit();
+      processSharedSettingsQueue().catch(() => {});
+      return operation;
+    }
+
+    async function registerSharedSettingsConflict(operation, knownSharedSettings = null) {
+      const sharedSettings = knownSharedSettings || await fetchSharedSettings();
+      if (sharedSettings && sharedSettingsAreSame(sharedSettings, operation.payload)) {
+        mergeSharedSettings(sharedSettings);
+        setSharedSettingsQueue(getSharedSettingsQueue().filter((item) => item.id !== operation.id));
+        return;
+      }
+      setConflicts([
+        ...getConflicts().filter((conflict) => conflict.recordId !== 'shared-settings'),
+        {
+          id: createId(),
+          recordId: 'shared-settings',
+          entityType: 'shared-settings',
+          operation,
+          localRecord: operation.payload,
+          sharedRecord: sharedSettings,
+          createdAt: nowIso(),
+        },
+      ]);
+      setSharedSettingsCache({ ...operation.payload, syncStatus: 'conflict', syncError: 'Patient and clinic information changed on another device.' });
+    }
+
+    async function processSharedSettingsQueue() {
+      if (processingSharedSettings || !navigator.onLine) return getSyncStatus();
+      const client = await ensureClient();
+      if (!client || !session?.user?.id) return getSyncStatus();
+      processingSharedSettings = true;
+      emit();
+      const remaining = [];
+      for (const operation of getSharedSettingsQueue()) {
+        try {
+          const remotePayload = sharedSettingsToRemote(operation.payload, session.user.id);
+          if (!operation.baseVersion) {
+            const { data, error } = await client
+              .from(REMOTE_SHARED_SETTINGS_TABLE)
+              .insert(remotePayload)
+              .select()
+              .single();
+            if (error) {
+              if (isDuplicateKeyError(error)) {
+                await registerSharedSettingsConflict(operation);
+                continue;
+              }
+              throw error;
+            }
+            mergeSharedSettings(sharedSettingsFromRemote(data));
+            continue;
+          }
+          const { data, error } = await client
+            .rpc('update_lee_lee_shared_settings_with_version', {
+              p_expected_version: Number(operation.baseVersion),
+              p_patient_name: remotePayload.patient_name,
+              p_patient_date_of_birth: remotePayload.patient_date_of_birth,
+              p_clinic_name: remotePayload.clinic_name,
+              p_clinic_phone: remotePayload.clinic_phone,
+              p_last_edited_by: remotePayload.last_edited_by,
+              p_payload: remotePayload.payload,
+              p_app_schema_version: remotePayload.app_schema_version,
+            });
+          if (error) throw error;
+          const updatedRow = Array.isArray(data) ? data[0] : data;
+          if (!updatedRow) {
+            await registerSharedSettingsConflict(operation);
+            continue;
+          }
+          mergeSharedSettings(sharedSettingsFromRemote(updatedRow));
+        } catch (error) {
+          remaining.push({
+            ...operation,
+            retryCount: Number(operation.retryCount || 0) + 1,
+            lastErrorCategory: categorizeError(error),
+            state: 'pending',
+          });
+          setSharedSettingsCache({ ...operation.payload, syncStatus: navigator.onLine ? 'waiting' : 'offline', syncError: 'Patient and clinic information will retry syncing.' });
+        }
+      }
+      setSharedSettingsQueue(remaining);
+      processingSharedSettings = false;
+      emit();
+      return getSyncStatus();
+    }
+
     function mergeRemoteRecords(remoteRecords) {
       if (!remoteRecords.length) return;
       const current = getDocument();
@@ -589,16 +946,52 @@
         });
     }
 
+    function subscribeSharedSettingsRealtime() {
+      if (!supabaseClient || !session?.user?.id || sharedSettingsChannel) return;
+      sharedSettingsChannel = supabaseClient
+        .channel('lee-lee-shared-settings')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: REMOTE_SHARED_SETTINGS_TABLE,
+            filter: `user_id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            const row = payload.new || payload.old;
+            if (row?.user_id) {
+              const pending = getSharedSettingsQueue()[0]?.payload;
+              const remoteSettings = sharedSettingsFromRemote(row);
+              if (!pending || sharedSettingsAreSame(pending, remoteSettings)) mergeSharedSettings(remoteSettings);
+            }
+          },
+        )
+        .subscribe(() => {});
+    }
+
     function unsubscribeRealtime() {
       if (realtimeChannel && supabaseClient) supabaseClient.removeChannel(realtimeChannel);
       realtimeChannel = null;
       setMetadata({ realtimeStatus: 'idle' });
     }
 
+    function unsubscribeSharedSettingsRealtime() {
+      if (sharedSettingsChannel && supabaseClient) supabaseClient.removeChannel(sharedSettingsChannel);
+      sharedSettingsChannel = null;
+    }
+
     async function keepSharedVersion(recordId) {
       const conflicts = getConflicts();
       const conflict = conflicts.find((item) => item.recordId === recordId);
       if (!conflict) return;
+      if (conflict.entityType === 'shared-settings') {
+        setSharedSettingsQueue(getSharedSettingsQueue().filter((operation) => operation.recordId !== recordId));
+        if (conflict.sharedRecord) mergeSharedSettings(conflict.sharedRecord);
+        setConflicts(conflicts.filter((item) => item.recordId !== recordId));
+        emit();
+        return;
+      }
       setQueue(getQueue().filter((operation) => operation.recordId !== recordId));
       if (conflict.sharedRecord) mergeRemoteRecords([conflict.sharedRecord]);
       setConflicts(conflicts.filter((item) => item.recordId !== recordId));
@@ -609,6 +1002,20 @@
       const conflicts = getConflicts();
       const conflict = conflicts.find((item) => item.recordId === recordId);
       if (!conflict) return;
+      if (conflict.entityType === 'shared-settings') {
+        const sharedVersion = Number(conflict.sharedRecord?.version || conflict.operation.baseVersion || 1);
+        setConflicts(conflicts.filter((item) => item.recordId !== recordId));
+        setSharedSettingsQueue([
+          ...getSharedSettingsQueue().filter((operation) => operation.recordId !== recordId),
+          createSharedSettingsOperation({
+            ...conflict.localRecord,
+            version: sharedVersion,
+            lastEditedBy: getDeviceIdentity() || null,
+          }, sharedVersion),
+        ]);
+        await processSharedSettingsQueue();
+        return;
+      }
       const sharedVersion = Number(conflict.sharedRecord?.version || conflict.operation.baseVersion || 1);
       setConflicts(conflicts.filter((item) => item.recordId !== recordId));
       setQueue([
@@ -622,6 +1029,64 @@
         },
       ]);
       await processQueue();
+    }
+
+    function cleanupIdenticalConflicts() {
+      const conflicts = getConflicts();
+      const remaining = [];
+      const resolvedIds = new Set();
+      let resolvedCount = 0;
+      conflicts.forEach((conflict) => {
+        const identical = conflict.entityType === 'shared-settings'
+          ? sharedSettingsAreSame(conflict.localRecord, conflict.sharedRecord)
+          : recordsHaveSameContent(conflict.localRecord, conflict.sharedRecord);
+        if (identical && conflict.sharedRecord) {
+          resolvedCount += 1;
+          resolvedIds.add(conflict.recordId);
+          if (conflict.entityType === 'shared-settings') {
+            mergeSharedSettings(conflict.sharedRecord);
+          } else {
+            mergeRemoteRecords([conflict.sharedRecord]);
+          }
+          return;
+        }
+        remaining.push(conflict);
+      });
+      if (resolvedCount) {
+        setConflicts(remaining);
+        setQueue(getQueue().filter((operation) => !resolvedIds.has(operation.recordId)));
+        setSharedSettingsQueue(getSharedSettingsQueue().filter((operation) => !resolvedIds.has(operation.recordId)));
+        emit();
+      }
+      return resolvedCount;
+    }
+
+    async function keepSharedVersions(recordIds) {
+      const summary = { resolved: 0, failed: 0 };
+      for (const recordId of recordIds) {
+        const before = getConflicts().length;
+        await keepSharedVersion(recordId);
+        if (getConflicts().length < before) summary.resolved += 1;
+        else summary.failed += 1;
+      }
+      return summary;
+    }
+
+    async function useLocalVersions(recordIds) {
+      const summary = { resolved: 0, failed: 0 };
+      for (const recordId of recordIds) {
+        const before = getConflicts().length;
+        await useLocalVersion(recordId);
+        if (getConflicts().length < before) summary.resolved += 1;
+        else summary.failed += 1;
+      }
+      return summary;
+    }
+
+    async function syncAll() {
+      await reconcile();
+      await reconcileSharedSettings();
+      return getSyncStatus();
     }
 
     function inspectLegacyMigration(keys = legacyRecordKeys) {
@@ -729,12 +1194,21 @@
         .join('\n');
     }
 
-    globalThis.addEventListener?.('online', () => processQueue().catch(() => {}));
+    globalThis.addEventListener?.('online', () => {
+      processQueue().catch(() => {});
+      processSharedSettingsQueue().catch(() => {});
+    });
     globalThis.addEventListener?.('visibilitychange', () => {
-      if (document.visibilityState === 'visible') reconcile().catch(() => {});
+      if (document.visibilityState === 'visible') {
+        reconcile().catch(() => {});
+        reconcileSharedSettings().catch(() => {});
+      }
     });
     globalThis.setInterval?.(() => {
-      if (session) reconcile().catch(() => {});
+      if (session) {
+        reconcile().catch(() => {});
+        reconcileSharedSettings().catch(() => {});
+      }
     }, 5 * 60 * 1000);
 
     return {
@@ -744,16 +1218,28 @@
       sendPasswordReset,
       subscribe,
       getSyncStatus,
+      getRecordQueueSnapshot,
       getDeviceIdentity,
       setDeviceIdentity,
       queueUpsert,
       queueSoftDelete,
       queueRestore,
       processQueue,
-      syncNow: reconcile,
+      processSharedSettingsQueue,
+      syncNow: syncAll,
+      syncSharedSettings: reconcileSharedSettings,
       getConflicts,
       keepSharedVersion,
       useLocalVersion,
+      keepSharedVersions,
+      useLocalVersions,
+      cleanupIdenticalConflicts,
+      getSharedSettings: getSharedSettingsCache,
+      saveSharedSettings,
+      getSharedSettingsStatus,
+      getSharedSettingsMigration,
+      setSharedSettingsMigration,
+      sharedSettingsHaveValues,
       inspectLegacyMigration,
       createLegacySafetySnapshot,
       previewJsonImport,
@@ -762,6 +1248,9 @@
         deviceIdentity: DEVICE_IDENTITY_KEY,
         queue: SYNC_QUEUE_KEY,
         conflicts: SYNC_CONFLICTS_KEY,
+        sharedSettingsCache: SHARED_SETTINGS_CACHE_KEY,
+        sharedSettingsQueue: SHARED_SETTINGS_QUEUE_KEY,
+        sharedSettingsMigration: SHARED_SETTINGS_MIGRATION_KEY,
         migration: LEGACY_MIGRATION_KEY,
       },
     };
@@ -774,7 +1263,11 @@
     setDeviceIdentity,
     DEVICE_USERS,
     REMOTE_RECORDS_TABLE,
+    REMOTE_SHARED_SETTINGS_TABLE,
     sanitizeRecordForRemote,
     recordFromRemote,
+    normalizeSharedSettings,
+    sharedSettingsAreSame,
+    recordMeaningFingerprint,
   };
 })();

@@ -8,6 +8,10 @@ const migrationSource = readFileSync(
   new URL('../supabase/migrations/202608030001_create_lee_lee_tracker_records.sql', import.meta.url),
   'utf8',
 );
+const sharedSettingsMigrationSource = readFileSync(
+  new URL('../supabase/migrations/202608040001_create_lee_lee_shared_settings.sql', import.meta.url),
+  'utf8',
+);
 
 function createLocalStorage(seed = {}) {
   const store = new Map(Object.entries(seed));
@@ -92,6 +96,7 @@ function createDocumentStore(initial = { records: [] }) {
 
 function createMockSupabase(remoteRows = [], options = {}) {
   const rows = [...remoteRows];
+  const sharedSettingsRows = [...(options.sharedSettingsRows || [])];
   const rpcCalls = [];
   const userId = options.userId || 'user-1';
   const client = {
@@ -102,17 +107,27 @@ function createMockSupabase(remoteRows = [], options = {}) {
       signOut: () => Promise.resolve({}),
       resetPasswordForEmail: () => Promise.resolve({}),
     },
-    from() {
+    from(tableName) {
+      const tableRows = tableName === 'lee_lee_shared_settings' ? sharedSettingsRows : rows;
       const builder = {
         insert(payload) {
-          const index = rows.findIndex((row) => row.id === payload.id);
+          const index = tableName === 'lee_lee_shared_settings'
+            ? tableRows.findIndex((row) => row.user_id === payload.user_id)
+            : tableRows.findIndex((row) => row.id === payload.id);
           if (index >= 0) {
             builder.error = { code: '23505', message: 'duplicate key value violates unique constraint' };
             builder.current = null;
             return builder;
           }
-          rows.push({ ...payload, created_at: payload.client_created_at, updated_at: payload.client_created_at });
-          builder.current = rows.find((row) => row.id === payload.id);
+          tableRows.push({
+            ...payload,
+            version: payload.version || 1,
+            created_at: payload.client_created_at || '2026-08-01T12:45:00.000Z',
+            updated_at: payload.client_created_at || '2026-08-01T12:45:00.000Z',
+          });
+          builder.current = tableName === 'lee_lee_shared_settings'
+            ? tableRows.find((row) => row.user_id === payload.user_id)
+            : tableRows.find((row) => row.id === payload.id);
           return builder;
         },
         select() {
@@ -123,7 +138,9 @@ function createMockSupabase(remoteRows = [], options = {}) {
           return Promise.resolve({ data: builder.current, error: null });
         },
         maybeSingle() {
-          const row = rows.find((item) => item.id === builder.filters?.id);
+          const row = tableName === 'lee_lee_shared_settings'
+            ? tableRows.find((item) => item.user_id === builder.filters?.user_id)
+            : tableRows.find((item) => item.id === builder.filters?.id);
           if (!row) {
             return Promise.resolve({ data: null, error: null });
           }
@@ -134,13 +151,31 @@ function createMockSupabase(remoteRows = [], options = {}) {
           return builder;
         },
         order() {
-          return Promise.resolve({ data: rows, error: null });
+          return Promise.resolve({ data: tableRows, error: null });
         },
       };
       return builder;
     },
     rpc(name, args) {
       rpcCalls.push({ name, args });
+      if (name === 'update_lee_lee_shared_settings_with_version') {
+        const row = sharedSettingsRows.find((item) => item.user_id === userId);
+        if (!row || Number(row.version) !== Number(args.p_expected_version)) {
+          return Promise.resolve({ data: null, error: null });
+        }
+        Object.assign(row, {
+          patient_name: args.p_patient_name,
+          patient_date_of_birth: args.p_patient_date_of_birth,
+          clinic_name: args.p_clinic_name,
+          clinic_phone: args.p_clinic_phone,
+          last_edited_by: args.p_last_edited_by,
+          payload: args.p_payload,
+          app_schema_version: args.p_app_schema_version,
+          version: Number(row.version) + 1,
+          updated_at: '2026-08-01T13:15:00.000Z',
+        });
+        return Promise.resolve({ data: row, error: null });
+      }
       if (name !== 'update_lee_lee_record_with_version') {
         return Promise.resolve({ data: null, error: { message: 'unknown rpc' } });
       }
@@ -189,6 +224,7 @@ function createMockSupabase(remoteRows = [], options = {}) {
     },
     removeChannel() {},
     rows,
+    sharedSettingsRows,
     rpcCalls,
   };
   return { createClient: () => client, client };
@@ -234,7 +270,7 @@ test('same-record stale update creates a conflict instead of overwriting', async
     blood_sugar: 205,
     insulin_units: 5,
     administered_insulin_units: 5,
-    notes: '',
+    notes: 'Eggs, "toast", and juice',
     recorded_at: '2026-08-01T12:42:00.000Z',
     client_created_at: '2026-08-01T12:45:00.000Z',
     created_at: '2026-08-01T12:45:00.000Z',
@@ -269,7 +305,7 @@ test('two clients updating the same base version produce one update and one conf
     blood_sugar: 180,
     insulin_units: 5,
     administered_insulin_units: 5,
-    notes: '',
+    notes: 'Eggs, "toast", and juice',
     recorded_at: '2026-08-01T12:42:00.000Z',
     client_created_at: '2026-08-01T12:45:00.000Z',
     created_at: '2026-08-01T12:45:00.000Z',
@@ -307,7 +343,7 @@ test('soft delete and restore use version-matched RPC updates that increment onc
     blood_sugar: 180,
     insulin_units: 5,
     administered_insulin_units: 5,
-    notes: '',
+    notes: 'Eggs, "toast", and juice',
     recorded_at: '2026-08-01T12:42:00.000Z',
     client_created_at: '2026-08-01T12:45:00.000Z',
     created_at: '2026-08-01T12:45:00.000Z',
@@ -389,6 +425,157 @@ test('conflict resolution using local version applies against the latest shared 
   assert.deepEqual(supabase.client.rpcCalls.map((call) => call.args.p_expected_version), [1, 2]);
 });
 
+test('shared settings insert for authenticated user and sync to a second client', async () => {
+  const supabase = createMockSupabase();
+  const config = { url: 'https://example.supabase.co', publishableKey: 'publishable-key-for-browser-tests-123' };
+  const firstContext = createSyncContext({ supabase, config });
+  const secondContext = createSyncContext({ supabase, config });
+  const first = firstContext.LeeLeesTrackerSync.createRepository(createDocumentStore());
+  const second = secondContext.LeeLeesTrackerSync.createRepository(createDocumentStore());
+
+  await first.initialize();
+  first.setDeviceIdentity('Rolando');
+  first.saveSharedSettings({
+    patientName: 'Lee',
+    patientBirthDate: '2026-07-31',
+    clinicName: 'Care Team',
+    clinicPhone: '555-0100',
+  });
+  await first.processSharedSettingsQueue();
+  await second.initialize();
+
+  assert.equal(supabase.client.sharedSettingsRows.length, 1);
+  assert.equal(second.getSharedSettings().patientName, 'Lee');
+  assert.equal(second.getSharedSettingsStatus().hasRemote, true);
+});
+
+test('shared settings stale version creates a conflict and preserves local version', async () => {
+  const supabase = createMockSupabase([], {
+    sharedSettingsRows: [{
+      user_id: 'user-1',
+      patient_name: 'Shared',
+      patient_date_of_birth: '2026-07-31',
+      clinic_name: 'Shared Clinic',
+      clinic_phone: '555-0100',
+      version: 2,
+      last_edited_by: 'Emily',
+      payload: {},
+    }],
+  });
+  const context = createSyncContext({
+    supabase,
+    config: { url: 'https://example.supabase.co', publishableKey: 'publishable-key-for-browser-tests-123' },
+  });
+  context.navigator.onLine = false;
+  const repository = context.LeeLeesTrackerSync.createRepository(createDocumentStore());
+
+  await repository.initialize();
+  repository.saveSharedSettings({
+    patientName: 'Local',
+    patientBirthDate: '2026-07-31',
+    clinicName: 'Local Clinic',
+    clinicPhone: '555-0199',
+    version: 1,
+  });
+  context.navigator.onLine = true;
+  await repository.processSharedSettingsQueue();
+
+  const conflict = repository.getConflicts().find((item) => item.entityType === 'shared-settings');
+  assert.equal(Boolean(conflict), true);
+  assert.equal(conflict.localRecord.patientName, 'Local');
+  assert.equal(conflict.sharedRecord.patientName, 'Shared');
+});
+
+test('offline shared settings queue survives reload and syncs exactly once', async () => {
+  const localStorage = createLocalStorage();
+  const supabase = createMockSupabase();
+  const config = { url: 'https://example.supabase.co', publishableKey: 'publishable-key-for-browser-tests-123' };
+  const firstContext = createSyncContext({ localStorage, supabase, config });
+  firstContext.navigator.onLine = false;
+  const first = firstContext.LeeLeesTrackerSync.createRepository(createDocumentStore());
+
+  await first.initialize();
+  first.saveSharedSettings({ patientName: 'Lee' });
+  assert.equal(first.getSharedSettingsStatus().pendingCount, 1);
+
+  const secondContext = createSyncContext({ localStorage, supabase, config });
+  const second = secondContext.LeeLeesTrackerSync.createRepository(createDocumentStore());
+  await second.initialize();
+  await second.processSharedSettingsQueue();
+
+  assert.equal(supabase.client.sharedSettingsRows.length, 1);
+  assert.equal(second.getSharedSettingsStatus().pendingCount, 0);
+});
+
+test('shared settings migration metadata is separate from medical-record migration metadata', () => {
+  const context = createSyncContext();
+  const repository = context.LeeLeesTrackerSync.createRepository(createDocumentStore());
+
+  repository.setSharedSettingsMigration({ prompted: true, dismissedAt: '2026-08-04T12:00:00.000Z' });
+
+  assert.equal(repository.getSharedSettingsMigration().prompted, true);
+  assert.notEqual(repository.keys.sharedSettingsMigration, repository.keys.migration);
+  assert.equal(repository.sharedSettingsHaveValues({ patientName: 'Lee' }), true);
+});
+
+test('sync repository exposes a read-only record queue snapshot for migration resume checks', () => {
+  assert.match(syncSource, /function getRecordQueueSnapshot\(\)/);
+  assert.match(syncSource, /getRecordQueueSnapshot,/);
+  assert.match(syncSource, /recordId: operation\.recordId/);
+  assert.match(syncSource, /lastErrorCategory: operation\.lastErrorCategory/);
+});
+
+test('identical conflicts are auto-resolved while meaningful differences remain', async () => {
+  const supabase = createMockSupabase([{
+    id: 'same-content',
+    user_id: 'user-1',
+    record_type: 'Breakfast',
+    blood_sugar: 180,
+    insulin_units: 5,
+    administered_insulin_units: 5,
+    notes: 'Eggs, "toast", and juice',
+    recorded_at: '2026-08-01T12:42:00.000Z',
+    client_created_at: '2026-08-01T12:45:00.000Z',
+    created_at: '2026-08-01T12:45:00.000Z',
+    updated_at: '2026-08-01T13:00:00.000Z',
+    version: 2,
+    entered_by: 'Emily',
+    payload: record({ id: 'same-content', bloodSugar: 180, version: 2, enteredBy: 'Emily' }),
+  }, {
+    id: 'different-content',
+    user_id: 'user-1',
+    record_type: 'Breakfast',
+    blood_sugar: 205,
+    insulin_units: 5,
+    administered_insulin_units: 5,
+    notes: '',
+    recorded_at: '2026-08-01T12:42:00.000Z',
+    client_created_at: '2026-08-01T12:45:00.000Z',
+    created_at: '2026-08-01T12:45:00.000Z',
+    updated_at: '2026-08-01T13:00:00.000Z',
+    version: 2,
+    entered_by: 'Emily',
+    payload: record({ id: 'different-content', bloodSugar: 205, version: 2, enteredBy: 'Emily' }),
+  }]);
+  const context = createSyncContext({
+    supabase,
+    config: { url: 'https://example.supabase.co', publishableKey: 'publishable-key-for-browser-tests-123' },
+  });
+  context.navigator.onLine = false;
+  const repository = context.LeeLeesTrackerSync.createRepository(createDocumentStore());
+
+  await repository.initialize();
+  repository.queueUpsert(record({ id: 'same-content', version: 1, bloodSugar: 180 }), record({ id: 'same-content', version: 1 }));
+  repository.queueUpsert(record({ id: 'different-content', version: 1, bloodSugar: 198 }), record({ id: 'different-content', version: 1 }));
+  context.navigator.onLine = true;
+  await repository.processQueue();
+
+  assert.equal(repository.getConflicts().length, 2);
+  assert.equal(repository.cleanupIdenticalConflicts(), 1);
+  assert.equal(repository.getConflicts().length, 1);
+  assert.equal(repository.getConflicts()[0].recordId, 'different-content');
+});
+
 test('JSON import preview flags same UUID with different content as a conflict', () => {
   const context = createSyncContext();
   const store = createDocumentStore();
@@ -432,6 +619,27 @@ test('SQL migration blocks direct updates and leaves writes to the versioned RPC
   assert.match(migrationSource, /grant execute on function public\.update_lee_lee_record_with_version[\s\S]*to authenticated/);
   assert.match(migrationSource, /revoke all on function public\.update_lee_lee_record_with_version[\s\S]*from public, anon/);
   assert.match(migrationSource, /-- Intentionally no DELETE policy\./);
+});
+
+test('shared settings SQL migration uses RLS and version-aware RPC only', () => {
+  const rpcMigrationBlock = sharedSettingsMigrationSource.match(
+    /create or replace function public\.update_lee_lee_shared_settings_with_version[\s\S]*?grant execute on function public\.update_lee_lee_shared_settings_with_version/,
+  )?.[0] || '';
+
+  assert.match(sharedSettingsMigrationSource, /create table if not exists public\.lee_lee_shared_settings/);
+  assert.match(sharedSettingsMigrationSource, /user_id uuid primary key references auth\.users\(id\) on delete restrict/);
+  assert.match(sharedSettingsMigrationSource, /security definer/);
+  assert.match(sharedSettingsMigrationSource, /set search_path = ''/);
+  assert.match(sharedSettingsMigrationSource, /current_user_id := auth\.uid\(\)/);
+  assert.match(sharedSettingsMigrationSource, /if current_user_id is null then/);
+  assert.match(sharedSettingsMigrationSource, /user_id = current_user_id/);
+  assert.match(sharedSettingsMigrationSource, /version = p_expected_version/);
+  assert.match(sharedSettingsMigrationSource, /version = public\.lee_lee_shared_settings\.version \+ 1/);
+  assert.doesNotMatch(rpcMigrationBlock, /updated_at\s*=/);
+  assert.match(sharedSettingsMigrationSource, /revoke update, delete on public\.lee_lee_shared_settings from authenticated, anon, public/);
+  assert.match(sharedSettingsMigrationSource, /grant select, insert on public\.lee_lee_shared_settings to authenticated/);
+  assert.match(sharedSettingsMigrationSource, /grant execute on function public\.update_lee_lee_shared_settings_with_version[\s\S]*to authenticated/);
+  assert.match(sharedSettingsMigrationSource, /revoke all on function public\.update_lee_lee_shared_settings_with_version[\s\S]*from public, anon/);
 });
 
 test('versioned RPC mock succeeds for owner and returns no row for another user', async () => {
