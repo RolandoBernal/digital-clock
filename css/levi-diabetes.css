@@ -542,6 +542,73 @@
   font-weight: 800;
 }
 
+.levi_diabetes_explainer_list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--levi-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.levi_diabetes_banner {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--levi-border-strong);
+  border-radius: 8px;
+  background: rgb(var(--app-accent-rgb, 58 160 255) / 10%);
+  color: var(--levi-soft);
+  font-weight: 900;
+}
+
+.levi_diabetes_status_grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.levi_diabetes_status_grid div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem;
+  border: 1px solid var(--levi-border);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 14%);
+}
+
+.levi_diabetes_status_grid dt {
+  color: var(--levi-muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.levi_diabetes_status_grid dd {
+  margin: 0;
+  color: var(--levi-text);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.levi_diabetes_progress {
+  position: relative;
+  overflow: hidden;
+  height: 12px;
+  border: 1px solid var(--levi-border-strong);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 8%);
+}
+
+.levi_diabetes_progress_bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--app-accent, #3aa0ff), var(--app-accent-deep, #0b49b5));
+  transition: width 180ms ease;
+}
+
 .levi_diabetes_backup_actions {
   display: grid;
   gap: 0.65rem;
@@ -577,6 +644,10 @@
   grid-template-columns: 1fr 1fr;
   gap: 0.65rem;
   margin-top: 0.15rem;
+}
+
+.levi_diabetes_actions--single {
+  grid-template-columns: 1fr;
 }
 
 .levi_diabetes_button {
@@ -724,6 +795,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .levi_diabetes_status_grid {
+    grid-template-columns: 1fr;
+  }
+
   .levi_diabetes_timeline_item,
   .levi_diabetes_history_record {
     grid-template-columns: 1fr;
@@ -732,6 +807,12 @@
   .levi_diabetes_record_actions {
     grid-template-columns: 1fr 1fr;
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .levi_diabetes_progress_bar {
+    transition: none;
   }
 }
 

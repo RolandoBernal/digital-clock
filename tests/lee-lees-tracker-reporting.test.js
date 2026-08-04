@@ -219,3 +219,44 @@ test('report registry describes current reports independently from export render
   assert.equal(reports.buildClinicalReport([record({ id: 'clinical-source' })]).id, 'clinical');
   assert.equal(reports.buildDetailedReportData([record({ id: 'detailed-source' })]).id, 'detailed');
 });
+
+test('shared sync status copy explains healthy, syncing, and offline states', () => {
+  const reports = createTrackerReports();
+  const now = Date.parse('2026-08-04T12:00:00.000Z');
+
+  assert.equal(reports.getFriendlySyncStatus({
+    configured: true,
+    signedIn: true,
+    pendingCount: 0,
+    conflictCount: 0,
+    realtimeStatus: 'connected',
+    lastSuccessfulSyncAt: '2026-08-04T11:59:40.000Z',
+    state: 'synced',
+  }, now).message, '✓ Synced just now');
+
+  assert.equal(reports.getFriendlySyncStatus({
+    configured: true,
+    signedIn: true,
+    pendingCount: 1,
+    conflictCount: 0,
+    realtimeStatus: 'connected',
+    state: 'syncing',
+  }, now).message, 'Syncing...');
+
+  assert.equal(reports.getFriendlySyncStatus({
+    configured: true,
+    signedIn: true,
+    pendingCount: 1,
+    conflictCount: 0,
+    realtimeStatus: 'connected',
+    state: 'offline',
+  }, now).message, 'Offline / Waiting to reconnect');
+});
+
+test('migration UX stores explicit shared sync metadata outside tracker records', () => {
+  assert.match(trackerSource, /shared-sync-migration:v1/);
+  assert.match(trackerSource, /migrationCompleted/);
+  assert.match(trackerSource, /migrationCompletedAt/);
+  assert.match(trackerSource, /migrationVersion/);
+  assert.match(trackerSource, /recordsMigrated/);
+});

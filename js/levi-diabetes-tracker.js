@@ -2,6 +2,9 @@
   const TRACKER_STORAGE_KEY = 'lando-world:lee-lees-tracker:v1';
   const TRACKER_SCHEMA_VERSION = 1;
   const PRE_IMPORT_BACKUP_PREFIX = `${TRACKER_STORAGE_KEY}:pre-import-backup:`;
+  const SHARED_SYNC_MIGRATION_KEY = `${TRACKER_STORAGE_KEY}:shared-sync-migration:v1`;
+  const SHARED_SYNC_MIGRATION_VERSION = 1;
+  const MIN_MIGRATION_PROGRESS_MS = 450;
   const LEGACY_RECORD_STORAGE_KEYS = [
     'levi_diabetes_records_v1',
     'lee-lees-tracker',
@@ -93,6 +96,16 @@
   };
   let authMessage = '';
   let authError = '';
+  let migrationFlow = {
+    state: 'idle',
+    total: 0,
+    uploaded: 0,
+    duplicates: 0,
+    conflicts: 0,
+    remaining: 0,
+    startedFrom: 'home',
+    error: '',
+  };
 
   function createId() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -347,6 +360,36 @@
     }
   }
 
+  function getSharedSyncMigrationMetadata() {
+    const stored = readStoredJson(SHARED_SYNC_MIGRATION_KEY);
+    const source = stored.data && typeof stored.data === 'object' ? stored.data : {};
+    return {
+      migrationCompleted: source.migrationCompleted === true,
+      migrationCompletedAt: typeof source.migrationCompletedAt === 'string' ? source.migrationCompletedAt : null,
+      migrationVersion: Number(source.migrationVersion || 0) || null,
+      recordsMigrated: Number(source.recordsMigrated || 0) || 0,
+      promptDismissed: source.promptDismissed === true,
+      promptDismissedAt: typeof source.promptDismissedAt === 'string' ? source.promptDismissedAt : null,
+      welcomeShown: source.welcomeShown === true,
+      welcomeShownAt: typeof source.welcomeShownAt === 'string' ? source.welcomeShownAt : null,
+    };
+  }
+
+  function saveSharedSyncMigrationMetadata(patch) {
+    if (!storageAvailability.available) return false;
+    const nextMetadata = {
+      ...getSharedSyncMigrationMetadata(),
+      ...patch,
+    };
+    try {
+      localStorage.setItem(SHARED_SYNC_MIGRATION_KEY, JSON.stringify(nextMetadata));
+      return true;
+    } catch (error) {
+      console.warn('Lee-Lee’s Tracker migration metadata could not be saved on this device.');
+      return false;
+    }
+  }
+
   function createEmptyTrackerData(createdAt = new Date().toISOString()) {
     return {
       schemaVersion: TRACKER_SCHEMA_VERSION,
@@ -574,10 +617,40 @@
     }[status] || 'Saved on this device';
   }
 
+  function formatRelativeSyncTime(timestamp, nowMs = Date.now()) {
+    const syncMs = parseTimestamp(timestamp);
+    if (!Number.isFinite(syncMs)) return 'Not yet';
+    const elapsedMs = Math.max(0, nowMs - syncMs);
+    const elapsedMinutes = Math.floor(elapsedMs / 60000);
+    if (elapsedMinutes < 1) return 'just now';
+    if (elapsedMinutes < 60) return `${elapsedMinutes} ${elapsedMinutes === 1 ? 'minute' : 'minutes'} ago`;
+    const syncDate = new Date(syncMs);
+    const nowDate = new Date(nowMs);
+    if (getLocalDateKey(syncDate) === getLocalDateKey(nowDate)) return `Today ${formatTime(syncMs)}`;
+    return `${formatDate(syncDate)} ${formatTime(syncMs)}`;
+  }
+
+  function getFriendlySyncStatus(status = syncStatus, nowMs = Date.now()) {
+    if (!status.configured) return { state: 'config-needed', message: 'Supabase setup needed' };
+    if (!status.signedIn) return { state: 'signed-out', message: 'Sign in to sync' };
+    if (status.conflictCount) return { state: 'conflict', message: 'Conflict needs review' };
+    if (status.state === 'syncing') return { state: 'syncing', message: 'Syncing...' };
+    if (status.state === 'offline') return { state: 'offline', message: 'Offline / Waiting to reconnect' };
+    if (status.pendingCount) return { state: 'waiting', message: `${status.pendingCount} waiting to sync` };
+    if (status.realtimeStatus && !['idle', 'connected'].includes(status.realtimeStatus)) {
+      return { state: 'waiting', message: 'Realtime disconnected / Using periodic sync' };
+    }
+    if (status.lastSuccessfulSyncAt) {
+      return { state: 'synced', message: `✓ Synced ${formatRelativeSyncTime(status.lastSuccessfulSyncAt, nowMs)}` };
+    }
+    return { state: 'synced', message: '✓ Shared Sync Active' };
+  }
+
   function renderPersistenceStatus() {
     const isSyncEnabled = syncRepository && syncStatus.configured && syncStatus.signedIn;
-    const statusClass = isSyncEnabled ? syncStatus.state : persistenceStatus;
-    const statusMessage = isSyncEnabled ? syncStatus.message : persistenceMessage;
+    const friendlyStatus = getFriendlySyncStatus(syncStatus);
+    const statusClass = isSyncEnabled ? friendlyStatus.state : persistenceStatus;
+    const statusMessage = isSyncEnabled ? friendlyStatus.message : persistenceMessage;
     const retry = persistenceStatus === 'failed' || syncStatus.state === 'waiting' || syncStatus.state === 'offline'
       ? '<button type="button" class="levi_diabetes_status_retry" data-action="retry-save">Retry</button>'
       : '';
@@ -2095,11 +2168,166 @@
       .sort((a, b) => (getPlanTimestampRange(b).start - getPlanTimestampRange(a).start))[0];
   }
 
+  function getMigrationCandidateRecords() {
+    return activeRecords();
+  }
+
+  function getLocalOnlyRecordCount() {
+    return activeRecords().filter((record) => !['synced', 'waiting', 'offline'].includes(record.syncStatus)).length;
+  }
+
+  function shouldShowSharedSyncMigrationPrompt() {
+    const metadata = getSharedSyncMigrationMetadata();
+    return shouldShowProtectedApp()
+      && !metadata.migrationCompleted
+      && !metadata.promptDismissed
+      && getMigrationCandidateRecords().length > 0;
+  }
+
+  function renderMigrationExplainer() {
+    return `
+      <ul class="levi_diabetes_explainer_list">
+        <li>Local records remain on this device.</li>
+        <li>A safety backup can be downloaded before anything uploads.</li>
+        <li>Duplicate detection prevents the same record from being added twice.</li>
+        <li>Existing cloud data is preserved.</li>
+        <li>Only missing records are uploaded.</li>
+      </ul>
+    `;
+  }
+
+  function focusPrimaryAction() {
+    requestAnimationFrame(() => {
+      const root = getRoot();
+      root?.querySelector('[data-primary-focus]')?.focus();
+    });
+  }
+
+  function renderSharedSyncMigrationPrompt() {
+    const root = getRoot();
+    if (!root) return;
+    const count = getMigrationCandidateRecords().length;
+    currentEditor = { mode: 'shared-sync-migration-prompt' };
+    root.innerHTML = `
+      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true">
+        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">We found existing records on this device.</h1>
+        <p class="levi_diabetes_help">${escapeHtml(count)} ${count === 1 ? 'record is' : 'records are'} stored locally.</p>
+        <p class="levi_diabetes_help">Your shared account is ready. Upload your existing history so it becomes available on all signed-in devices.</p>
+        <p class="levi_diabetes_help">Nothing will be removed from this device.</p>
+        ${renderMigrationExplainer()}
+        <div class="levi_diabetes_backup_actions">
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="export-backup" ${storageAvailability.available ? '' : 'disabled'}>Download Safety Backup</button>
+        </div>
+        <div class="levi_diabetes_actions">
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="dismiss-migration-prompt">Not Now</button>
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="begin-local-migration" data-started-from="prompt" data-primary-focus>Begin Migration</button>
+        </div>
+      </section>
+    `;
+    focusPrimaryAction();
+  }
+
+  function renderMigrationProgress() {
+    const root = getRoot();
+    if (!root) return;
+    const total = Math.max(0, migrationFlow.total);
+    const completed = Math.min(total, migrationFlow.uploaded + migrationFlow.duplicates + migrationFlow.conflicts);
+    const percent = total ? Math.round((completed / total) * 100) : 0;
+    currentEditor = { mode: 'shared-sync-migration-progress' };
+    root.innerHTML = `
+      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true" aria-busy="true">
+        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Migrating records...</h1>
+        <p class="levi_diabetes_help" aria-live="polite">${escapeHtml(completed)} of ${escapeHtml(total)} uploaded...</p>
+        <div class="levi_diabetes_progress" role="progressbar" aria-label="Migration progress" aria-valuemin="0" aria-valuemax="${escapeHtml(total)}" aria-valuenow="${escapeHtml(completed)}">
+          <span class="levi_diabetes_progress_bar" style="width: ${escapeHtml(percent)}%"></span>
+        </div>
+        <p class="levi_diabetes_help">Please keep Lee-Lee’s Tracker open. No local data will be removed.</p>
+        <div class="levi_diabetes_actions levi_diabetes_actions--single">
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" disabled>Migration Running</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderMigrationComplete() {
+    const root = getRoot();
+    if (!root) return;
+    currentEditor = { mode: 'shared-sync-migration-complete' };
+    const hasConflicts = migrationFlow.conflicts > 0;
+    root.innerHTML = `
+      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true">
+        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">✓ Migration Complete</h1>
+        <dl class="levi_diabetes_confirm_list">
+          <div>
+            <dt>Uploaded</dt>
+            <dd>${escapeHtml(migrationFlow.uploaded)}</dd>
+          </div>
+          <div>
+            <dt>Already existed</dt>
+            <dd>${escapeHtml(migrationFlow.duplicates)}</dd>
+          </div>
+          <div>
+            <dt>Conflicts</dt>
+            <dd>${escapeHtml(migrationFlow.conflicts)}</dd>
+          </div>
+        </dl>
+        <p class="levi_diabetes_help">${hasConflicts
+          ? 'Some records require review before they can finish syncing.'
+          : 'Your history is now available on every device signed into Lee-Lee’s Tracker.'}</p>
+        <p class="levi_diabetes_help">Realtime synchronization is active.</p>
+        <div class="levi_diabetes_actions ${hasConflicts ? '' : 'levi_diabetes_actions--single'}">
+          ${hasConflicts ? '<button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="review-conflicts">Review Conflicts</button>' : ''}
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="continue-migration-success" data-primary-focus>Continue</button>
+        </div>
+      </section>
+    `;
+    focusPrimaryAction();
+  }
+
+  function renderMigrationInterrupted() {
+    const root = getRoot();
+    if (!root) return;
+    currentEditor = { mode: 'shared-sync-migration-interrupted' };
+    root.innerHTML = `
+      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true">
+        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Migration interrupted.</h1>
+        <p class="levi_diabetes_help">${escapeHtml(migrationFlow.uploaded)} ${migrationFlow.uploaded === 1 ? 'record was' : 'records were'} uploaded successfully.</p>
+        <p class="levi_diabetes_help">${escapeHtml(migrationFlow.remaining)} ${migrationFlow.remaining === 1 ? 'record remains' : 'records remain'}.</p>
+        <p class="levi_diabetes_help">No data was lost. You can resume when the connection is ready.</p>
+        ${migrationFlow.error ? `<p class="levi_diabetes_error">${escapeHtml(migrationFlow.error)}</p>` : ''}
+        <div class="levi_diabetes_actions">
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="settings">Settings</button>
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="resume-migration" data-primary-focus>Resume Migration</button>
+        </div>
+      </section>
+    `;
+    focusPrimaryAction();
+  }
+
+  function renderSharedSyncWelcome() {
+    const root = getRoot();
+    if (!root) return;
+    currentEditor = { mode: 'shared-sync-welcome' };
+    root.innerHTML = `
+      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true">
+        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Shared Sync is Ready</h1>
+        <p class="levi_diabetes_help">Lee-Lee’s Tracker is now synchronized.</p>
+        <p class="levi_diabetes_help">Any new glucose readings or insulin records entered on Rolando’s or Emily’s devices will automatically appear everywhere.</p>
+        <p class="levi_diabetes_help">You're all set.</p>
+        <div class="levi_diabetes_actions levi_diabetes_actions--single">
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="continue-shared-sync-welcome" data-primary-focus>Continue</button>
+        </div>
+      </section>
+    `;
+    focusPrimaryAction();
+  }
+
   function renderSettings(errorMessage = '') {
     const root = getRoot();
     if (!root) return;
     currentEditor = { mode: 'settings' };
     const plan = getCurrentPlan() || clonePlanSnapshot(DEFAULT_INSULIN_PLAN);
+    const friendlySyncStatus = getFriendlySyncStatus(syncStatus);
     root.innerHTML = `
       <form class="levi_diabetes_editor" data-plan-editor>
         <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Settings</h1>
@@ -2147,10 +2375,11 @@
             </select>
           </label>
           <div class="levi_diabetes_plan_meta">
-            <span>Status: ${escapeHtml(syncStatus.message)}</span>
+            <span>Status: ${escapeHtml(friendlySyncStatus.message)}</span>
             <span>Pending: ${escapeHtml(syncStatus.pendingCount)}</span>
             <span>Conflicts: ${escapeHtml(syncStatus.conflictCount)}</span>
             <span>Realtime: ${escapeHtml(syncStatus.realtimeStatus)}</span>
+            <span>Last successful sync: ${escapeHtml(formatRelativeSyncTime(syncStatus.lastSuccessfulSyncAt))}</span>
           </div>
           <div class="levi_diabetes_backup_actions">
             <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="save-device-identity">Save Device</button>
@@ -2236,13 +2465,50 @@
   function renderMigrationSettings() {
     const activeCount = activeRecords().length;
     const backupAvailable = storageAvailability.available;
+    const metadata = getSharedSyncMigrationMetadata();
+    const localOnlyCount = getLocalOnlyRecordCount();
+    if (metadata.migrationCompleted && localOnlyCount === 0) {
+      const friendlySyncStatus = getFriendlySyncStatus(syncStatus);
+      const cloudCount = Math.max(metadata.recordsMigrated, activeCount);
+      return `
+        <section class="levi_diabetes_settings_section" aria-labelledby="levi-cloud-status-title">
+          <h2 class="levi_diabetes_section_title" id="levi-cloud-status-title">Cloud Status</h2>
+          <p class="levi_diabetes_save_status levi_diabetes_save_status--${escapeHtml(friendlySyncStatus.state)}">${escapeHtml(friendlySyncStatus.message)}</p>
+          <dl class="levi_diabetes_status_grid">
+            <div>
+              <dt>Records in cloud</dt>
+              <dd>${escapeHtml(cloudCount)}</dd>
+            </div>
+            <div>
+              <dt>Realtime</dt>
+              <dd>${escapeHtml(syncStatus.realtimeStatus === 'connected' ? 'Connected' : syncStatus.realtimeStatus)}</dd>
+            </div>
+            <div>
+              <dt>Last successful sync</dt>
+              <dd>${escapeHtml(formatRelativeSyncTime(syncStatus.lastSuccessfulSyncAt))}</dd>
+            </div>
+            <div>
+              <dt>Device</dt>
+              <dd>${escapeHtml(syncStatus.deviceIdentity || 'Unknown')}</dd>
+            </div>
+          </dl>
+          <div class="levi_diabetes_backup_actions">
+            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="sync-now">Sync Now</button>
+          </div>
+        </section>
+      `;
+    }
     return `
       <section class="levi_diabetes_settings_section" aria-labelledby="levi-migration-title">
         <h2 class="levi_diabetes_section_title" id="levi-migration-title">Existing Records</h2>
+        ${!metadata.migrationCompleted && metadata.promptDismissed
+          ? '<div class="levi_diabetes_banner"><span>Existing local records have not yet been uploaded.</span><button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="begin-local-migration" data-started-from="settings">Begin Migration</button></div>'
+          : ''}
         <p class="levi_diabetes_help">${escapeHtml(activeCount)} active ${activeCount === 1 ? 'record' : 'records'} are available on this device. Create a safety backup before uploading existing local records to the shared account.</p>
+        ${renderMigrationExplainer()}
         <div class="levi_diabetes_backup_actions">
           <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="export-backup" ${backupAvailable ? '' : 'disabled'}>Download Safety Backup</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="begin-local-migration" ${activeCount ? '' : 'disabled'}>Begin Migration</button>
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="begin-local-migration" data-started-from="settings" ${activeCount ? '' : 'disabled'}>Begin Migration</button>
         </div>
       </section>
     `;
@@ -2264,15 +2530,39 @@
     URL.revokeObjectURL(link.href);
   }
 
-  function beginLocalMigration() {
+  function wait(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  async function waitForMigrationQueueProgress(previousPending, previousConflicts) {
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      syncStatus = syncRepository?.getSyncStatus?.() || syncStatus;
+      const nextConflicts = syncRepository?.getConflicts?.().length || 0;
+      if (nextConflicts > previousConflicts) return syncStatus;
+      if ((syncStatus.pendingCount || 0) <= previousPending) return syncStatus;
+      if (syncStatus.state !== 'syncing' && syncStatus.state !== 'waiting') return syncStatus;
+      await wait(100);
+    }
+    return syncStatus;
+  }
+
+  async function beginLocalMigration(startedFrom = 'settings') {
     if (!syncRepository) return;
     if (!preservePreImportBackup()) {
-      renderSettings('Migration stopped because a safety backup could not be saved on this device.');
+      migrationFlow = {
+        ...migrationFlow,
+        state: 'interrupted',
+        startedFrom,
+        error: 'Migration stopped because a safety backup could not be saved on this device.',
+      };
+      renderMigrationInterrupted();
       return;
     }
     const identity = syncRepository.getDeviceIdentity?.() || 'Unknown';
     const now = new Date().toISOString();
-    const migrationRecords = activeRecords().map((record) => normalizeRecord({
+    const migrationRecords = getMigrationCandidateRecords().map((record) => normalizeRecord({
       ...record,
       enteredBy: record.enteredBy && record.enteredBy !== 'Unknown' ? record.enteredBy : identity,
       source: record.source === 'app' ? 'localStorage_migration' : record.source,
@@ -2284,14 +2574,71 @@
         record.notes || '',
       ].join('|'),
       updatedAt: record.updatedAt || now,
-    }));
+    })).filter(Boolean);
+    migrationFlow = {
+      state: 'running',
+      total: migrationRecords.length,
+      uploaded: 0,
+      duplicates: 0,
+      conflicts: 0,
+      remaining: migrationRecords.length,
+      startedFrom,
+      error: '',
+    };
     updateTrackerData((current) => ({
       ...current,
       records: current.records.map((record) => migrationRecords.find((item) => item.id === record.id) || record),
     }));
-    migrationRecords.forEach((record) => syncRepository.queueUpsert(record, null));
-    syncRepository.processQueue?.();
-    renderSettings();
+    const startedAt = Date.now();
+    renderMigrationProgress();
+    for (const record of migrationRecords) {
+      try {
+        syncStatus = syncRepository.getSyncStatus?.() || syncStatus;
+        const pendingBefore = syncStatus.pendingCount || 0;
+        const conflictsBefore = syncRepository.getConflicts?.().length || 0;
+        syncRepository.queueUpsert(record, null);
+        await syncRepository.processQueue?.();
+        syncStatus = await waitForMigrationQueueProgress(pendingBefore, conflictsBefore);
+        const conflictsAfter = syncRepository.getConflicts?.().length || 0;
+        if (conflictsAfter > conflictsBefore) {
+          migrationFlow.conflicts += conflictsAfter - conflictsBefore;
+        } else if ((syncStatus.pendingCount || 0) <= pendingBefore) {
+          migrationFlow.uploaded += 1;
+        }
+      } catch (error) {
+        migrationFlow.error = 'Shared sync could not finish right now.';
+      }
+      migrationFlow.remaining = Math.max(0, migrationFlow.total - migrationFlow.uploaded - migrationFlow.duplicates - migrationFlow.conflicts);
+      renderMigrationProgress();
+    }
+    syncStatus = syncRepository.getSyncStatus?.() || syncStatus;
+    const pendingAfterMigration = syncStatus.pendingCount || 0;
+    if (pendingAfterMigration > 0 || migrationFlow.error) {
+      migrationFlow.state = 'interrupted';
+      migrationFlow.remaining = Math.max(migrationFlow.remaining, pendingAfterMigration);
+      if (!migrationFlow.error) migrationFlow.error = navigator.onLine ? 'Some records are still waiting to sync.' : 'The device is offline.';
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < MIN_MIGRATION_PROGRESS_MS) await wait(MIN_MIGRATION_PROGRESS_MS - elapsed);
+      renderMigrationInterrupted();
+      return;
+    }
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < MIN_MIGRATION_PROGRESS_MS) await wait(MIN_MIGRATION_PROGRESS_MS - elapsed);
+    const completedAt = new Date().toISOString();
+    saveSharedSyncMigrationMetadata({
+      migrationCompleted: true,
+      migrationCompletedAt: completedAt,
+      migrationVersion: SHARED_SYNC_MIGRATION_VERSION,
+      recordsMigrated: migrationFlow.uploaded + migrationFlow.duplicates,
+      promptDismissed: true,
+    });
+    migrationFlow = {
+      ...migrationFlow,
+      state: 'complete',
+      remaining: 0,
+      error: '',
+    };
+    renderMigrationComplete();
   }
 
   function renderRangeEditorRow(range, index) {
@@ -2685,6 +3032,10 @@
       renderDeviceIdentitySetup();
       return;
     }
+    if (shouldShowSharedSyncMigrationPrompt()) {
+      renderSharedSyncMigrationPrompt();
+      return;
+    }
     renderHome();
   }
 
@@ -2822,7 +3173,38 @@
         syncRepository?.syncNow?.();
       }
       if (action === 'begin-local-migration') {
-        beginLocalMigration();
+        beginLocalMigration(target.dataset.startedFrom || currentEditor?.mode || 'settings');
+      }
+      if (action === 'resume-migration') {
+        beginLocalMigration(migrationFlow.startedFrom || 'settings');
+      }
+      if (action === 'dismiss-migration-prompt') {
+        saveSharedSyncMigrationMetadata({
+          promptDismissed: true,
+          promptDismissedAt: new Date().toISOString(),
+        });
+        renderHome();
+      }
+      if (action === 'continue-migration-success') {
+        const metadata = getSharedSyncMigrationMetadata();
+        if (!metadata.welcomeShown) {
+          renderSharedSyncWelcome();
+        } else if (migrationFlow.startedFrom === 'settings') {
+          renderSettings();
+        } else {
+          renderHome();
+        }
+      }
+      if (action === 'continue-shared-sync-welcome') {
+        saveSharedSyncMigrationMetadata({
+          welcomeShown: true,
+          welcomeShownAt: new Date().toISOString(),
+        });
+        if (migrationFlow.startedFrom === 'settings') {
+          renderSettings();
+        } else {
+          renderHome();
+        }
       }
       if (action === 'review-conflicts') {
         renderConflicts();
@@ -2892,7 +3274,7 @@
         }
         syncRepository?.setDeviceIdentity?.(value);
         syncStatus = syncRepository?.getSyncStatus?.() || syncStatus;
-        renderHome();
+        renderInitialRoute();
         return;
       }
       if (!shouldShowProtectedApp()) {
@@ -2992,6 +3374,8 @@
     getDailySummaryCacheSize,
     buildClinicalReport,
     buildDetailedReportData,
+    formatRelativeSyncTime,
+    getFriendlySyncStatus,
     reportRegistry: REPORT_REGISTRY.map(({ id, title, description, printLayout }) => ({ id, title, description, printLayout })),
   };
 
