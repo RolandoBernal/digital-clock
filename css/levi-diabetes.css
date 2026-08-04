@@ -390,8 +390,23 @@
 
 .levi_diabetes_error,
 .levi_diabetes_save_status--failed,
-.levi_diabetes_save_status--unavailable {
+.levi_diabetes_save_status--unavailable,
+.levi_diabetes_save_status--conflict {
   color: var(--levi-soft);
+  font-weight: 800;
+}
+
+.levi_diabetes_save_status--config-needed,
+.levi_diabetes_save_status--signed-out,
+.levi_diabetes_save_status--waiting,
+.levi_diabetes_save_status--offline {
+  color: #fbbf24;
+  font-weight: 800;
+}
+
+.levi_diabetes_save_status--syncing,
+.levi_diabetes_save_status--synced {
+  color: var(--levi-accent);
   font-weight: 800;
 }
 

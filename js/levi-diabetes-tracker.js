@@ -80,6 +80,19 @@
     endDate: '',
   };
   let currentEditor = null;
+  let syncRepository = null;
+  let syncStatus = {
+    configured: false,
+    signedIn: false,
+    deviceIdentity: '',
+    pendingCount: 0,
+    conflictCount: 0,
+    realtimeStatus: 'idle',
+    state: 'saved',
+    message: 'Saved on this device',
+  };
+  let authMessage = '';
+  let authError = '';
 
   function createId() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -296,6 +309,18 @@
       recordTimestamp: toIsoTimestamp(recordTimestamp, fallbackTimestamp),
       createdAt: toIsoTimestamp(rawCreatedAt, fallbackTimestamp),
       updatedAt: toIsoTimestamp(rawUpdatedAt, fallbackTimestamp),
+      version: Number(record.version || 1),
+      enteredBy: typeof record.enteredBy === 'string' ? record.enteredBy : (typeof record.entered_by === 'string' ? record.entered_by : 'Unknown'),
+      lastEditedBy: typeof record.lastEditedBy === 'string' ? record.lastEditedBy : (typeof record.last_edited_by === 'string' ? record.last_edited_by : null),
+      deletedAt: record.deletedAt || record.deleted_at || null,
+      deletedBy: record.deletedBy || record.deleted_by || null,
+      source: typeof record.source === 'string' ? record.source : 'app',
+      clientCreatedAt: toIsoTimestamp(record.clientCreatedAt || record.client_created_at || rawCreatedAt, fallbackTimestamp),
+      migrationFingerprint: record.migrationFingerprint || record.migration_fingerprint || null,
+      importFingerprint: record.importFingerprint || record.import_fingerprint || null,
+      appSchemaVersion: Number(record.appSchemaVersion || record.app_schema_version || TRACKER_SCHEMA_VERSION),
+      syncStatus: record.syncStatus || 'local',
+      syncError: record.syncError || '',
     };
   }
 
@@ -550,21 +575,128 @@
   }
 
   function renderPersistenceStatus() {
-    const retry = persistenceStatus === 'failed'
+    const isSyncEnabled = syncRepository && syncStatus.configured && syncStatus.signedIn;
+    const statusClass = isSyncEnabled ? syncStatus.state : persistenceStatus;
+    const statusMessage = isSyncEnabled ? syncStatus.message : persistenceMessage;
+    const retry = persistenceStatus === 'failed' || syncStatus.state === 'waiting' || syncStatus.state === 'offline'
       ? '<button type="button" class="levi_diabetes_status_retry" data-action="retry-save">Retry</button>'
       : '';
     return `
-      <p class="levi_diabetes_save_status levi_diabetes_save_status--${escapeHtml(persistenceStatus)}" aria-live="polite">
-        ${escapeHtml(persistenceMessage)}
+      <p class="levi_diabetes_save_status levi_diabetes_save_status--${escapeHtml(statusClass)}" aria-live="polite">
+        ${escapeHtml(statusMessage)}
         ${retry}
       </p>
     `;
   }
 
+  function renderConfigurationNeeded() {
+    const root = getRoot();
+    if (!root) return;
+    root.innerHTML = `
+      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title">
+        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Sync Setup Needed</h1>
+        <p class="levi_diabetes_help">Lee-Lee’s Tracker needs the Supabase project URL and publishable key before shared family records can open on this device.</p>
+        <p class="levi_diabetes_help">Add the browser-safe values described in <code>docs/SUPABASE_SETUP.md</code>. Do not use a service-role key or database password.</p>
+      </section>
+    `;
+  }
+
+  function renderSignIn() {
+    const root = getRoot();
+    if (!root) return;
+    root.innerHTML = `
+      <form class="levi_diabetes_editor" data-auth-form aria-labelledby="levi-diabetes-title">
+        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Sign In</h1>
+        <p class="levi_diabetes_help">Use the shared Lee-Lee’s Tracker account to sync records on both phones.</p>
+        ${authError ? `<p class="levi_diabetes_error">${escapeHtml(authError)}</p>` : ''}
+        ${authMessage ? `<p class="levi_diabetes_save_status levi_diabetes_save_status--synced">${escapeHtml(authMessage)}</p>` : ''}
+        <label class="levi_diabetes_field">
+          Email
+          <input class="levi_diabetes_input" name="email" type="email" autocomplete="email" required>
+        </label>
+        <label class="levi_diabetes_field">
+          Password
+          <input class="levi_diabetes_input" name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <div class="levi_diabetes_actions">
+          <button type="submit" class="levi_diabetes_button levi_diabetes_button--primary">Sign In</button>
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="reset-password">Reset Password</button>
+        </div>
+      </form>
+    `;
+    root.querySelector('[name="email"]')?.focus();
+  }
+
+  function renderDeviceIdentitySetup(errorMessage = '') {
+    const root = getRoot();
+    if (!root) return;
+    root.innerHTML = `
+      <form class="levi_diabetes_editor" data-device-identity-form aria-labelledby="levi-diabetes-title">
+        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Who Uses This Device?</h1>
+        <p class="levi_diabetes_help">This labels who entered or edited records from this phone. It is separate from the shared sign-in account.</p>
+        ${errorMessage ? `<p class="levi_diabetes_error">${escapeHtml(errorMessage)}</p>` : ''}
+        <label class="levi_diabetes_field">
+          This device is used by
+          <select class="levi_diabetes_select" name="deviceIdentity" required>
+            <option value="">Choose one</option>
+            <option value="Rolando">Rolando</option>
+            <option value="Emily">Emily</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+        </label>
+        <div class="levi_diabetes_actions">
+          <button type="submit" class="levi_diabetes_button levi_diabetes_button--primary">Continue</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function renderConflicts() {
+    const root = getRoot();
+    if (!root || !syncRepository) return;
+    currentEditor = { mode: 'conflicts' };
+    const conflicts = syncRepository.getConflicts();
+    root.innerHTML = `
+      <section class="levi_diabetes_top">
+        <p class="levi_diabetes_date">Sync</p>
+        <h1 class="levi_diabetes_title" id="levi-diabetes-title">Records Needing Review</h1>
+        ${renderPersistenceStatus()}
+      </section>
+      ${renderTrackerNav('settings')}
+      <section class="levi_diabetes_timeline" aria-label="Sync conflicts">
+        ${conflicts.length ? conflicts.map(renderConflictCard).join('') : '<p class="levi_diabetes_empty" role="status">No conflicts need review.</p>'}
+      </section>
+    `;
+  }
+
+  function renderConflictCard(conflict) {
+    const local = conflict.localRecord || {};
+    const shared = conflict.sharedRecord || {};
+    return `
+      <article class="levi_diabetes_timeline_item levi_diabetes_history_record">
+        <div>
+          <div class="levi_diabetes_timeline_type">${escapeHtml(local.type || shared.type || 'Record')}</div>
+          <div class="levi_diabetes_record_details">
+            <p><strong>Shared:</strong> ${escapeHtml(formatBloodSugar(shared.bloodSugar) || 'No blood sugar')} · ${escapeHtml(formatInsulin(getRecordActualInsulin(shared)) || 'No insulin')} · edited by ${escapeHtml(shared.lastEditedBy || shared.enteredBy || 'Unknown')}</p>
+            <p><strong>This device:</strong> ${escapeHtml(formatBloodSugar(local.bloodSugar) || 'No blood sugar')} · ${escapeHtml(formatInsulin(getRecordActualInsulin(local)) || 'No insulin')} · edited by ${escapeHtml(local.lastEditedBy || local.enteredBy || 'Unknown')}</p>
+          </div>
+        </div>
+        <div class="levi_diabetes_record_actions">
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="keep-shared-version" data-id="${escapeHtml(conflict.recordId)}">Keep Shared</button>
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="use-local-version" data-id="${escapeHtml(conflict.recordId)}">Use This Device</button>
+        </div>
+      </article>
+    `;
+  }
+
   function createBackupDocument() {
     return {
-      appIdentifier: 'lando-world:lee-lees-tracker',
+      appIdentifier: 'lee-lee-tracker-full-backup',
+      backupFormat: 'lee-lee-tracker-full-backup',
+      backupFormatVersion: 1,
+      appVersion: '1.0.0',
       exportedAt: new Date().toISOString(),
+      recordCount: trackerData.records.length,
       ...normalizeTrackerDataDocument(trackerData),
     };
   }
@@ -573,13 +705,19 @@
     const backup = createBackupDocument();
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
-    const today = getLocalDateKey();
+    const now = new Date();
+    const stamp = `${getLocalDateKey(now)}-${getLocalTimeKey(now).replace(':', '')}`;
     link.href = URL.createObjectURL(blob);
-    link.download = `lee-lees-tracker-backup-${today}.json`;
+    link.download = `lee-lee-tracker-backup-${stamp}.json`;
     document.body.append(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(link.href);
+    try {
+      localStorage.setItem(`${TRACKER_STORAGE_KEY}:last-full-backup-at`, new Date().toISOString());
+    } catch (error) {
+      // Backup reminder state is best effort.
+    }
   }
 
   function validateBackupPayload(payload) {
@@ -992,6 +1130,18 @@
     return REPORT_REGISTRY.find((report) => report.id === reportId) || REPORT_REGISTRY[0];
   }
 
+  function isRecordDeleted(record) {
+    return Boolean(record?.deletedAt || record?.deleted_at);
+  }
+
+  function activeRecords() {
+    return records.filter((record) => !isRecordDeleted(record));
+  }
+
+  function deletedRecords() {
+    return sortRecordsNewestFirst(records.filter(isRecordDeleted));
+  }
+
   function getHistoryInitialWindowDays() {
     const value = trackerData.settings?.historyInitialWindowDays;
     if (value === 'all') return null;
@@ -1055,7 +1205,7 @@
 
   function todaysRecords() {
     const today = getLocalDateKey();
-    return records
+    return activeRecords()
       .filter((record) => getRecordEventDateKey(record) === today)
       .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
   }
@@ -1296,11 +1446,12 @@
     if (historyVisibleDayCount === null && getHistoryInitialWindowDays() !== null) {
       resetHistoryVisibleWindow();
     }
-    const filtered = getFilteredRecords(records, historyFilters);
+    const visibleRecords = activeRecords();
+    const filtered = getFilteredRecords(visibleRecords, historyFilters);
     const groups = groupRecordsByLocalDate(filtered);
     const visibleGroups = getVisibleHistoryGroups(groups, historyVisibleDayCount);
     const hasOlderGroups = visibleGroups.length < groups.length;
-    const emptyMessage = records.length
+    const emptyMessage = visibleRecords.length
       ? `
         <p class="levi_diabetes_empty" role="status">No records match these filters.</p>
         <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost levi_diabetes_extra" data-action="reset-history-filters">Reset Filters</button>
@@ -1344,7 +1495,7 @@
   function renderHistoryDay(dateKey) {
     const root = getRoot();
     if (!root) return;
-    const dayRecords = sortRecordsChronologically(records.filter((record) => getRecordEventDateKey(record) === dateKey));
+    const dayRecords = sortRecordsChronologically(activeRecords().filter((record) => getRecordEventDateKey(record) === dateKey));
     const summary = calculateDailySummary(dayRecords);
     currentEditor = {
       mode: 'history-day',
@@ -1434,7 +1585,7 @@
   }
 
   function getExportRecords() {
-    return filterRecordsByDateRange(records, exportOptions);
+    return filterRecordsByDateRange(activeRecords(), exportOptions);
   }
 
   function renderExport() {
@@ -1814,6 +1965,7 @@
 
   function upsertRecord(record) {
     setPersistenceStatus('saving');
+    const existingRecord = records.find((item) => item.id === record.id) || null;
     updateTrackerData((current) => {
       const nextRecords = [...current.records];
       const index = nextRecords.findIndex((item) => item.id === record.id);
@@ -1827,6 +1979,7 @@
         records: nextRecords,
       };
     });
+    syncRepository?.queueUpsert(record, existingRecord);
   }
 
   function buildRecordFromForm(form) {
@@ -1863,6 +2016,13 @@
       recordTimestamp: new Date(recordTimestamp).toISOString(),
       createdAt: existing?.createdAt ?? nowTimestamp,
       updatedAt: nowTimestamp,
+      version: existing?.version || 1,
+      enteredBy: existing?.enteredBy || syncRepository?.getDeviceIdentity?.() || 'Unknown',
+      lastEditedBy: existing ? (syncRepository?.getDeviceIdentity?.() || 'Unknown') : null,
+      deletedAt: existing?.deletedAt || null,
+      deletedBy: existing?.deletedBy || null,
+      source: existing?.source || 'app',
+      clientCreatedAt: existing?.clientCreatedAt || existing?.createdAt || nowTimestamp,
     };
   }
 
@@ -1978,6 +2138,28 @@
           </label>
           <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="save-history-preference">Save History Preference</button>
         </section>
+        <section class="levi_diabetes_settings_section" aria-labelledby="levi-sync-title">
+          <h2 class="levi_diabetes_section_title" id="levi-sync-title">Shared Sync</h2>
+          <label class="levi_diabetes_field">
+            This device is used by
+            <select class="levi_diabetes_select" name="deviceIdentity">
+              ${['Rolando', 'Emily', 'Unknown'].map((name) => `<option value="${escapeHtml(name)}" ${syncStatus.deviceIdentity === name ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('')}
+            </select>
+          </label>
+          <div class="levi_diabetes_plan_meta">
+            <span>Status: ${escapeHtml(syncStatus.message)}</span>
+            <span>Pending: ${escapeHtml(syncStatus.pendingCount)}</span>
+            <span>Conflicts: ${escapeHtml(syncStatus.conflictCount)}</span>
+            <span>Realtime: ${escapeHtml(syncStatus.realtimeStatus)}</span>
+          </div>
+          <div class="levi_diabetes_backup_actions">
+            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="save-device-identity">Save Device</button>
+            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="sync-now">Sync Now</button>
+            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="review-conflicts" ${syncStatus.conflictCount ? '' : 'disabled'}>Review Conflicts</button>
+            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="sign-out">Sign Out This Device</button>
+          </div>
+        </section>
+        ${renderMigrationSettings()}
         <section class="levi_diabetes_settings_section" aria-labelledby="levi-insulin-plan-title">
           <h2 class="levi_diabetes_section_title" id="levi-insulin-plan-title">Insulin Plan</h2>
           ${errorMessage ? `<p class="levi_diabetes_error">${escapeHtml(errorMessage)}</p>` : ''}
@@ -2008,19 +2190,108 @@
         </section>
         <section class="levi_diabetes_settings_section" aria-labelledby="levi-backup-title">
           <h2 class="levi_diabetes_section_title" id="levi-backup-title">Local Backup</h2>
-          <p class="levi_diabetes_help">Records stay on this device unless site data is cleared. Export a backup regularly.</p>
+          <p class="levi_diabetes_help">JSON backups are for restore. CSV files are for human-readable review and cannot restore the tracker.</p>
           <div class="levi_diabetes_backup_actions">
             <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="export-backup">Export Data Backup</button>
+            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="export-csv">Export CSV</button>
             <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="import-backup">Import Data Backup</button>
           </div>
           <input class="levi_diabetes_backup_input" type="file" accept="application/json,.json" data-backup-import aria-label="Import Lee-Lee’s Tracker data backup">
         </section>
+        ${renderRecentlyDeletedSettings()}
         <div class="levi_diabetes_actions">
           <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="cancel">Cancel</button>
           <button type="submit" class="levi_diabetes_button levi_diabetes_button--primary">Review Plan Change</button>
         </div>
       </form>
     `;
+  }
+
+  function renderRecentlyDeletedSettings() {
+    const deleted = deletedRecords();
+    return `
+      <section class="levi_diabetes_settings_section" aria-labelledby="levi-deleted-title">
+        <h2 class="levi_diabetes_section_title" id="levi-deleted-title">Recently Deleted</h2>
+        ${deleted.length
+          ? `<div class="levi_diabetes_timeline">${deleted.map((record) => `
+            <article class="levi_diabetes_timeline_item levi_diabetes_history_record">
+              <div>
+                <div class="levi_diabetes_timeline_type">${escapeHtml(record.type)}</div>
+                <div class="levi_diabetes_record_details">
+                  <p>${escapeHtml(formatRecordDateTime(record.recordTimestamp))}</p>
+                  <p>${escapeHtml(formatBloodSugar(record.bloodSugar) || 'No blood sugar')} · ${escapeHtml(formatInsulin(getRecordActualInsulin(record)) || 'No insulin')}</p>
+                  <p>Deleted by ${escapeHtml(record.deletedBy || 'Unknown')}</p>
+                </div>
+              </div>
+              <div class="levi_diabetes_record_actions">
+                <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="restore-record" data-id="${escapeHtml(record.id)}">Restore</button>
+              </div>
+            </article>
+          `).join('')}</div>`
+          : '<p class="levi_diabetes_empty">No deleted records.</p>'}
+      </section>
+    `;
+  }
+
+  function renderMigrationSettings() {
+    const activeCount = activeRecords().length;
+    const backupAvailable = storageAvailability.available;
+    return `
+      <section class="levi_diabetes_settings_section" aria-labelledby="levi-migration-title">
+        <h2 class="levi_diabetes_section_title" id="levi-migration-title">Existing Records</h2>
+        <p class="levi_diabetes_help">${escapeHtml(activeCount)} active ${activeCount === 1 ? 'record' : 'records'} are available on this device. Create a safety backup before uploading existing local records to the shared account.</p>
+        <div class="levi_diabetes_backup_actions">
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="export-backup" ${backupAvailable ? '' : 'disabled'}>Download Safety Backup</button>
+          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="begin-local-migration" ${activeCount ? '' : 'disabled'}>Begin Migration</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function exportCsvData() {
+    const csv = syncRepository?.exportCsv
+      ? syncRepository.exportCsv(activeRecords())
+      : '';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const link = document.createElement('a');
+    const now = new Date();
+    const stamp = `${getLocalDateKey(now)}-${getLocalTimeKey(now).replace(':', '')}`;
+    link.href = URL.createObjectURL(blob);
+    link.download = `lee-lee-tracker-records-${stamp}.csv`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  }
+
+  function beginLocalMigration() {
+    if (!syncRepository) return;
+    if (!preservePreImportBackup()) {
+      renderSettings('Migration stopped because a safety backup could not be saved on this device.');
+      return;
+    }
+    const identity = syncRepository.getDeviceIdentity?.() || 'Unknown';
+    const now = new Date().toISOString();
+    const migrationRecords = activeRecords().map((record) => normalizeRecord({
+      ...record,
+      enteredBy: record.enteredBy && record.enteredBy !== 'Unknown' ? record.enteredBy : identity,
+      source: record.source === 'app' ? 'localStorage_migration' : record.source,
+      migrationFingerprint: record.migrationFingerprint || [
+        record.recordTimestamp,
+        record.type,
+        record.bloodSugar ?? '',
+        record.insulinUnits ?? '',
+        record.notes || '',
+      ].join('|'),
+      updatedAt: record.updatedAt || now,
+    }));
+    updateTrackerData((current) => ({
+      ...current,
+      records: current.records.map((record) => migrationRecords.find((item) => item.id === record.id) || record),
+    }));
+    migrationRecords.forEach((record) => syncRepository.queueUpsert(record, null));
+    syncRepository.processQueue?.();
+    renderSettings();
   }
 
   function renderRangeEditorRow(range, index) {
@@ -2229,16 +2500,49 @@
     const recordId = currentEditor?.pendingDeleteId;
     const returnDateKey = currentEditor?.returnDateKey;
     if (!recordId) return;
+    const existingRecord = records.find((record) => record.id === recordId);
+    if (!existingRecord) return;
+    const now = new Date().toISOString();
+    const identity = syncRepository?.getDeviceIdentity?.() || 'Unknown';
+    const deletedRecord = normalizeRecord({
+      ...existingRecord,
+      deletedAt: now,
+      deletedBy: identity,
+      lastEditedBy: identity,
+      updatedAt: now,
+    });
     setPersistenceStatus('saving');
     updateTrackerData((current) => ({
       ...current,
-      records: current.records.filter((record) => record.id !== recordId),
+      records: current.records.map((record) => (record.id === recordId ? deletedRecord : record)),
     }));
+    syncRepository?.queueSoftDelete(deletedRecord);
     if (returnDateKey) {
       renderHistoryDay(returnDateKey);
     } else {
       renderHistory();
     }
+  }
+
+  function restoreRecord(recordId) {
+    const existingRecord = records.find((record) => record.id === recordId);
+    if (!existingRecord) return;
+    const now = new Date().toISOString();
+    const identity = syncRepository?.getDeviceIdentity?.() || 'Unknown';
+    const restoredRecord = normalizeRecord({
+      ...existingRecord,
+      deletedAt: null,
+      deletedBy: null,
+      lastEditedBy: identity,
+      updatedAt: now,
+    });
+    setPersistenceStatus('saving');
+    updateTrackerData((current) => ({
+      ...current,
+      records: current.records.map((record) => (record.id === recordId ? restoredRecord : record)),
+    }));
+    syncRepository?.queueRestore(restoredRecord);
+    renderSettings();
   }
 
   function updateHistoryFilters(form) {
@@ -2341,13 +2645,96 @@
     renderExport();
   }
 
-  function init() {
+  function createSyncRepository() {
+    if (!window.LeeLeesTrackerSync?.createRepository) return null;
+    return window.LeeLeesTrackerSync.createRepository({
+      getDocument: () => trackerData,
+      saveDocument: (data, options = {}) => saveTrackerData(data, { keepStatus: true, ...options }),
+      normalizeRecord,
+      mergeDocuments: mergeTrackerDocuments,
+      legacyRecordKeys: LEGACY_RECORD_STORAGE_KEYS,
+      onRemoteChange: (nextData) => {
+        trackerData = nextData;
+        records = trackerData.records;
+        insulinPlans = trackerData.insulinPlans;
+        if (!currentEditor || ['history', 'history-day', 'export', 'settings'].includes(currentEditor.mode)) {
+          if (currentEditor?.mode === 'history') renderHistory();
+          else if (currentEditor?.mode === 'history-day') renderHistoryDay(currentEditor.dateKey);
+          else if (currentEditor?.mode === 'export') renderExport();
+          else if (currentEditor?.mode === 'settings') renderSettings();
+          else renderHome();
+        }
+      },
+    });
+  }
+
+  function shouldShowProtectedApp() {
+    return syncStatus.configured && syncStatus.signedIn && Boolean(syncStatus.deviceIdentity);
+  }
+
+  function renderInitialRoute() {
+    if (!syncStatus.configured) {
+      renderConfigurationNeeded();
+      return;
+    }
+    if (!syncStatus.signedIn) {
+      renderSignIn();
+      return;
+    }
+    if (!syncStatus.deviceIdentity) {
+      renderDeviceIdentitySetup();
+      return;
+    }
+    renderHome();
+  }
+
+  function refreshCurrentViewForSync() {
+    if (!shouldShowProtectedApp()) {
+      renderInitialRoute();
+      return;
+    }
+    if (!currentEditor) return;
+    if (currentEditor.mode === 'settings') renderSettings();
+    if (currentEditor.mode === 'history') renderHistory();
+    if (currentEditor.mode === 'export') renderExport();
+  }
+
+  async function init() {
     const root = getRoot();
     if (!root) return;
+    syncRepository = createSyncRepository();
+    if (syncRepository) {
+      syncRepository.subscribe((nextStatus) => {
+        syncStatus = nextStatus;
+        refreshCurrentViewForSync();
+      });
+      await syncRepository.initialize();
+      syncStatus = syncRepository.getSyncStatus();
+    }
     root.addEventListener('click', (event) => {
       const target = event.target.closest('[data-action]');
       if (!target) return;
       const action = target.dataset.action;
+      if (action === 'reset-password') {
+        const form = target.closest('[data-auth-form]');
+        const email = form?.elements.email?.value || '';
+        if (!email) {
+          authError = 'Enter the account email first.';
+          authMessage = '';
+          renderSignIn();
+          return;
+        }
+        authError = '';
+        authMessage = 'Sending reset email…';
+        renderSignIn();
+        syncRepository?.sendPasswordReset?.(email).then((result) => {
+          authError = result?.error || '';
+          authMessage = result?.ok ? 'Password reset email sent.' : '';
+          renderSignIn();
+        });
+        return;
+      }
+      if (!shouldShowProtectedApp() && !['reset-password'].includes(action)) return;
       if (action === 'edit-primary') {
         openPrimaryEditor(target.dataset.type);
       }
@@ -2386,9 +2773,13 @@
       }
       if (action === 'retry-save') {
         retrySave();
+        syncRepository?.processQueue?.();
       }
       if (action === 'export-backup') {
         exportDataBackup();
+      }
+      if (action === 'export-csv') {
+        exportCsvData();
       }
       if (action === 'import-backup') {
         root.querySelector('[data-backup-import]')?.click();
@@ -2420,6 +2811,43 @@
       if (action === 'save-history-preference') {
         saveHistoryPreference(target.closest('[data-plan-editor]'));
       }
+      if (action === 'save-device-identity') {
+        const form = target.closest('[data-plan-editor]');
+        const value = form?.elements.deviceIdentity?.value || '';
+        syncRepository?.setDeviceIdentity?.(value);
+        syncStatus = syncRepository?.getSyncStatus?.() || syncStatus;
+        renderSettings();
+      }
+      if (action === 'sync-now') {
+        syncRepository?.syncNow?.();
+      }
+      if (action === 'begin-local-migration') {
+        beginLocalMigration();
+      }
+      if (action === 'review-conflicts') {
+        renderConflicts();
+      }
+      if (action === 'keep-shared-version') {
+        syncRepository?.keepSharedVersion?.(target.dataset.id).then(() => {
+          syncStatus = syncRepository.getSyncStatus();
+          renderConflicts();
+        });
+      }
+      if (action === 'use-local-version') {
+        syncRepository?.useLocalVersion?.(target.dataset.id).then(() => {
+          syncStatus = syncRepository.getSyncStatus();
+          renderConflicts();
+        });
+      }
+      if (action === 'restore-record') {
+        restoreRecord(target.dataset.id);
+      }
+      if (action === 'sign-out') {
+        syncRepository?.signOut?.().then(() => {
+          syncStatus = syncRepository.getSyncStatus();
+          renderSignIn();
+        });
+      }
       if (action === 'print-report') {
         window.print();
       }
@@ -2440,8 +2868,37 @@
       }
     });
     root.addEventListener('submit', (event) => {
-      if (!event.target.matches('[data-levi-editor], [data-plan-editor]')) return;
+      if (!event.target.matches('[data-auth-form], [data-device-identity-form], [data-levi-editor], [data-plan-editor]')) return;
       event.preventDefault();
+      if (event.target.matches('[data-auth-form]')) {
+        const email = event.target.elements.email.value;
+        const password = event.target.elements.password.value;
+        authError = '';
+        authMessage = 'Signing in…';
+        renderSignIn();
+        syncRepository?.signIn?.(email, password).then((result) => {
+          authMessage = '';
+          authError = result?.error || '';
+          syncStatus = syncRepository.getSyncStatus();
+          renderInitialRoute();
+        });
+        return;
+      }
+      if (event.target.matches('[data-device-identity-form]')) {
+        const value = event.target.elements.deviceIdentity.value;
+        if (!value) {
+          renderDeviceIdentitySetup('Choose who normally uses this device.');
+          return;
+        }
+        syncRepository?.setDeviceIdentity?.(value);
+        syncStatus = syncRepository?.getSyncStatus?.() || syncStatus;
+        renderHome();
+        return;
+      }
+      if (!shouldShowProtectedApp()) {
+        renderInitialRoute();
+        return;
+      }
       if (event.target.matches('[data-plan-editor]')) {
         const result = buildPlanFromSettingsForm(event.target);
         if (result.error) {
@@ -2462,6 +2919,7 @@
       updateEditorState(form);
     });
     root.addEventListener('change', (event) => {
+      if (!shouldShowProtectedApp()) return;
       const confirmCheck = event.target.closest('[data-plan-confirm-check]');
       if (confirmCheck) {
         const confirmButton = root.querySelector('[data-action="confirm-plan"]');
@@ -2473,6 +2931,7 @@
       updateEditorState(form);
     });
     root.addEventListener('change', (event) => {
+      if (!shouldShowProtectedApp()) return;
       if (event.target.matches('[data-backup-import]')) {
         handleBackupImport(event.target.files?.[0]);
         event.target.value = '';
@@ -2499,7 +2958,7 @@
     });
     window.addEventListener('storage', handleExternalStorageUpdate);
     requestPersistentStorage();
-    renderHome();
+    renderInitialRoute();
   }
 
   window.LeeLeesTrackerStorage = {
