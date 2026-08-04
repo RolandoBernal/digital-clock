@@ -54,6 +54,15 @@
   --app-accent-contrast: #12091f;
 }
 
+.app_theme--road-bike-checklist {
+  --app-accent: #d9467d;
+  --app-accent-rgb: 217 70 125;
+  --app-accent-soft: #ffd1df;
+  --app-accent-bg: #2a0b18;
+  --app-accent-deep: #5b1530;
+  --app-accent-contrast: #fff7fa;
+}
+
 .app_theme--death-on-notecards {
   --app-accent: #ff4d4d;
   --app-accent-rgb: 255 77 77;

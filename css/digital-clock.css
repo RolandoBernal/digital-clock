@@ -383,6 +383,18 @@ body {
   text-align: right;
 }
 
+.pwa_status_value--success {
+  color: var(--app-accent-soft, #a8ffcc);
+}
+
+.pwa_status_value--warning {
+  color: #ffe566;
+}
+
+.pwa_status_value--error {
+  color: #ff9b9b;
+}
+
 #clock-view .digit_clocks_container {
   grid-auto-rows: auto;
 }

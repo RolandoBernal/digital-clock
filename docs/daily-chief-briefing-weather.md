@@ -19,7 +19,7 @@ Provider-specific request, cache, geocoding, condition-code, and normalization l
 
 The UI consumes the normalized `WeatherSnapshot` shape exposed through `window.LandosWeatherService`.
 
-The launcher card renders its compact weather summary in the Lando's World launcher script inside `index-digital-clock.html`.
+The launcher card renders its compact weather summary in the Lando's World launcher script inside `index.html`.
 
 The full Daily Chief Briefing weather section is rendered in `js/daily-chief-briefing.js`.
 

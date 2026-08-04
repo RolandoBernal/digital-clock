@@ -3,7 +3,7 @@
   "short_name": "Lando",
   "id": "/landos-world/",
   "description": "Lando's World is a personal application ecosystem with Digital Clock, Weather, Daily Chief Briefing, Violet Sprints, Death on Notecards, and Lee-Lee's Tracker.",
-  "start_url": "/landos-world/index-digital-clock.html",
+  "start_url": "/landos-world/",
   "scope": "/landos-world/",
   "display": "standalone",
   "display_override": [
@@ -34,23 +34,10 @@
   ],
   "shortcuts": [
     {
-      "name": "Daily Chief Briefing",
-      "short_name": "Briefing",
-      "description": "Open Daily Chief Briefing.",
-      "url": "/landos-world/index-digital-clock.html#/daily-chief-briefing",
-      "icons": [
-        {
-          "src": "/landos-world/icons/daily-chief-briefing.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
       "name": "Weather",
       "short_name": "Weather",
       "description": "Open the Lando's World weather app.",
-      "url": "/landos-world/index-digital-clock.html#/weather",
+      "url": "/landos-world/#/weather",
       "icons": [
         {
           "src": "/landos-world/icons/weather.png",
@@ -63,7 +50,7 @@
       "name": "Digital Clock",
       "short_name": "Clock",
       "description": "Open Digital Clock.",
-      "url": "/landos-world/index-digital-clock.html#/digital-clock",
+      "url": "/landos-world/#/digital-clock",
       "icons": [
         {
           "src": "/landos-world/icons/digital-clock.png",
@@ -76,7 +63,7 @@
       "name": "Lee-Lee's Tracker",
       "short_name": "Tracker",
       "description": "Open Lee-Lee's Tracker.",
-      "url": "/landos-world/index-digital-clock.html#/lee-lees-tracker",
+      "url": "/landos-world/#/lee-lees-tracker",
       "icons": [
         {
           "src": "/landos-world/icons/lee-lees-tracker.png",
@@ -89,7 +76,7 @@
       "name": "Violet Sprints",
       "short_name": "Sprints",
       "description": "Open Violet Sprints interval timer.",
-      "url": "/landos-world/index-digital-clock.html#/violet-sprints",
+      "url": "/landos-world/#/violet-sprints",
       "icons": [
         {
           "src": "/landos-world/icons/violet-sprints.png",

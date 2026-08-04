@@ -1,14 +1,16 @@
-const SW_VERSION = '2026-08-04-1';
+const SW_VERSION = '2026-08-04-7';
 const APP_CACHE = `landos-world-app-${SW_VERSION}`;
 const RUNTIME_CACHE = `landos-world-runtime-${SW_VERSION}`;
 const WEATHER_CACHE = `landos-world-weather-${SW_VERSION}`;
 const IMAGE_CACHE = `landos-world-images-${SW_VERSION}`;
 const FONT_CACHE = `landos-world-fonts-${SW_VERSION}`;
 const CACHE_PREFIX = 'landos-world-';
+const CACHE_METADATA_URL = './__landos-world-cache-metadata.json';
 
 const PRECACHE_URLS = [
   './',
   './index.html',
+  './digital-clock.html',
   './index-digital-clock.html',
   './manifest.webmanifest',
   './favicon-landos-world.svg',
@@ -24,6 +26,7 @@ const PRECACHE_URLS = [
   './css/daily-chief-briefing.css',
   './css/levi-diabetes.css',
   './css/sprints.css',
+  './css/road-bike-checklist.css',
   './js/pwa-manager.js',
   './js/weather-service.js',
   './js/weather-app.js',
@@ -32,6 +35,7 @@ const PRECACHE_URLS = [
   './js/lee-lees-tracker-sync.js',
   './js/levi-diabetes-tracker.js',
   './js/sprints-app.js',
+  './js/road-bike-checklist.js',
   './fonts/digital-7.ttf',
   './icons/landos-world.svg',
   './icons/landos-world-192-v2.png',
@@ -45,6 +49,7 @@ const PRECACHE_URLS = [
   './icons/lee-lees-tracker.png',
   './icons/violet-sprints.svg',
   './icons/violet-sprints.png',
+  './icons/road-bike-checklist.svg',
   './icons/death-on-notecards.svg',
   './icons/death-on-notecards.png',
   './icons/daily-chief-briefing.svg',
@@ -105,9 +110,61 @@ async function networkFirst(request, cacheName) {
 
 async function appShellFallback() {
   const cache = await caches.open(APP_CACHE);
-  return await cache.match('./index-digital-clock.html')
-    || await cache.match('./index.html')
+  return await cache.match('./index.html')
+    || await cache.match('./digital-clock.html')
     || Response.error();
+}
+
+function metadataRequest() {
+  return new Request(CACHE_METADATA_URL);
+}
+
+async function writeCacheMetadata(eventType) {
+  const cache = await caches.open(APP_CACHE);
+  const metadata = {
+    version: SW_VERSION,
+    eventType,
+    updatedAt: new Date().toISOString(),
+  };
+  await cache.put(metadataRequest(), new Response(JSON.stringify(metadata), {
+    headers: { 'Content-Type': 'application/json' },
+  }));
+  return metadata;
+}
+
+async function readCacheMetadata() {
+  const cache = await caches.open(APP_CACHE);
+  const response = await cache.match(metadataRequest());
+  if (!response) return null;
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function precacheApplicationShell(eventType) {
+  const cache = await caches.open(APP_CACHE);
+  await Promise.all(PRECACHE_URLS.map(async (url) => {
+    const request = new Request(url, { cache: 'reload' });
+    let response;
+    try {
+      response = await fetch(request);
+    } catch (error) {
+      throw new Error(`Failed to cache ${request.url}: ${error?.message || 'Network error'}`);
+    }
+    if (!response || (!response.ok && response.type !== 'opaque')) {
+      throw new Error(`Failed to cache ${request.url}: HTTP ${response?.status || 'unknown'}`);
+    }
+    await cache.put(request, response);
+  }));
+  return await writeCacheMetadata(eventType);
+}
+
+async function isApplicationShellCached() {
+  const cache = await caches.open(APP_CACHE);
+  const cachedUrls = new Set((await cache.keys()).map((request) => request.url));
+  return PRECACHE_URLS.every((url) => cachedUrls.has(new URL(url, self.location.href).href));
 }
 
 async function getCacheStatus() {
@@ -117,11 +174,14 @@ async function getCacheStatus() {
   await Promise.all(ownedKeys.map(async (key) => {
     cachedRequestCount += (await caches.open(key).then((cache) => cache.keys())).length;
   }));
+  const metadata = await readCacheMetadata();
   return {
     version: SW_VERSION,
     cacheNames: ownedKeys,
     cachedRequestCount,
-    updatedAt: new Date().toISOString(),
+    appCacheName: APP_CACHE,
+    appCacheReady: ownedKeys.includes(APP_CACHE) && await isApplicationShellCached(),
+    updatedAt: metadata?.updatedAt || null,
   };
 }
 
@@ -137,8 +197,7 @@ async function clearApplicationCaches() {
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(APP_CACHE)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+    precacheApplicationShell('install')
       .then(() => self.registration.update()),
   );
 });
@@ -198,23 +257,42 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('message', (event) => {
   const message = event.data || {};
+  const respond = (payload) => {
+    const response = { ...payload, requestId: message.requestId || null };
+    if (event.ports?.[0]) {
+      event.ports[0].postMessage(response);
+      return;
+    }
+    event.source?.postMessage(response);
+  };
   if (message.type === 'SKIP_WAITING') {
     self.skipWaiting();
     return;
   }
   if (message.type === 'GET_CACHE_STATUS') {
     event.waitUntil(
-      getCacheStatus().then((status) => {
-        event.source?.postMessage({ type: 'CACHE_STATUS', status });
-      }),
+      getCacheStatus()
+        .then((status) => {
+          respond({ type: 'CACHE_STATUS', status });
+        })
+        .catch((error) => {
+          respond({ type: 'CACHE_STATUS_ERROR', message: error?.message || 'Cache status unavailable.' });
+        }),
     );
     return;
   }
   if (message.type === 'CLEAR_APPLICATION_CACHES') {
     event.waitUntil(
-      clearApplicationCaches().then((deletedCount) => {
-        event.source?.postMessage({ type: 'APPLICATION_CACHES_CLEARED', deletedCount });
-      }),
+      clearApplicationCaches()
+        .then(async (deletedCount) => {
+          respond({ type: 'APPLICATION_CACHES_CLEARED', deletedCount });
+          await precacheApplicationShell('rebuild');
+          const status = await getCacheStatus();
+          respond({ type: 'APPLICATION_CACHES_REBUILT', status });
+        })
+        .catch((error) => {
+          respond({ type: 'APPLICATION_CACHES_REBUILD_FAILED', message: error?.message || 'Application cache rebuild failed.' });
+        }),
     );
   }
 });

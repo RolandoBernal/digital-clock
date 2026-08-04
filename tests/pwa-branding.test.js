@@ -3,14 +3,16 @@ import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const manifest = JSON.parse(readFileSync(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
-const html = readFileSync(new URL('../index-digital-clock.html', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const entryHtml = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const legacyHtml = readFileSync(new URL('../index-digital-clock.html', import.meta.url), 'utf8');
+const digitalClockHtml = readFileSync(new URL('../digital-clock.html', import.meta.url), 'utf8');
 
 test('PWA shell is branded as Lando World at the GitHub Pages landos-world path', () => {
   assert.equal(manifest.name, "Lando's World");
   assert.equal(manifest.short_name, 'Lando');
   assert.equal(manifest.id, '/landos-world/');
-  assert.equal(manifest.start_url, '/landos-world/index-digital-clock.html');
+  assert.equal(manifest.start_url, '/landos-world/');
   assert.equal(manifest.scope, '/landos-world/');
   assert.equal(manifest.display, 'standalone');
   assert.equal(manifest.orientation, 'portrait-primary');
@@ -46,9 +48,25 @@ test('PWA shell registers an offline-first service worker through the PWA manage
   assert.equal(existsSync(new URL('../service-worker.js', import.meta.url)), true);
 });
 
-test('GitHub Pages entrypoint redirect preserves URL state and avoids loops', () => {
-  assert.match(entryHtml, /targetUrl\.search = currentUrl\.search/);
-  assert.match(entryHtml, /targetUrl\.hash = currentUrl\.hash/);
-  assert.match(entryHtml, /currentUrl\.pathname !== targetUrl\.pathname/);
-  assert.match(entryHtml, /window\.location\.replace\(targetUrl\.href\)/);
+test('GitHub Pages entrypoint is the Lando World app shell', () => {
+  assert.match(entryHtml, /id="lando-launcher"/);
+  assert.doesNotMatch(entryHtml, /index-digital-clock\.html/);
+});
+
+test('landing launcher omits Daily Chief Briefing and starts with Weather', () => {
+  const appCardsStart = entryHtml.indexOf('const APP_CARDS = [');
+  const appCardsEnd = entryHtml.indexOf('const WEATHER_CONFIG = [');
+  const appCardsSource = entryHtml.slice(appCardsStart, appCardsEnd);
+  assert.doesNotMatch(appCardsSource, /id: 'daily-chief-briefing'/);
+  assert.match(appCardsSource, /id: 'weather'/);
+  assert.ok(appCardsSource.indexOf("id: 'weather'") < appCardsSource.indexOf("id: 'digital-clock'"));
+});
+
+test('legacy and renamed Digital Clock URLs redirect to the root hash router', () => {
+  [legacyHtml, digitalClockHtml].forEach((redirectHtml) => {
+    assert.match(redirectHtml, /new URL\('\.\/', currentUrl\)/);
+    assert.match(redirectHtml, /targetUrl\.search = currentUrl\.search/);
+    assert.match(redirectHtml, /targetUrl\.hash = currentUrl\.hash \|\| '#\/digital-clock'/);
+    assert.match(redirectHtml, /window\.location\.replace\(targetUrl\.href\)/);
+  });
 });
