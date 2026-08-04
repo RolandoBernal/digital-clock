@@ -770,7 +770,7 @@
             <span>Rain ${escapeHtml(formatWeatherNumber(snapshot.precipitationProbability, '%'))}</span>
             <span>Wind ${escapeHtml(formatWeatherNumber(snapshot.windSpeed, ` ${windUnit}`))}</span>
           </div>
-          <p class="daily_briefing_weather_updated">Updated ${escapeHtml(formatWeatherTime(snapshot.fetchedAt))}${snapshot.isStale || weatherState.status === 'stale' ? ' · showing cached weather' : ''}</p>
+          <p class="daily_briefing_weather_updated">Updated ${escapeHtml(formatWeatherTime(snapshot.fetchedAt))}${navigator.onLine === false ? ' · Offline · showing cached weather' : snapshot.isStale || weatherState.status === 'stale' ? ' · showing cached weather' : ''}</p>
         </div>
         <div class="daily_briefing_weather_dayparts" aria-label="Today-focused forecast">
           ${dayparts.map(renderWeatherDaypart).join('')}
@@ -1311,6 +1311,7 @@
     document.addEventListener('submit', handleSubmit);
     document.addEventListener('click', handleClick);
     document.addEventListener('keydown', handleKeydown);
+    window.addEventListener('online', () => loadWeatherForBriefing({ force: true }));
     renderBriefing();
     loadWeatherForBriefing();
   }

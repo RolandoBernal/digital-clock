@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Roboto+Mono:wght@500;600;700&display=swap');
-
 .clock_utility_card {
   width: 100%;
   max-width: min(480px, 100%);

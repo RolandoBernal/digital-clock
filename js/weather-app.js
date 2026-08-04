@@ -104,6 +104,9 @@
   function renderHero() {
     const snapshot = state.snapshot;
     const unit = snapshot?.temperatureUnit || '°F';
+    const offlineNote = navigator.onLine === false && snapshot
+      ? '<p class="weather_offline_note">Offline - showing last downloaded forecast.</p>'
+      : '';
     return `
       <header class="weather_hero">
         <div class="weather_hero_topline">
@@ -133,6 +136,7 @@
               ${renderDetail('Updated', formatTime(snapshot.fetchedAt))}
             </dl>
           </div>
+          ${offlineNote}
         ` : ''}
       </header>
     `;
@@ -290,6 +294,7 @@
     document.addEventListener('submit', handleSubmit);
     document.addEventListener('click', handleClick);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', () => loadWeather({ force: true }));
     render();
     loadWeather();
   }

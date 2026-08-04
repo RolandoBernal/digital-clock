@@ -170,6 +170,13 @@
   font-weight: 850;
 }
 
+.weather_offline_note {
+  margin: 1rem 0 0;
+  color: var(--weather-yellow-soft);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
 .weather_sections {
   display: grid;
   gap: 1rem;

@@ -1,11 +1,17 @@
 {
   "name": "Lando's World",
-  "short_name": "Lando's World",
+  "short_name": "Lando",
   "id": "/landos-world/",
   "description": "Lando's World is a personal application ecosystem with Digital Clock, Weather, Daily Chief Briefing, Violet Sprints, Death on Notecards, and Lee-Lee's Tracker.",
   "start_url": "/landos-world/index-digital-clock.html",
   "scope": "/landos-world/",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "orientation": "portrait-primary",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
@@ -28,10 +34,62 @@
   ],
   "shortcuts": [
     {
+      "name": "Daily Chief Briefing",
+      "short_name": "Briefing",
+      "description": "Open Daily Chief Briefing.",
+      "url": "/landos-world/index-digital-clock.html#/daily-chief-briefing",
+      "icons": [
+        {
+          "src": "/landos-world/icons/daily-chief-briefing.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Weather",
+      "short_name": "Weather",
+      "description": "Open the Lando's World weather app.",
+      "url": "/landos-world/index-digital-clock.html#/weather",
+      "icons": [
+        {
+          "src": "/landos-world/icons/weather.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Digital Clock",
+      "short_name": "Clock",
+      "description": "Open Digital Clock.",
+      "url": "/landos-world/index-digital-clock.html#/digital-clock",
+      "icons": [
+        {
+          "src": "/landos-world/icons/digital-clock.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Lee-Lee's Tracker",
+      "short_name": "Tracker",
+      "description": "Open Lee-Lee's Tracker.",
+      "url": "/landos-world/index-digital-clock.html#/lee-lees-tracker",
+      "icons": [
+        {
+          "src": "/landos-world/icons/lee-lees-tracker.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
       "name": "Violet Sprints",
       "short_name": "Sprints",
       "description": "Open Violet Sprints interval timer.",
-      "url": "/landos-world/#/violet-sprints",
+      "url": "/landos-world/index-digital-clock.html#/violet-sprints",
       "icons": [
         {
           "src": "/landos-world/icons/violet-sprints.png",

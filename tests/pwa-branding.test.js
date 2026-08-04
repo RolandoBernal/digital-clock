@@ -8,10 +8,14 @@ const entryHtml = readFileSync(new URL('../index.html', import.meta.url), 'utf8'
 
 test('PWA shell is branded as Lando World at the GitHub Pages landos-world path', () => {
   assert.equal(manifest.name, "Lando's World");
-  assert.equal(manifest.short_name, "Lando's World");
+  assert.equal(manifest.short_name, 'Lando');
   assert.equal(manifest.id, '/landos-world/');
   assert.equal(manifest.start_url, '/landos-world/index-digital-clock.html');
   assert.equal(manifest.scope, '/landos-world/');
+  assert.equal(manifest.display, 'standalone');
+  assert.equal(manifest.orientation, 'portrait-primary');
+  assert.equal(manifest.background_color, '#000000');
+  assert.equal(manifest.theme_color, '#000000');
   assert.match(html, /https:\/\/rolandobernal\.github\.io\/landos-world\//);
   assert.doesNotMatch(html, /clock-favicon\.svg/);
 });
@@ -36,9 +40,10 @@ test('PWA shell references dedicated Lando World install icons', () => {
   });
 });
 
-test('PWA shell does not rely on an active service worker cache name', () => {
-  assert.doesNotMatch(html, /serviceWorker\.register/);
-  assert.doesNotMatch(entryHtml, /serviceWorker\.register/);
+test('PWA shell registers an offline-first service worker through the PWA manager', () => {
+  assert.match(html, /js\/pwa-manager\.js/);
+  assert.match(readFileSync(new URL('../js/pwa-manager.js', import.meta.url), 'utf8'), /serviceWorker\.register\(SW_PATH\)/);
+  assert.equal(existsSync(new URL('../service-worker.js', import.meta.url)), true);
 });
 
 test('GitHub Pages entrypoint redirect preserves URL state and avoids loops', () => {

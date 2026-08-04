@@ -13,7 +13,7 @@
   <meta property="og:url" content="https://rolandobernal.github.io/landos-world/">
   <link rel="canonical" href="https://rolandobernal.github.io/landos-world/">
   <link rel="icon" type="image/svg+xml" href="favicon-landos-world.svg?v=2">
-  <link rel="manifest" href="manifest.webmanifest?v=20260804-1">
+  <link rel="manifest" href="manifest.webmanifest?v=20260804-2">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-landos-world-v2.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -28,6 +28,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
   <link rel="stylesheet" href="css/digital-clock.css?v=20260731-1">
   <link rel="stylesheet" href="css/app-themes.css?v=20260731-2">
   <link rel="stylesheet" href="css/weather-app.css?v=20260803-1">
+  <link rel="stylesheet" href="css/daily-chief-briefing.css?v=20260804-1">
   <link rel="stylesheet" href="css/levi-diabetes.css?v=20260804-1">
   <link rel="stylesheet" href="css/sprints.css?v=20260731-1">
 </head>
@@ -56,6 +57,21 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     <footer class="lando_home_footer">
       © Copyright <a href="http://rolandobernal.github.io">Rolando Bernal</a> <span id="lando-copyright-year">2026</span>
     </footer>
+  </div>
+
+  <div class="digit_clock_app app_theme app_theme--daily-chief-briefing" id="daily-chief-briefing-view" hidden>
+    <div class="digit_clock_header">
+      <a class="app_back_link" href="#/">← Lando's World</a>
+      <div class="digit_clock_header_row">
+        <div class="digit_clock_brand lando_world_brand">
+          <img class="digit_clock_logo" src="icons/daily-chief-briefing.svg" alt="" aria-hidden="true">
+          <span class="digit_clock_title">Daily Chief Briefing</span>
+        </div>
+      </div>
+    </div>
+    <main class="daily_briefing_shell" id="daily-chief-briefing-root" aria-labelledby="briefing-title">
+      <p class="daily_briefing_loading">Preparing briefing...</p>
+    </main>
   </div>
 
   <div class="digit_clock_app app_theme app_theme--weather" id="weather-view" hidden>
@@ -124,6 +140,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
             <span class="toggle_label"> / </span>
             <button type="button" class="toggle_btn" data-lang="es" aria-pressed="false">ES</button>
           </div>
+          <div id="pwa-offline-settings" aria-live="polite"></div>
         </div>
       </div>
     </div>
@@ -193,6 +210,8 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     </div>
   </div>
   <div class="sprints-view app_theme app_theme--violet-sprints" id="sprints-view" hidden></div>
+  <div class="pwa_network_status" id="pwa-network-status" role="status" aria-live="polite" hidden></div>
+  <div class="pwa_toast" id="pwa-toast" role="status" aria-live="polite" hidden></div>
   <script src="js/weather-service.js?v=20260801-1"></script>
   <script src="js/lee-lees-tracker-config.js?v=20260804-1"></script>
   <script src="js/lee-lees-tracker-sync.js?v=20260804-2"></script>
@@ -291,6 +310,19 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     ];
     const DEATH_ON_NOTECARDS_URL = 'https://rolandobernal.github.io/death-on-notecards/';
     const APP_CARDS = [
+      {
+        id: 'daily-chief-briefing',
+        iconSrc: 'icons/daily-chief-briefing.svg',
+        iconAlt: '',
+        iconClass: 'clock_utility_icon--exact',
+        title: 'Daily Chief Briefing',
+        description: "Today's personalized morning briefing.",
+        buttonId: 'open-daily-chief-briefing',
+        buttonLabel: 'Open Daily Chief Briefing',
+        route: 'daily-chief-briefing',
+        accent: 'briefing',
+        theme: 'daily-chief-briefing',
+      },
       {
         id: 'weather',
         iconSrc: 'icons/weather.svg',
@@ -477,6 +509,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     function setActiveView(viewName) {
       const views = {
         home: document.getElementById('lando-home-view'),
+        'daily-chief-briefing': document.getElementById('daily-chief-briefing-view'),
         weather: document.getElementById('weather-view'),
         'lee-lees-tracker': document.getElementById('lee-lees-tracker-view'),
         'digital-clock': document.getElementById('clock-view'),
@@ -489,6 +522,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
     }
 
     function getAppTitle(viewName) {
+      if (viewName === 'daily-chief-briefing') return 'Daily Chief Briefing';
       if (viewName === 'weather') return 'Weather';
       if (viewName === 'lee-lees-tracker') return 'Lee-Lee’s Tracker';
       if (viewName === 'digital-clock') return 'Digital Clock';
@@ -507,11 +541,7 @@ const WEATHER_API_KEY = window.__WEATHER_API_KEY__ || 'REPLACE_ME';
 
     function handleRouteChange() {
       const route = normalizeRouteFromHash();
-      if (route === 'daily-chief-briefing') {
-        navigateToRoute('weather');
-        return;
-      }
-      if (route === 'weather' || route === 'lee-lees-tracker' || route === 'digital-clock') {
+      if (route === 'daily-chief-briefing' || route === 'weather' || route === 'lee-lees-tracker' || route === 'digital-clock') {
         setActiveView(route);
         closeMobileSettingsMenu();
         return;
@@ -1048,9 +1078,15 @@ ${dateLongParts.year}`;
       window.addEventListener('weather:location-changed', () => {
         loadWeatherLauncherCard({ force: true });
       });
+      window.addEventListener('online', () => {
+        obtainAllWeather();
+        loadWeatherLauncherCard({ force: true });
+      });
     });
   </script>
+  <script src="js/pwa-manager.js?v=20260804-1"></script>
   <script src="js/weather-app.js?v=20260803-1"></script>
+  <script src="js/daily-chief-briefing.js?v=20260804-1"></script>
   <script src="js/levi-diabetes-tracker.js?v=20260804-2"></script>
   <script src="js/sprints-app.js?v=20260726-4"></script>
 </body>
