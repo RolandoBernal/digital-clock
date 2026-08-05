@@ -1,4 +1,4 @@
-const SW_VERSION = '2026-08-04-7';
+const SW_VERSION = '2026-08-05-1';
 const APP_CACHE = `landos-world-app-${SW_VERSION}`;
 const RUNTIME_CACHE = `landos-world-runtime-${SW_VERSION}`;
 const WEATHER_CACHE = `landos-world-weather-${SW_VERSION}`;
@@ -10,7 +10,6 @@ const CACHE_METADATA_URL = './__landos-world-cache-metadata.json';
 const PRECACHE_URLS = [
   './',
   './index.html',
-  './digital-clock.html',
   './index-digital-clock.html',
   './manifest.webmanifest',
   './favicon-landos-world.svg',
@@ -111,7 +110,6 @@ async function networkFirst(request, cacheName) {
 async function appShellFallback() {
   const cache = await caches.open(APP_CACHE);
   return await cache.match('./index.html')
-    || await cache.match('./digital-clock.html')
     || Response.error();
 }
 

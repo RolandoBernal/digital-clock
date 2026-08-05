@@ -36,6 +36,15 @@
   --app-accent-contrast: #041008;
 }
 
+.app_theme--landos-world-settings {
+  --app-accent: #f7f7f7;
+  --app-accent-rgb: 247 247 247;
+  --app-accent-soft: #ffffff;
+  --app-accent-bg: #1a1a1a;
+  --app-accent-deep: #2a2a2a;
+  --app-accent-contrast: #050505;
+}
+
 .app_theme--lee-lees-tracker {
   --app-accent: #3aa0ff;
   --app-accent-rgb: 58 160 255;

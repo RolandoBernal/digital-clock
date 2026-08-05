@@ -67,6 +67,10 @@
     return formatBytes(storageEstimate.usage);
   }
 
+  function getApplicationVersionLabel() {
+    return cacheStatus?.version || 'Not available';
+  }
+
   function getStatusClass(value) {
     if (value === 'Online' || value === 'Ready' || value === 'Yes') return 'pwa_status_value pwa_status_value--success';
     if (value === 'Offline' || value === 'Preparing' || value === 'Ready after refresh') return 'pwa_status_value pwa_status_value--warning';
@@ -132,9 +136,13 @@
     const installedLabel = isInstalled ? 'Yes' : 'No';
     const offlineReadinessLabel = getOfflineReadinessLabel();
     root.innerHTML = `
-      <section class="pwa_offline_panel" aria-labelledby="pwa-offline-title">
+      <section class="pwa_offline_panel" id="pwa-offline-panel" aria-labelledby="pwa-offline-title">
         <h2 id="pwa-offline-title">Application Status</h2>
         <dl>
+          <div>
+            <dt>Application Version</dt>
+            <dd>${getApplicationVersionLabel()}</dd>
+          </div>
           <div>
             <dt>Connection</dt>
             <dd class="${getStatusClass(connectionLabel)}">${connectionLabel}</dd>

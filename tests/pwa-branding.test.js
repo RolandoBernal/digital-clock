@@ -6,7 +6,6 @@ const manifest = JSON.parse(readFileSync(new URL('../manifest.webmanifest', impo
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const entryHtml = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const legacyHtml = readFileSync(new URL('../index-digital-clock.html', import.meta.url), 'utf8');
-const digitalClockHtml = readFileSync(new URL('../digital-clock.html', import.meta.url), 'utf8');
 
 test('PWA shell is branded as Lando World at the GitHub Pages landos-world path', () => {
   assert.equal(manifest.name, "Lando's World");
@@ -62,11 +61,9 @@ test('landing launcher omits Daily Chief Briefing and starts with Weather', () =
   assert.ok(appCardsSource.indexOf("id: 'weather'") < appCardsSource.indexOf("id: 'digital-clock'"));
 });
 
-test('legacy and renamed Digital Clock URLs redirect to the root hash router', () => {
-  [legacyHtml, digitalClockHtml].forEach((redirectHtml) => {
-    assert.match(redirectHtml, /new URL\('\.\/', currentUrl\)/);
-    assert.match(redirectHtml, /targetUrl\.search = currentUrl\.search/);
-    assert.match(redirectHtml, /targetUrl\.hash = currentUrl\.hash \|\| '#\/digital-clock'/);
-    assert.match(redirectHtml, /window\.location\.replace\(targetUrl\.href\)/);
-  });
+test('legacy Digital Clock URL redirects to the root hash router', () => {
+  assert.match(legacyHtml, /new URL\('\.\/', currentUrl\)/);
+  assert.match(legacyHtml, /targetUrl\.search = currentUrl\.search/);
+  assert.match(legacyHtml, /targetUrl\.hash = currentUrl\.hash \|\| '#\/digital-clock'/);
+  assert.match(legacyHtml, /window\.location\.replace\(targetUrl\.href\)/);
 });

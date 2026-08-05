@@ -112,7 +112,7 @@ function createPwaContext({
   if (caches) context.caches = caches;
   vm.runInNewContext(pwaManager, context);
   documentListeners.DOMContentLoaded?.();
-  return { context, elements, windowListeners };
+  return { context, documentListeners, elements, windowListeners };
 }
 
 async function flushAsync() {
@@ -124,7 +124,6 @@ async function flushAsync() {
 test('service worker precaches the app shell and app modules needed for offline launch', () => {
   [
     './index.html',
-    './digital-clock.html',
     './index-digital-clock.html',
     './manifest.webmanifest',
     './css/digital-clock.css',
@@ -153,7 +152,7 @@ test('service worker precaches the app shell and app modules needed for offline 
 });
 
 test('service worker uses separate versioned caches and strategy-specific runtime handling', () => {
-  assert.match(sw, /const SW_VERSION = '2026-08-04-7'/);
+  assert.match(sw, /const SW_VERSION = '2026-08-05-1'/);
   assert.match(sw, /const APP_CACHE = `landos-world-app-\$\{SW_VERSION\}`/);
   assert.match(sw, /const WEATHER_CACHE = `landos-world-weather-\$\{SW_VERSION\}`/);
   assert.match(sw, /const IMAGE_CACHE = `landos-world-images-\$\{SW_VERSION\}`/);
@@ -178,14 +177,50 @@ test('application cache cleanup is separated from localStorage user data', () =>
 test('offline, install, update, and settings UI hooks are present and accessible', () => {
   assert.match(html, /id="pwa-network-status" role="status" aria-live="polite"/);
   assert.match(html, /id="pwa-toast" role="status" aria-live="polite"/);
+  assert.match(html, /href="#\/settings" aria-label="Lando's World Settings"/);
+  assert.match(html, /id="lando-settings-view" hidden/);
   assert.match(html, /id="pwa-offline-settings" aria-live="polite"/);
+  assert.match(pwaManager, /<section class="pwa_offline_panel" id="pwa-offline-panel" aria-labelledby="pwa-offline-title">/);
   assert.match(pwaManager, /beforeinstallprompt/);
   assert.match(pwaManager, /Update available/);
   assert.match(pwaManager, /data-pwa-action="restart"/);
   assert.match(pwaManager, /navigator\.storage\.persist/);
   assert.match(pwaManager, /navigator\.storage\.estimate/);
   assert.match(digitalClockCss, /\.pwa_network_status/);
+  assert.match(digitalClockCss, /\.lando_settings_link/);
+  assert.match(digitalClockCss, /\.lando_settings_shell/);
   assert.match(digitalClockCss, /\.pwa_offline_panel/);
+});
+
+test('Application Status lives in the ecosystem settings view outside Digital Clock', () => {
+  const settingsViewStart = html.indexOf('id="lando-settings-view"');
+  const dailyBriefingStart = html.indexOf('id="daily-chief-briefing-view"');
+  const clockViewStart = html.indexOf('id="clock-view"');
+  const sprintsViewStart = html.indexOf('id="sprints-view"');
+  const settingsView = html.slice(settingsViewStart, dailyBriefingStart);
+  const digitalClockView = html.slice(clockViewStart, sprintsViewStart);
+
+  assert.ok(settingsViewStart > 0);
+  assert.ok(dailyBriefingStart > settingsViewStart);
+  assert.ok(sprintsViewStart > clockViewStart);
+  assert.match(settingsView, /Lando's World Settings/);
+  assert.match(settingsView, /id="pwa-offline-settings" aria-live="polite"/);
+  assert.doesNotMatch(digitalClockView, /id="pwa-offline-settings"/);
+  assert.match(html, /settings: document\.getElementById\('lando-settings-view'\)/);
+  assert.match(html, /if \(viewName === 'settings'\) return "Lando's World Settings"/);
+  assert.match(html, /route === 'settings'/);
+});
+
+test('PWA settings panel renders directly on the settings screen', () => {
+  const { elements } = createPwaContext();
+  const settings = elements['pwa-offline-settings'];
+
+  assert.match(settings.innerHTML, /<section class="pwa_offline_panel" id="pwa-offline-panel" aria-labelledby="pwa-offline-title">/);
+  assert.match(settings.innerHTML, /Application Status/);
+  assert.match(settings.innerHTML, /<dt>Application Version<\/dt>\s*<dd>Not available<\/dd>/);
+  assert.match(settings.innerHTML, /Clear Application Cache/);
+  assert.match(settings.innerHTML, /Cache cleanup never deletes Lee-Lee's Tracker records or other local app data/);
+  assert.doesNotMatch(settings.innerHTML, /toggle-offline-settings|Show Application Status|Hide Application Status|hidden/);
 });
 
 test('PWA panel reports browser connection separately from installation status', () => {
@@ -220,6 +255,7 @@ test('PWA panel marks offline readiness from app-shell cache status', async () =
           status: {
             appCacheReady: true,
             cachedRequestCount: 42,
+            version: '2026-08-05-1',
             updatedAt: '2026-08-04T22:45:00.000Z',
           },
         });
@@ -236,6 +272,7 @@ test('PWA panel marks offline readiness from app-shell cache status', async () =
   await flushAsync();
 
   assert.ok(messages.some((message) => message.type === 'GET_CACHE_STATUS'));
+  assert.match(elements['pwa-offline-settings'].innerHTML, /<dt>Application Version<\/dt>\s*<dd>2026-08-05-1<\/dd>/);
   assert.match(elements['pwa-offline-settings'].innerHTML, /<dt>Offline Ready<\/dt>\s*<dd class="[^"]*">Ready<\/dd>/);
   assert.doesNotMatch(elements['pwa-offline-settings'].innerHTML, /Preparing<\/dd>/);
   assert.doesNotMatch(elements['pwa-offline-settings'].innerHTML, /<dt>Last Cache Update<\/dt>\s*<dd>Not available<\/dd>/);

@@ -28,7 +28,7 @@ Old application caches are cleaned during activation. User data is not part of a
 
 ## Caching Strategy
 
-App shell: cache first. `index.html`, `digital-clock.html`, the legacy `index-digital-clock.html` redirect, CSS, JavaScript, local fonts, manifest, and icons are precached.
+App shell: cache first. `index.html`, the legacy `index-digital-clock.html` redirect, CSS, JavaScript, local fonts, manifest, and icons are precached.
 
 Static assets: cache first. Local CSS, JavaScript, SVG, PNG, and font files should continue loading offline.
 
@@ -102,7 +102,7 @@ Storage usage via `navigator.storage.estimate()` is displayed where supported.
 
 The service worker is registered relative to the deployed path and uses relative precache URLs. Hash routing remains compatible with GitHub Pages because routes are stored after `#`.
 
-`index.html` is the GitHub Pages entrypoint for Lando's World. The legacy `index-digital-clock.html` and renamed `digital-clock.html` pages preserve search and hash state while redirecting to the root hash router.
+`index.html` is the GitHub Pages entrypoint for Lando's World. The legacy `index-digital-clock.html` page preserves search and hash state while redirecting to the root hash router.
 
 ## Known Limitations
 
