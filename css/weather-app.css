@@ -7,9 +7,8 @@
   --weather-line: rgb(255 255 255 / 14%);
   --weather-ink: #fffdf4;
   --weather-muted: rgb(255 253 244 / 66%);
-  width: min(980px, 100%);
-  margin: 0 auto;
-  padding: clamp(0.25rem, 2vw, 1.25rem) 0 3rem;
+  padding-top: clamp(0.25rem, 2vw, 1.25rem);
+  padding-bottom: 3rem;
   color: var(--weather-ink);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }

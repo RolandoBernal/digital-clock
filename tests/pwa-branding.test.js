@@ -67,3 +67,43 @@ test('legacy Digital Clock URL redirects to the root hash router', () => {
   assert.match(legacyHtml, /targetUrl\.hash = currentUrl\.hash \|\| '#\/digital-clock'/);
   assert.match(legacyHtml, /window\.location\.replace\(targetUrl\.href\)/);
 });
+
+
+test('active local apps expose the shared sticky ecosystem navigation', () => {
+  [
+    ["id=\"lando-settings-view\"", "Lando's World Settings"],
+    ["id=\"daily-chief-briefing-view\"", 'Daily Chief Briefing'],
+    ["id=\"weather-view\"", 'Weather'],
+    ["id=\"lee-lees-tracker-view\"", 'Lee-Lee’s Tracker'],
+    ["id=\"clock-view\"", 'Digital Clock'],
+    ["id=\"road-bike-checklist-view\"", 'Road Bike Trip Checklist'],
+  ].forEach(([viewMarker, appName]) => {
+    const viewStart = html.indexOf(viewMarker);
+    assert.ok(viewStart > 0, `${appName} view should exist`);
+    const viewSource = html.slice(viewStart, viewStart + 900);
+    assert.match(viewSource, /<nav class="ecosystem_nav" aria-label="Lando's World app navigation" data-ecosystem-nav>/);
+    assert.match(viewSource, /href="#\/" aria-label="Return to Lando's World home"/);
+    assert.doesNotMatch(viewSource, /ecosystem_nav_current/);
+  });
+  assert.doesNotMatch(html, /class="app_back_link"/);
+});
+
+test('shared page container aligns ecosystem headers, navigation, and app shells', () => {
+  const css = readFileSync(new URL('../css/digital-clock.css', import.meta.url), 'utf8');
+  assert.match(css, /--landos-page-max-width: 920px/);
+  assert.match(css, /\.landos-page-container,/);
+  assert.match(css, /\.app_theme \.weather_app,/);
+  assert.match(css, /\.app_theme \.daily_briefing_shell,/);
+  assert.match(css, /\.app_theme \.levi_diabetes_shell,/);
+  assert.match(css, /\.app_theme \.road_bike_shell,/);
+  assert.match(css, /\.app_theme \.sprints-app/);
+});
+
+test('ecosystem router exposes shared scroll reset behavior for app navigation', () => {
+  assert.match(html, /const LANDO_ACTIVE_ROUTES = new Set/);
+  assert.match(html, /window\.history\.scrollRestoration = 'manual'/);
+  assert.match(html, /function resetEcosystemScrollPosition\(activeView\)/);
+  assert.match(html, /behavior: 'instant'/);
+  assert.match(html, /pendingEcosystemScrollReset = true/);
+  assert.match(html, /function updateEcosystemNavState\(\)/);
+});

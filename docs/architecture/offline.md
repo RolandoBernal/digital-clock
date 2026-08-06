@@ -98,6 +98,14 @@ Storage persistence via `navigator.storage.persist()` is attempted once where su
 
 Storage usage via `navigator.storage.estimate()` is displayed where supported.
 
+## Ecosystem Navigation
+
+Every active local app view uses the shared `.ecosystem_nav` sticky navigation bar before its app header. The bar provides a real `#/` link back to Lando's World, does not duplicate the current app title, respects safe-area insets with `env(safe-area-inset-top)`, and uses a moderate z-index below modals, dialogs, PWA toasts, and offline status UI.
+
+Shared page alignment comes from the `.landos-page-container` contract and the same container rules applied to app headers and shells. New apps should use `nav.ecosystem_nav` for the back link and place app title/header/content inside the shared page container so titles, hero cards, forms, lists, and tables share the same left and right edges.
+
+The hash router sets browser scroll restoration to manual and uses `resetEcosystemScrollPosition()` for intentional ecosystem navigation and direct app launches. It resets the document and active view horizontally and vertically with an immediate scroll fallback, while avoiding repeated scroll forcing after a route has settled.
+
 ## GitHub Pages
 
 The service worker is registered relative to the deployed path and uses relative precache URLs. Hash routing remains compatible with GitHub Pages because routes are stored after `#`.
