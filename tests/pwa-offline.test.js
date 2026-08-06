@@ -142,17 +142,17 @@ test('service worker precaches the app shell and app modules needed for offline 
     './js/road-bike-checklist.js',
     './fonts/digital-7.ttf',
     './icons/landos-world.svg',
-    './icons/weather.svg',
-    './icons/digital-clock.svg',
-    './icons/lee-lees-tracker.svg',
-    './icons/violet-sprints.svg',
-    './icons/road-bike-checklist.svg',
-    './icons/death-on-notecards.svg',
+    './icons/weather.png',
+    './icons/digital-clock.png',
+    './icons/lee-lees-tracker.png',
+    './icons/violet-sprints.png',
+    './icons/road-bike-checklist.png',
+    './icons/death-on-notecards.png',
   ].forEach((asset) => assert.match(sw, new RegExp(asset.replaceAll('.', '\\.'))));
 });
 
 test('service worker uses separate versioned caches and strategy-specific runtime handling', () => {
-  assert.match(sw, /const SW_VERSION = '2026-08-05-1'/);
+  assert.match(sw, /const SW_VERSION = '2026-08-05-4'/);
   assert.match(sw, /const APP_CACHE = `landos-world-app-\$\{SW_VERSION\}`/);
   assert.match(sw, /const WEATHER_CACHE = `landos-world-weather-\$\{SW_VERSION\}`/);
   assert.match(sw, /const IMAGE_CACHE = `landos-world-images-\$\{SW_VERSION\}`/);
@@ -187,6 +187,8 @@ test('offline, install, update, and settings UI hooks are present and accessible
   assert.match(pwaManager, /navigator\.storage\.persist/);
   assert.match(pwaManager, /navigator\.storage\.estimate/);
   assert.match(digitalClockCss, /\.pwa_network_status/);
+  assert.match(digitalClockCss, /\.ecosystem_nav/);
+  assert.match(digitalClockCss, /\.is-ecosystem-scrolled \.ecosystem_nav/);
   assert.match(digitalClockCss, /\.lando_settings_link/);
   assert.match(digitalClockCss, /\.lando_settings_shell/);
   assert.match(digitalClockCss, /\.pwa_offline_panel/);
@@ -208,7 +210,7 @@ test('Application Status lives in the ecosystem settings view outside Digital Cl
   assert.doesNotMatch(digitalClockView, /id="pwa-offline-settings"/);
   assert.match(html, /settings: document\.getElementById\('lando-settings-view'\)/);
   assert.match(html, /if \(viewName === 'settings'\) return "Lando's World Settings"/);
-  assert.match(html, /route === 'settings'/);
+  assert.match(html, /'settings',/);
 });
 
 test('PWA settings panel renders directly on the settings screen', () => {

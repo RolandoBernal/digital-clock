@@ -11,9 +11,8 @@
   --briefing-warning: #ffe8a3;
   --briefing-danger: #fecdd3;
   color: var(--briefing-ink);
-  width: min(1040px, 100%);
-  margin: 0 auto;
-  padding: clamp(0.25rem, 2vw, 1.25rem) 0 3rem;
+  padding-top: clamp(0.25rem, 2vw, 1.25rem);
+  padding-bottom: 3rem;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 

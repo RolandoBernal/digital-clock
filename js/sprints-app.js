@@ -28,6 +28,16 @@
   let wakeLockNoticeShown = false;
   const activeAudioNodes = new Set();
 
+  function renderEcosystemNav() {
+    return `
+      <nav class="ecosystem_nav" aria-label="Lando's World app navigation" data-ecosystem-nav>
+        <a class="ecosystem_nav_back" href="#/" aria-label="Return to Lando's World home">
+          <span class="ecosystem_nav_arrow" aria-hidden="true">←</span>
+          <span>Lando's World</span>
+        </a>
+      </nav>`;
+  }
+
   function createId() {
     return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
   }
@@ -856,8 +866,8 @@
     const root = replaceSprintsRoot();
     root.innerHTML = `
       <div class="sprints-app">
+        ${renderEcosystemNav()}
         <header class="sprints-header">
-          <button type="button" class="sprints-btn sprints-btn--ghost" data-action="back-clock">← Lando's World</button>
           <h1 class="sprints-title">Violet Sprints</h1>
           <button type="button" class="sprints-btn sprints-btn--primary" data-action="create">+ New</button>
         </header>
@@ -885,7 +895,6 @@
       const id = button.dataset.id;
       const action = button.dataset.action;
       if (action === 'dismiss-install-tip') dismissInstallSuggestion();
-      if (action === 'back-clock') showClock();
       if (action === 'create') {
         const workout = createWorkout('New Workout', []);
         workouts.push(workout);
@@ -954,6 +963,7 @@
     function render() {
       root.innerHTML = `
         <div class="sprints-app">
+          ${renderEcosystemNav()}
           <header class="sprints-header">
             <button type="button" class="sprints-btn sprints-btn--ghost" data-action="back">Workouts</button>
             <button type="button" class="sprints-btn sprints-btn--accent sprints-btn--large" data-action="start">Start</button>
@@ -1279,6 +1289,7 @@
   function renderTimer(root, state) {
     if (state.complete) {
       root.innerHTML = `
+        ${renderEcosystemNav()}
         <div class="sprints-complete">
           <h1 class="sprints-complete-title">Workout Complete</h1>
           <div class="sprints-complete-actions">
@@ -1295,6 +1306,7 @@
     const countdownMode = countdownSeconds <= 60 ? 'seconds' : 'time';
     const warningClass = `${state.warningActive ? ' sprints-countdown--warning' : ''}${state.warningPulseActive ? ' sprints-countdown--pulse' : ''}`;
     root.innerHTML = `
+      ${renderEcosystemNav()}
       <div class="sprints-timer sprints-timer--${escapeHtml(state.stepTheme)}">
         <div class="sprints-timer-main">
           <div class="sprints-timer-workout">${escapeHtml(state.workoutName)}</div>
@@ -1334,6 +1346,7 @@
         </div>`
       : '';
     root.innerHTML = `
+      ${renderEcosystemNav()}
       <div class="sprints-complete">
         <h1 class="sprints-complete-title">${escapeHtml(stage === 'message' ? message : 'Workout Complete')}</h1>
         ${controls}
@@ -1363,6 +1376,7 @@
     const root = replaceSprintsRoot();
     root.innerHTML = `
       <div class="sprints-app">
+        ${renderEcosystemNav()}
         <header class="sprints-header">
           <button type="button" class="sprints-btn sprints-btn--ghost" data-action="difficulty">Difficulties</button>
           <h1 class="sprints-title">${escapeHtml(difficulty.label)}</h1>
@@ -1387,6 +1401,7 @@
     const isPreviewMode = mode === 'preview';
     root.innerHTML = `
       <div class="sprints-app">
+        ${renderEcosystemNav()}
         <header class="sprints-header">
           <button type="button" class="sprints-btn sprints-btn--ghost" data-action="list">Workouts</button>
           <h1 class="sprints-title">${isPreviewMode ? 'View Soccer Steps' : 'Soccer Match Simulation'}</h1>
@@ -1430,7 +1445,7 @@
     setView('sprints');
     const root = replaceSprintsRoot();
     if (!stepsForWorkout(workout).length) {
-      root.innerHTML = '<div class="sprints-app"><button type="button" class="sprints-btn sprints-btn--ghost" data-action="list">Workouts</button><div class="sprints-empty">Add at least one workout step before starting.</div></div>';
+      root.innerHTML = `${renderEcosystemNav()}<div class="sprints-app"><button type="button" class="sprints-btn sprints-btn--ghost" data-action="list">Workouts</button><div class="sprints-empty">Add at least one workout step before starting.</div></div>`;
       root.addEventListener('click', (event) => {
         if (event.target.closest('[data-action="list"]')) showWorkoutList();
       });
