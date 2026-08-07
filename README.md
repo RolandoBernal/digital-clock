@@ -73,6 +73,22 @@ pnpm run build:native
 
 GitHub Pages continues to serve the repository root until a later release explicitly changes that deployment contract.
 
+## Local Preview
+
+Use these commands as the standard manual smoke-test workflow before opening or merging a PR:
+
+```sh
+pnpm run build:web
+pnpm run preview:web
+```
+
+```sh
+pnpm run build:native
+pnpm run preview:native
+```
+
+The web preview serves `dist/web` at `http://127.0.0.1:4173/`. The native preview serves `dist/native` at `http://127.0.0.1:4174/`.
+
 ## Runtime Detection
 
 `js/runtime.js` exposes `window.LandosRuntime` for environment-specific behavior without introducing a framework or native dependency. Web remains the default mode. A future Capacitor shell can be detected through the Capacitor bridge, and local checks can override the mode with `window.LANDOS_RUNTIME_MODE`.
