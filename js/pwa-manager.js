@@ -328,7 +328,10 @@
   }
 
   async function registerServiceWorker() {
-    if (!('serviceWorker' in navigator)) {
+    const shouldRegister = globalThis.LandosRuntime?.shouldRegisterServiceWorker
+      ? globalThis.LandosRuntime.shouldRegisterServiceWorker()
+      : 'serviceWorker' in navigator;
+    if (!shouldRegister) {
       offlineReadiness = 'unavailable';
       updateUi();
       return;

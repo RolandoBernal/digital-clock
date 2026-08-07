@@ -1,6 +1,5 @@
 (() => {
   const CONFIG_GLOBAL = 'LEE_LEES_TRACKER_SUPABASE_CONFIG';
-  const SUPABASE_CDN_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
   const DEVICE_IDENTITY_KEY = 'lando-world:lee-lees-tracker:device-identity:v1';
   const SYNC_METADATA_KEY = 'lando-world:lee-lees-tracker:sync-metadata:v1';
   const SYNC_QUEUE_KEY = 'lando-world:lee-lees-tracker:sync-queue:v1';
@@ -50,8 +49,7 @@
   async function loadSupabaseFactory() {
     if (globalThis.supabase?.createClient) return globalThis.supabase.createClient;
     if (globalThis.createClient) return globalThis.createClient;
-    const module = await import(SUPABASE_CDN_URL);
-    return module.createClient;
+    throw new Error('Supabase client bundle is unavailable.');
   }
 
   function getDeviceIdentity() {
