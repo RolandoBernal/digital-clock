@@ -42,7 +42,10 @@ async function copyRuntimeFiles(target) {
     path.join(outputDir, entry),
     { recursive: true },
   )));
-  if (target === 'native') await writeNativeManifest(outputDir);
+  if (target === 'native') {
+    await writeNativeManifest(outputDir);
+    await writeNativeRuntimeMode(outputDir);
+  }
   await writeBuildInfo(outputDir, target);
 }
 
@@ -66,6 +69,17 @@ async function writeNativeManifest(outputDir) {
     })),
   }));
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+async function writeNativeRuntimeMode(outputDir) {
+  const indexPath = path.join(outputDir, 'index.html');
+  const html = await readFile(indexPath, 'utf8');
+  const runtimeScriptPattern = /  <script src="js\/runtime\.js[^"]*"><\/script>/;
+  const nativeModeScript = '  <script>window.LANDOS_RUNTIME_MODE = \'native\';</script>\n';
+  if (!runtimeScriptPattern.test(html)) {
+    throw new Error('Unable to find runtime script tag while preparing native build.');
+  }
+  await writeFile(indexPath, html.replace(runtimeScriptPattern, (runtimeScript) => `${nativeModeScript}${runtimeScript}`));
 }
 
 async function writeBuildInfo(outputDir, target) {
