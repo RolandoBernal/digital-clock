@@ -120,6 +120,7 @@
 .lee_lee_diabetes_button:focus-visible,
 .lee_lee_diabetes_mobile_nav_button:focus-visible,
 .lee_lee_diabetes_nav_button:focus-visible,
+.lee_lee_diabetes_timeline_edit:focus-visible,
 .lee_lee_diabetes_input:focus-visible,
 .lee_lee_diabetes_textarea:focus-visible,
 .lee_lee_diabetes_select:focus-visible,
@@ -201,6 +202,11 @@
   padding: 0.85rem;
 }
 
+.lee_lee_diabetes_timeline_item--today {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+
 .lee_lee_diabetes_timeline_values,
 .lee_lee_diabetes_timeline_notes {
   margin-top: 0.22rem;
@@ -215,6 +221,28 @@
   font-family: 'Roboto Mono', 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
   font-size: 0.85rem;
   white-space: nowrap;
+}
+
+.lee_lee_diabetes_timeline_footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.7rem;
+}
+
+.lee_lee_diabetes_timeline_edit {
+  min-width: 52px;
+  min-height: 36px;
+  padding: 0.28rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lee-lee-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .lee_lee_diabetes_filters {

@@ -304,6 +304,21 @@ test('today UI uses one log-entry CTA and responsive navigation contracts', () =
   assert.match(cssSource, /min-width: 680px[\s\S]*\.lee_lee_diabetes_cards/);
 });
 
+test('today activity edit action uses the shared edit pipeline', () => {
+  assert.match(trackerSource, /lee_lee_diabetes_timeline_item--today/);
+  assert.match(trackerSource, /data-action="edit-today-record" data-id="\$\{escapeHtml\(record\.id\)\}">Edit/);
+  assert.match(trackerSource, /openRecordEditor\(target\.dataset\.id, 'today'\)/);
+  assert.match(trackerSource, /function openRecordEditor\(recordId, returnTo = 'history-day'\)/);
+  assert.match(trackerSource, /returnTo,\s*returnDateKey,/);
+  assert.match(trackerSource, /if \(currentEditor\?\.returnTo === 'history-day' && currentEditor\.returnDateKey\)/);
+});
+
+test('today activity edit control has compact footer styling', () => {
+  assert.match(cssSource, /\.lee_lee_diabetes_timeline_footer[\s\S]*justify-content: space-between/);
+  assert.match(cssSource, /\.lee_lee_diabetes_timeline_edit[\s\S]*min-height: 36px/);
+  assert.match(cssSource, /\.lee_lee_diabetes_timeline_edit:focus-visible/);
+});
+
 test('shared sync status copy explains healthy, syncing, and offline states', () => {
   const reports = createTrackerReports();
   const now = Date.parse('2026-08-04T12:00:00.000Z');
