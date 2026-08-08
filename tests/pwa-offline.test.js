@@ -133,6 +133,7 @@ test('service worker precaches the app shell and app modules needed for offline 
     './css/levi-diabetes.css',
     './css/sprints.css',
     './css/road-bike-checklist.css',
+    './js/runtime.js',
     './js/pwa-manager.js',
     './js/weather-service.js',
     './js/weather-app.js',
@@ -140,6 +141,7 @@ test('service worker precaches the app shell and app modules needed for offline 
     './js/levi-diabetes-tracker.js',
     './js/sprints-app.js',
     './js/road-bike-checklist.js',
+    './vendor/supabase/supabase.js',
     './fonts/digital-7.ttf',
     './icons/landos-world.svg',
     './icons/weather.png',
@@ -152,7 +154,7 @@ test('service worker precaches the app shell and app modules needed for offline 
 });
 
 test('service worker uses separate versioned caches and strategy-specific runtime handling', () => {
-  assert.match(sw, /const SW_VERSION = '2026-08-05-4'/);
+  assert.match(sw, /const SW_VERSION = '2026-08-07-1'/);
   assert.match(sw, /const APP_CACHE = `landos-world-app-\$\{SW_VERSION\}`/);
   assert.match(sw, /const WEATHER_CACHE = `landos-world-weather-\$\{SW_VERSION\}`/);
   assert.match(sw, /const IMAGE_CACHE = `landos-world-images-\$\{SW_VERSION\}`/);

@@ -40,6 +40,7 @@ Full setup steps are in `docs/SUPABASE_SETUP.md`.
 ```sh
 pnpm test
 pnpm run check:js
+pnpm run build
 ```
 
 The browser app is static. For local smoke testing:
@@ -55,6 +56,48 @@ The production GitHub Pages shell is intended to live at:
 ```text
 https://rolandobernal.github.io/landos-world/
 ```
+
+## Static Build Foundation
+
+Lando's World intentionally remains a static app for this migration phase. The build script copies only the runtime files needed by the app shell:
+
+```sh
+pnpm run build:web
+pnpm run build:native
+```
+
+`pnpm run build` creates both outputs:
+
+- `dist/web` preserves the existing GitHub Pages path and manifest assumptions.
+- `dist/native` is the future Capacitor `webDir` candidate and rewrites manifest launch paths to relative native-safe values.
+
+GitHub Pages continues to serve the repository root until a later release explicitly changes that deployment contract.
+
+## Local Preview
+
+Use these commands as the standard manual smoke-test workflow before opening or merging a PR:
+
+```sh
+pnpm run build:web
+pnpm run preview:web
+```
+
+```sh
+pnpm run build:native
+pnpm run preview:native
+```
+
+The web preview serves `dist/web` at `http://127.0.0.1:4173/`. The native preview serves `dist/native` at `http://127.0.0.1:4174/`.
+
+## Runtime Detection
+
+`js/runtime.js` exposes `window.LandosRuntime` for environment-specific behavior without introducing a framework or native dependency. Web remains the default mode. A future Capacitor shell can be detected through the Capacitor bridge, and local checks can override the mode with `window.LANDOS_RUNTIME_MODE`.
+
+Service worker registration is gated through `LandosRuntime.shouldRegisterServiceWorker()` so browser PWA behavior stays intact while future native builds can avoid web-only registration paths.
+
+## Local Vendor Assets
+
+The browser Supabase client is committed at `vendor/supabase/supabase.js` and loaded from the local app bundle. Lee-Lee's Tracker still uses the same public Supabase configuration, auth, database, sync, and Realtime behavior; only the client script source moved from CDN import to local runtime asset.
 
 ## Database
 

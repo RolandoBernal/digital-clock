@@ -1,4 +1,4 @@
-const SW_VERSION = '2026-08-05-4';
+const SW_VERSION = '2026-08-07-1';
 const APP_CACHE = `landos-world-app-${SW_VERSION}`;
 const RUNTIME_CACHE = `landos-world-runtime-${SW_VERSION}`;
 const WEATHER_CACHE = `landos-world-weather-${SW_VERSION}`;
@@ -26,6 +26,7 @@ const PRECACHE_URLS = [
   './css/levi-diabetes.css',
   './css/sprints.css',
   './css/road-bike-checklist.css',
+  './js/runtime.js',
   './js/pwa-manager.js',
   './js/weather-service.js',
   './js/weather-app.js',
@@ -35,6 +36,7 @@ const PRECACHE_URLS = [
   './js/levi-diabetes-tracker.js',
   './js/sprints-app.js',
   './js/road-bike-checklist.js',
+  './vendor/supabase/supabase.js',
   './fonts/digital-7.ttf',
   './icons/landos-world.svg',
   './icons/landos-world-192-v2.png',
