@@ -1,5 +1,5 @@
 (() => {
-  const CONFIG_GLOBAL = 'LEE_LEES_TRACKER_SUPABASE_CONFIG';
+  const CONFIG_GLOBAL = 'LEE_LEE_TRACKER_SUPABASE_CONFIG';
   const SUPABASE_CDN_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
   const DEVICE_IDENTITY_KEY = 'lando-world:lee-lees-tracker:device-identity:v1';
   const SYNC_METADATA_KEY = 'lando-world:lee-lees-tracker:sync-metadata:v1';
@@ -1256,7 +1256,7 @@
     };
   }
 
-  globalThis.LeeLeesTrackerSync = {
+  globalThis.LeeLeeTrackerSync = {
     createRepository,
     getConfig,
     getDeviceIdentity,

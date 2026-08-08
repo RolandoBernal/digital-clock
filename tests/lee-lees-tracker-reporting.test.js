@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
-const trackerSource = readFileSync(new URL('../js/levi-diabetes-tracker.js', import.meta.url), 'utf8');
-const cssSource = readFileSync(new URL('../css/levi-diabetes.css', import.meta.url), 'utf8');
+const trackerSource = readFileSync(new URL('../js/lee-lee-diabetes-tracker.js', import.meta.url), 'utf8');
+const cssSource = readFileSync(new URL('../css/lee-lee-diabetes.css', import.meta.url), 'utf8');
 
 function createLocalStorage(seed = {}) {
   const store = new Map(Object.entries(seed));
@@ -51,7 +51,7 @@ function createTrackerRuntime() {
 }
 
 function createTrackerReports() {
-  return createTrackerRuntime().LeeLeesTrackerReports;
+  return createTrackerRuntime().LeeLeeTrackerReports;
 }
 
 function record(overrides = {}) {
@@ -170,7 +170,7 @@ test('older records reconstruct event time from date and time fields', () => {
 
 test('print styles hide controls and use a white printable report', () => {
   assert.match(cssSource, /@media print/);
-  assert.match(cssSource, /\.levi_diabetes_nav,[\s\S]*display: none !important/);
+  assert.match(cssSource, /\.lee_lee_diabetes_nav,[\s\S]*display: none !important/);
   assert.match(cssSource, /background: #ffffff !important/);
 });
 
@@ -231,7 +231,7 @@ test('report registry describes current reports independently from export render
 
 test('entry type configuration preserves canonical labels and meal guidance boundaries', () => {
   const runtime = createTrackerRuntime();
-  const entryTypes = runtime.LeeLeesTrackerEntryTypes;
+  const entryTypes = runtime.LeeLeeTrackerEntryTypes;
   const labels = Array.from(entryTypes.all, (definition) => definition.label);
 
   assert.deepEqual(labels, ['Breakfast', 'Lunch', 'Dinner', 'Bedtime', '2 AM', 'Correction', 'Snack', 'Exercise', 'Other']);
@@ -246,7 +246,7 @@ test('entry type configuration preserves canonical labels and meal guidance boun
 
 test('meal dose helper keeps the clinician-provided calculation unchanged', () => {
   const runtime = createTrackerRuntime();
-  const result = runtime.LeeLeesTrackerDoseHelper.calculateMealInsulinDose({
+  const result = runtime.LeeLeeTrackerDoseHelper.calculateMealInsulinDose({
     bloodSugar: 198,
     entryType: 'Breakfast',
     recordTimestamp: Date.parse('2026-08-01T07:42:00.000Z'),
@@ -261,7 +261,7 @@ test('meal dose helper keeps the clinician-provided calculation unchanged', () =
       ],
     },
   });
-  const correction = runtime.LeeLeesTrackerDoseHelper.calculateMealInsulinDose({
+  const correction = runtime.LeeLeeTrackerDoseHelper.calculateMealInsulinDose({
     bloodSugar: 198,
     entryType: 'Correction',
     recordTimestamp: Date.parse('2026-08-01T13:30:00.000Z'),
@@ -299,9 +299,9 @@ test('today UI uses one log-entry CTA and responsive navigation contracts', () =
   assert.doesNotMatch(trackerSource, /PRIMARY_TYPES\.map\(renderPrimaryCard\)/);
   assert.match(trackerSource, /data-action="toggle-tracker-nav"/);
   assert.match(trackerSource, /aria-expanded/);
-  assert.match(cssSource, /\.levi_diabetes_mobile_nav_button/);
-  assert.match(cssSource, /max-width: 520px[\s\S]*\.levi_diabetes_nav_shell\.is-open \.levi_diabetes_nav/);
-  assert.match(cssSource, /min-width: 680px[\s\S]*\.levi_diabetes_cards/);
+  assert.match(cssSource, /\.lee_lee_diabetes_mobile_nav_button/);
+  assert.match(cssSource, /max-width: 520px[\s\S]*\.lee_lee_diabetes_nav_shell\.is-open \.lee_lee_diabetes_nav/);
+  assert.match(cssSource, /min-width: 680px[\s\S]*\.lee_lee_diabetes_cards/);
 });
 
 test('shared sync status copy explains healthy, syncing, and offline states', () => {

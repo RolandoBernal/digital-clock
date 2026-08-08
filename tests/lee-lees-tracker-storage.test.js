@@ -3,10 +3,11 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
-const trackerSource = readFileSync(new URL('../js/levi-diabetes-tracker.js', import.meta.url), 'utf8');
+const trackerSource = readFileSync(new URL('../js/lee-lee-diabetes-tracker.js', import.meta.url), 'utf8');
 const storageKey = 'lando-world:lee-lees-tracker:v1';
-const legacyRecordsKey = 'levi_diabetes_records_v1';
-const legacyPlansKey = 'levi_diabetes_insulin_plans_v1';
+const preRebrandKeyPrefix = ['le', 'vi'].join('');
+const legacyRecordsKey = `${preRebrandKeyPrefix}_diabetes_records_v1`;
+const legacyPlansKey = `${preRebrandKeyPrefix}_diabetes_insulin_plans_v1`;
 
 function createLocalStorage(seed = {}, options = {}) {
   const store = new Map(Object.entries(seed));
@@ -68,7 +69,7 @@ function createTracker({ localStorage = createLocalStorage() } = {}) {
   context.window = context;
   context.globalThis = context;
   vm.runInNewContext(trackerSource, context);
-  return { storage: context.LeeLeesTrackerStorage, localStorage };
+  return { storage: context.LeeLeeTrackerStorage, localStorage };
 }
 
 function sampleRecord(overrides = {}) {

@@ -94,7 +94,7 @@ test('shared page container aligns ecosystem headers, navigation, and app shells
   assert.match(css, /\.landos-page-container,/);
   assert.match(css, /\.app_theme \.weather_app,/);
   assert.match(css, /\.app_theme \.daily_briefing_shell,/);
-  assert.match(css, /\.app_theme \.levi_diabetes_shell,/);
+  assert.match(css, /\.app_theme \.lee_lee_diabetes_shell,/);
   assert.match(css, /\.app_theme \.road_bike_shell,/);
   assert.match(css, /\.app_theme \.sprints-app/);
 });

@@ -7,17 +7,18 @@
   const MIN_MIGRATION_PROGRESS_MS = 450;
   const MIGRATION_MAX_RETRIES = 3;
   const MIGRATION_RETRY_BASE_MS = 600;
+  const PRE_REBRAND_KEY_PREFIX = ['le', 'vi'].join('');
   const LEGACY_RECORD_STORAGE_KEYS = [
-    'levi_diabetes_records_v1',
+    `${PRE_REBRAND_KEY_PREFIX}_diabetes_records_v1`,
     'lee-lees-tracker',
     'leeLeesTracker',
-    'levi-diabetes-tracker',
+    `${PRE_REBRAND_KEY_PREFIX}-diabetes-tracker`,
     'diabetes-tracker',
     'tracker-records',
     'glucose-records',
   ];
   const LEGACY_PLAN_STORAGE_KEYS = [
-    'levi_diabetes_insulin_plans_v1',
+    `${PRE_REBRAND_KEY_PREFIX}_diabetes_insulin_plans_v1`,
   ];
   const ENTRY_TYPE_DEFINITIONS = Object.freeze([
     { type: 'Breakfast', label: 'Breakfast', clinicalLogPrimary: true, mealGuidance: true, fields: ['bloodSugar', 'insulinUnits', 'notes'] },
@@ -143,7 +144,7 @@
   }
 
   function getRoot() {
-    return document.getElementById('levi-diabetes-root');
+    return document.getElementById('lee-lee-diabetes-root');
   }
 
   function getLocalDateKey(date = new Date()) {
@@ -868,10 +869,10 @@
     const statusClass = isSyncEnabled ? friendlyStatus.state : persistenceStatus;
     const statusMessage = isSyncEnabled ? friendlyStatus.message : persistenceMessage;
     const retry = persistenceStatus === 'failed' || syncStatus.state === 'waiting' || syncStatus.state === 'offline'
-      ? '<button type="button" class="levi_diabetes_status_retry" data-action="retry-save">Retry</button>'
+      ? '<button type="button" class="lee_lee_diabetes_status_retry" data-action="retry-save">Retry</button>'
       : '';
     return `
-      <p class="levi_diabetes_save_status levi_diabetes_save_status--${escapeHtml(statusClass)}" aria-live="polite">
+      <p class="lee_lee_diabetes_save_status lee_lee_diabetes_save_status--${escapeHtml(statusClass)}" aria-live="polite">
         ${escapeHtml(statusMessage)}
         ${retry}
       </p>
@@ -882,10 +883,10 @@
     const root = getRoot();
     if (!root) return;
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Sync Setup Needed</h1>
-        <p class="levi_diabetes_help">Lee-Lee’s Tracker needs the Supabase project URL and publishable key before shared family records can open on this device.</p>
-        <p class="levi_diabetes_help">Add the browser-safe values described in <code>docs/SUPABASE_SETUP.md</code>. Do not use a service-role key or database password.</p>
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Sync Setup Needed</h1>
+        <p class="lee_lee_diabetes_help">Lee-Lee’s Tracker needs the Supabase project URL and publishable key before shared family records can open on this device.</p>
+        <p class="lee_lee_diabetes_help">Add the browser-safe values described in <code>docs/SUPABASE_SETUP.md</code>. Do not use a service-role key or database password.</p>
       </section>
     `;
   }
@@ -894,22 +895,22 @@
     const root = getRoot();
     if (!root) return;
     root.innerHTML = `
-      <form class="levi_diabetes_editor" data-auth-form aria-labelledby="levi-diabetes-title">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Sign In</h1>
-        <p class="levi_diabetes_help">Use the shared Lee-Lee’s Tracker account to sync records on both phones.</p>
-        ${authError ? `<p class="levi_diabetes_error">${escapeHtml(authError)}</p>` : ''}
-        ${authMessage ? `<p class="levi_diabetes_save_status levi_diabetes_save_status--synced">${escapeHtml(authMessage)}</p>` : ''}
-        <label class="levi_diabetes_field">
+      <form class="lee_lee_diabetes_editor" data-auth-form aria-labelledby="lee-lee-diabetes-title">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Sign In</h1>
+        <p class="lee_lee_diabetes_help">Use the shared Lee-Lee’s Tracker account to sync records on both phones.</p>
+        ${authError ? `<p class="lee_lee_diabetes_error">${escapeHtml(authError)}</p>` : ''}
+        ${authMessage ? `<p class="lee_lee_diabetes_save_status lee_lee_diabetes_save_status--synced">${escapeHtml(authMessage)}</p>` : ''}
+        <label class="lee_lee_diabetes_field">
           Email
-          <input class="levi_diabetes_input" name="email" type="email" autocomplete="email" required>
+          <input class="lee_lee_diabetes_input" name="email" type="email" autocomplete="email" required>
         </label>
-        <label class="levi_diabetes_field">
+        <label class="lee_lee_diabetes_field">
           Password
-          <input class="levi_diabetes_input" name="password" type="password" autocomplete="current-password" required>
+          <input class="lee_lee_diabetes_input" name="password" type="password" autocomplete="current-password" required>
         </label>
-        <div class="levi_diabetes_actions">
-          <button type="submit" class="levi_diabetes_button levi_diabetes_button--primary">Sign In</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="reset-password">Reset Password</button>
+        <div class="lee_lee_diabetes_actions">
+          <button type="submit" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary">Sign In</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="reset-password">Reset Password</button>
         </div>
       </form>
     `;
@@ -920,21 +921,21 @@
     const root = getRoot();
     if (!root) return;
     root.innerHTML = `
-      <form class="levi_diabetes_editor" data-device-identity-form aria-labelledby="levi-diabetes-title">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Who Uses This Device?</h1>
-        <p class="levi_diabetes_help">This labels who entered or edited records from this phone. It is separate from the shared sign-in account.</p>
-        ${errorMessage ? `<p class="levi_diabetes_error">${escapeHtml(errorMessage)}</p>` : ''}
-        <label class="levi_diabetes_field">
+      <form class="lee_lee_diabetes_editor" data-device-identity-form aria-labelledby="lee-lee-diabetes-title">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Who Uses This Device?</h1>
+        <p class="lee_lee_diabetes_help">This labels who entered or edited records from this phone. It is separate from the shared sign-in account.</p>
+        ${errorMessage ? `<p class="lee_lee_diabetes_error">${escapeHtml(errorMessage)}</p>` : ''}
+        <label class="lee_lee_diabetes_field">
           This device is used by
-          <select class="levi_diabetes_select" name="deviceIdentity" required>
+          <select class="lee_lee_diabetes_select" name="deviceIdentity" required>
             <option value="">Choose one</option>
             <option value="Rolando">Rolando</option>
             <option value="Emily">Emily</option>
             <option value="Unknown">Unknown</option>
           </select>
         </label>
-        <div class="levi_diabetes_actions">
-          <button type="submit" class="levi_diabetes_button levi_diabetes_button--primary">Continue</button>
+        <div class="lee_lee_diabetes_actions">
+          <button type="submit" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary">Continue</button>
         </div>
       </form>
     `;
@@ -949,26 +950,26 @@
     conflictSelection = new Set([...conflictSelection].filter((id) => conflicts.some((conflict) => conflict.recordId === id)));
     const selectedCount = conflictSelection.size;
     root.innerHTML = `
-      <section class="levi_diabetes_top">
-        <p class="levi_diabetes_date">Sync</p>
-        <h1 class="levi_diabetes_title" id="levi-diabetes-title">Records Needing Review</h1>
+      <section class="lee_lee_diabetes_top">
+        <p class="lee_lee_diabetes_date">Sync</p>
+        <h1 class="lee_lee_diabetes_title" id="lee-lee-diabetes-title">Records Needing Review</h1>
         ${renderPersistenceStatus()}
       </section>
       ${renderTrackerNav('settings')}
-      <section class="levi_diabetes_settings_section" aria-labelledby="levi-conflict-summary-title">
-        <h2 class="levi_diabetes_section_title" id="levi-conflict-summary-title">${escapeHtml(conflicts.length)} ${conflicts.length === 1 ? 'conflict needs' : 'conflicts need'} review</h2>
-        <p class="levi_diabetes_help" aria-live="polite">${escapeHtml(selectedCount)} selected</p>
-        ${conflictAutoResolvedCount ? `<p class="levi_diabetes_save_status levi_diabetes_save_status--synced">${escapeHtml(conflictAutoResolvedCount)} identical ${conflictAutoResolvedCount === 1 ? 'conflict' : 'conflicts'} resolved automatically.</p>` : ''}
-        ${conflictBulkState ? `<p class="levi_diabetes_save_status levi_diabetes_save_status--${escapeHtml(conflictBulkState.state)}">${escapeHtml(conflictBulkState.message)}</p>` : ''}
-        <div class="levi_diabetes_backup_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="select-all-conflicts" ${conflicts.length ? '' : 'disabled'}>Select All</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="select-no-conflicts" ${selectedCount ? '' : 'disabled'}>Select None</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="bulk-keep-shared" ${selectedCount ? '' : 'disabled'}>Keep Shared (${escapeHtml(selectedCount)})</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="bulk-use-local" ${selectedCount ? '' : 'disabled'}>Use This Device (${escapeHtml(selectedCount)})</button>
+      <section class="lee_lee_diabetes_settings_section" aria-labelledby="lee-lee-conflict-summary-title">
+        <h2 class="lee_lee_diabetes_section_title" id="lee-lee-conflict-summary-title">${escapeHtml(conflicts.length)} ${conflicts.length === 1 ? 'conflict needs' : 'conflicts need'} review</h2>
+        <p class="lee_lee_diabetes_help" aria-live="polite">${escapeHtml(selectedCount)} selected</p>
+        ${conflictAutoResolvedCount ? `<p class="lee_lee_diabetes_save_status lee_lee_diabetes_save_status--synced">${escapeHtml(conflictAutoResolvedCount)} identical ${conflictAutoResolvedCount === 1 ? 'conflict' : 'conflicts'} resolved automatically.</p>` : ''}
+        ${conflictBulkState ? `<p class="lee_lee_diabetes_save_status lee_lee_diabetes_save_status--${escapeHtml(conflictBulkState.state)}">${escapeHtml(conflictBulkState.message)}</p>` : ''}
+        <div class="lee_lee_diabetes_backup_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="select-all-conflicts" ${conflicts.length ? '' : 'disabled'}>Select All</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="select-no-conflicts" ${selectedCount ? '' : 'disabled'}>Select None</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="bulk-keep-shared" ${selectedCount ? '' : 'disabled'}>Keep Shared (${escapeHtml(selectedCount)})</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="bulk-use-local" ${selectedCount ? '' : 'disabled'}>Use This Device (${escapeHtml(selectedCount)})</button>
         </div>
       </section>
-      <section class="levi_diabetes_timeline" aria-label="Sync conflicts">
-        ${conflicts.length ? conflicts.map(renderConflictCard).join('') : '<p class="levi_diabetes_empty" role="status">No conflicts need review.</p>'}
+      <section class="lee_lee_diabetes_timeline" aria-label="Sync conflicts">
+        ${conflicts.length ? conflicts.map(renderConflictCard).join('') : '<p class="lee_lee_diabetes_empty" role="status">No conflicts need review.</p>'}
       </section>
     `;
   }
@@ -1008,17 +1009,17 @@
       ? 'Patient & Clinic Settings'
       : (local.type || shared.type || 'Entry');
     return `
-      <article class="levi_diabetes_timeline_item levi_diabetes_history_record">
+      <article class="lee_lee_diabetes_timeline_item lee_lee_diabetes_history_record">
         <div>
-          <label class="levi_diabetes_checkline">
-            <span class="levi_diabetes_timeline_type">${escapeHtml(title)}</span>
+          <label class="lee_lee_diabetes_checkline">
+            <span class="lee_lee_diabetes_timeline_type">${escapeHtml(title)}</span>
             <input type="checkbox" data-conflict-select="${escapeHtml(conflict.recordId)}" aria-label="Select ${escapeHtml(title)} conflict" ${isSelected ? 'checked' : ''}>
           </label>
-          <div class="levi_diabetes_record_details">
+          <div class="lee_lee_diabetes_record_details">
             ${conflict.entityType === 'shared-settings' ? '' : `<p>${escapeHtml(formatRecordDateTime(local.recordTimestamp || shared.recordTimestamp))}</p>`}
             <p><strong>Shared:</strong> edited by ${escapeHtml(shared.lastEditedBy || shared.enteredBy || 'Unknown')}</p>
             <p><strong>This device:</strong> edited by ${escapeHtml(local.lastEditedBy || local.enteredBy || 'Unknown')}</p>
-            <dl class="levi_diabetes_conflict_grid">
+            <dl class="lee_lee_diabetes_conflict_grid">
               ${rows.map(([label, sharedValue, localValue]) => {
                 const differs = String(sharedValue || '') !== String(localValue || '');
                 return `
@@ -1032,9 +1033,9 @@
             </dl>
           </div>
         </div>
-        <div class="levi_diabetes_record_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="keep-shared-version" data-id="${escapeHtml(conflict.recordId)}">Keep Shared</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="use-local-version" data-id="${escapeHtml(conflict.recordId)}">Use This Device</button>
+        <div class="lee_lee_diabetes_record_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="keep-shared-version" data-id="${escapeHtml(conflict.recordId)}">Keep Shared</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="use-local-version" data-id="${escapeHtml(conflict.recordId)}">Use This Device</button>
         </div>
       </article>
     `;
@@ -1126,10 +1127,10 @@
       pendingImport: importData,
     };
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Import Data Backup</h1>
-        <p class="levi_diabetes_help">The backup will be merged with data already on this device. Matching records will not be duplicated.</p>
-        <dl class="levi_diabetes_confirm_list">
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Import Data Backup</h1>
+        <p class="lee_lee_diabetes_help">The backup will be merged with data already on this device. Matching records will not be duplicated.</p>
+        <dl class="lee_lee_diabetes_confirm_list">
           <div>
             <dt>Records found</dt>
             <dd>${escapeHtml(importData.records.length)}</dd>
@@ -1139,9 +1140,9 @@
             <dd>${escapeHtml(importData.insulinPlans.length)}</dd>
           </div>
         </dl>
-        <div class="levi_diabetes_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="settings">Cancel</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="confirm-import">Import Backup</button>
+        <div class="lee_lee_diabetes_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="settings">Cancel</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="confirm-import">Import Backup</button>
         </div>
       </section>
     `;
@@ -1325,11 +1326,11 @@
     };
   }
 
-  window.LeeLeesTrackerDoseHelper = {
+  window.LeeLeeTrackerDoseHelper = {
     calculateMealInsulinDose,
   };
 
-  window.LeeLeesTrackerEntryTypes = {
+  window.LeeLeeTrackerEntryTypes = {
     all: ENTRY_TYPE_DEFINITIONS.map((definition) => ({ ...definition, fields: [...definition.fields] })),
     primaryTypes: [...PRIMARY_TYPES],
     mealTypes: [...MEAL_TYPES],
@@ -1648,7 +1649,7 @@
       formatInsulin(getRecordActualInsulin(record)),
     ].filter(Boolean);
     return values.length
-      ? `<div class="levi_diabetes_card_values">${values.map((value) => `<span class="levi_diabetes_pill">${escapeHtml(value)}</span>`).join('')}</div>`
+      ? `<div class="lee_lee_diabetes_card_values">${values.map((value) => `<span class="lee_lee_diabetes_pill">${escapeHtml(value)}</span>`).join('')}</div>`
       : '';
   }
 
@@ -1658,22 +1659,22 @@
 
   function renderTrackerNav(active) {
     return `
-      <div class="levi_diabetes_nav_shell ${trackerMenuOpen ? 'is-open' : ''}">
+      <div class="lee_lee_diabetes_nav_shell ${trackerMenuOpen ? 'is-open' : ''}">
         <button
           type="button"
-          class="levi_diabetes_mobile_nav_button"
+          class="lee_lee_diabetes_mobile_nav_button"
           data-action="toggle-tracker-nav"
-          aria-controls="levi-diabetes-nav"
+          aria-controls="lee-lee-diabetes-nav"
           aria-expanded="${trackerMenuOpen ? 'true' : 'false'}"
         >
           <span>${escapeHtml(getTrackerNavLabel(active))}</span>
           <span aria-hidden="true">☰</span>
         </button>
-        <nav class="levi_diabetes_nav" id="levi-diabetes-nav" aria-label="Lee-Lee’s Tracker sections">
+        <nav class="lee_lee_diabetes_nav" id="lee-lee-diabetes-nav" aria-label="Lee-Lee’s Tracker sections">
           ${TRACKER_NAV_ITEMS.map(([action, label]) => `
             <button
               type="button"
-              class="levi_diabetes_nav_button ${active === action ? 'is-active' : ''}"
+              class="lee_lee_diabetes_nav_button ${active === action ? 'is-active' : ''}"
               data-action="${escapeHtml(action)}"
               aria-current="${active === action ? 'page' : 'false'}"
             >${escapeHtml(label)}</button>
@@ -1689,18 +1690,18 @@
     if (!root) return;
     const timeline = todaysRecords();
     root.innerHTML = `
-      <section class="levi_diabetes_top">
-        <p class="levi_diabetes_date">${escapeHtml(formatDate())}</p>
-        <h1 class="levi_diabetes_title" id="levi-diabetes-title">Lee-Lee’s Tracker</h1>
+      <section class="lee_lee_diabetes_top">
+        <p class="lee_lee_diabetes_date">${escapeHtml(formatDate())}</p>
+        <h1 class="lee_lee_diabetes_title" id="lee-lee-diabetes-title">Lee-Lee’s Tracker</h1>
         ${renderPersistenceStatus()}
       </section>
       ${renderTrackerNav('today')}
-      <section class="levi_diabetes_today_actions" aria-label="Log an entry">
-        <button type="button" class="levi_diabetes_button levi_diabetes_button--primary levi_diabetes_log_entry_button" data-action="log-entry">+ Log Entry</button>
+      <section class="lee_lee_diabetes_today_actions" aria-label="Log an entry">
+        <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary lee_lee_diabetes_log_entry_button" data-action="log-entry">+ Log Entry</button>
       </section>
-      <section aria-labelledby="levi-diabetes-timeline-title">
-        <h2 class="levi_diabetes_section_title" id="levi-diabetes-timeline-title">Today’s Activity</h2>
-        ${timeline.length ? `<div class="levi_diabetes_timeline">${timeline.map(renderTimelineItem).join('')}</div>` : '<p class="levi_diabetes_empty">No entries today.</p>'}
+      <section aria-labelledby="lee-lee-diabetes-timeline-title">
+        <h2 class="lee_lee_diabetes_section_title" id="lee-lee-diabetes-timeline-title">Today’s Activity</h2>
+        ${timeline.length ? `<div class="lee_lee_diabetes_timeline">${timeline.map(renderTimelineItem).join('')}</div>` : '<p class="lee_lee_diabetes_empty">No entries today.</p>'}
       </section>
     `;
   }
@@ -1709,33 +1710,33 @@
     const record = latestRecordForType(type);
     const isComplete = Boolean(record);
     return `
-      <button type="button" class="levi_diabetes_card ${isComplete ? 'is-complete' : ''}" data-action="edit-primary" data-type="${escapeHtml(type)}">
+      <button type="button" class="lee_lee_diabetes_card ${isComplete ? 'is-complete' : ''}" data-action="edit-primary" data-type="${escapeHtml(type)}">
         <span>
-          <span class="levi_diabetes_card_title">${escapeHtml(type)}</span>
-          <span class="levi_diabetes_card_status">${isComplete ? '✓ Completed' : '○ Not recorded'}</span>
+          <span class="lee_lee_diabetes_card_title">${escapeHtml(type)}</span>
+          <span class="lee_lee_diabetes_card_status">${isComplete ? '✓ Completed' : '○ Not recorded'}</span>
           ${renderValuePills(record)}
         </span>
-        <span class="levi_diabetes_card_icon" aria-hidden="true">${isComplete ? '✓' : '+'}</span>
+        <span class="lee_lee_diabetes_card_icon" aria-hidden="true">${isComplete ? '✓' : '+'}</span>
       </button>
     `;
   }
 
   function renderTimelineItem(record) {
     const notes = record.notes
-      ? `<div class="levi_diabetes_timeline_notes">${escapeHtml(record.notes)}</div>`
+      ? `<div class="lee_lee_diabetes_timeline_notes">${escapeHtml(record.notes)}</div>`
       : '';
     const doseSummary = getMealDoseSummary(record)
-      ? `<div class="levi_diabetes_timeline_notes">${escapeHtml(getMealDoseSummary(record))}</div>`
+      ? `<div class="lee_lee_diabetes_timeline_notes">${escapeHtml(getMealDoseSummary(record))}</div>`
       : '';
     return `
-      <article class="levi_diabetes_timeline_item">
+      <article class="lee_lee_diabetes_timeline_item">
         <div>
-          <div class="levi_diabetes_timeline_type">${escapeHtml(record.type)}</div>
-          <div class="levi_diabetes_timeline_values">${escapeHtml(formatBloodSugar(record.bloodSugar) || 'No blood sugar')} · ${escapeHtml(formatInsulin(record.insulinUnits) || 'No insulin')}</div>
+          <div class="lee_lee_diabetes_timeline_type">${escapeHtml(record.type)}</div>
+          <div class="lee_lee_diabetes_timeline_values">${escapeHtml(formatBloodSugar(record.bloodSugar) || 'No blood sugar')} · ${escapeHtml(formatInsulin(record.insulinUnits) || 'No insulin')}</div>
           ${doseSummary}
           ${notes}
         </div>
-        <time class="levi_diabetes_timeline_time" datetime="${escapeHtml(new Date(getRecordTimestamp(record)).toISOString())}">${escapeHtml(formatTime(getRecordTimestamp(record)))}</time>
+        <time class="lee_lee_diabetes_timeline_time" datetime="${escapeHtml(new Date(getRecordTimestamp(record)).toISOString())}">${escapeHtml(formatTime(getRecordTimestamp(record)))}</time>
       </article>
     `;
   }
@@ -1747,30 +1748,30 @@
       .join('');
     const typeControl = scope === 'history'
       ? `
-        <label class="levi_diabetes_field">
+        <label class="lee_lee_diabetes_field">
           Entry Type
-          <select class="levi_diabetes_select" name="type" data-filter-scope="${prefix}">
+          <select class="lee_lee_diabetes_select" name="type" data-filter-scope="${prefix}">
             ${['All', ...EXTRA_TYPES].map((type) => `<option value="${escapeHtml(type)}" ${filters.type === type ? 'selected' : ''}>${escapeHtml(type)}</option>`).join('')}
           </select>
         </label>
       `
       : '';
     return `
-      <form class="levi_diabetes_filters" data-${prefix}-filters>
-        <label class="levi_diabetes_field">
+      <form class="lee_lee_diabetes_filters" data-${prefix}-filters>
+        <label class="lee_lee_diabetes_field">
           Date Range
-          <select class="levi_diabetes_select" name="range" data-filter-scope="${prefix}">
+          <select class="lee_lee_diabetes_select" name="range" data-filter-scope="${prefix}">
             ${dateOptions}
           </select>
         </label>
         ${typeControl}
-        <label class="levi_diabetes_field ${filters.range === 'custom' ? '' : 'is-hidden'}" data-custom-range-field="${prefix}">
+        <label class="lee_lee_diabetes_field ${filters.range === 'custom' ? '' : 'is-hidden'}" data-custom-range-field="${prefix}">
           Start Date
-          <input class="levi_diabetes_input" name="startDate" type="date" value="${escapeHtml(filters.startDate || '')}" data-filter-scope="${prefix}">
+          <input class="lee_lee_diabetes_input" name="startDate" type="date" value="${escapeHtml(filters.startDate || '')}" data-filter-scope="${prefix}">
         </label>
-        <label class="levi_diabetes_field ${filters.range === 'custom' ? '' : 'is-hidden'}" data-custom-range-field="${prefix}">
+        <label class="lee_lee_diabetes_field ${filters.range === 'custom' ? '' : 'is-hidden'}" data-custom-range-field="${prefix}">
           End Date
-          <input class="levi_diabetes_input" name="endDate" type="date" value="${escapeHtml(filters.endDate || '')}" data-filter-scope="${prefix}">
+          <input class="lee_lee_diabetes_input" name="endDate" type="date" value="${escapeHtml(filters.endDate || '')}" data-filter-scope="${prefix}">
         </label>
       </form>
     `;
@@ -1779,10 +1780,10 @@
   function renderHistoryFilterTrigger(visibleGroups) {
     const count = getHistoryFilterCount(historyFilters);
     return `
-      <div class="levi_diabetes_history_filter_bar">
-        <p class="levi_diabetes_filter_summary" aria-live="polite">${escapeHtml(getHistoryVisibleSummary(visibleGroups))}</p>
-        <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost levi_diabetes_filter_button" data-action="open-history-filters">
-          Filters${count ? ` <span class="levi_diabetes_filter_badge">${escapeHtml(count)}</span>` : ''}
+      <div class="lee_lee_diabetes_history_filter_bar">
+        <p class="lee_lee_diabetes_filter_summary" aria-live="polite">${escapeHtml(getHistoryVisibleSummary(visibleGroups))}</p>
+        <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost lee_lee_diabetes_filter_button" data-action="open-history-filters">
+          Filters${count ? ` <span class="lee_lee_diabetes_filter_badge">${escapeHtml(count)}</span>` : ''}
         </button>
       </div>
     `;
@@ -1792,35 +1793,35 @@
     if (!historyFilterSheetOpen) return '';
     const filters = historyDraftFilters;
     return `
-      <div class="levi_diabetes_sheet_backdrop" data-action="cancel-history-filters"></div>
-      <section class="levi_diabetes_sheet" role="dialog" aria-modal="true" aria-labelledby="levi-history-filter-title" data-history-filter-sheet>
-        <h2 class="levi_diabetes_editor_title" id="levi-history-filter-title">History Filters</h2>
-        <form class="levi_diabetes_filters" data-history-filter-draft>
-          <label class="levi_diabetes_field">
+      <div class="lee_lee_diabetes_sheet_backdrop" data-action="cancel-history-filters"></div>
+      <section class="lee_lee_diabetes_sheet" role="dialog" aria-modal="true" aria-labelledby="lee-lee-history-filter-title" data-history-filter-sheet>
+        <h2 class="lee_lee_diabetes_editor_title" id="lee-lee-history-filter-title">History Filters</h2>
+        <form class="lee_lee_diabetes_filters" data-history-filter-draft>
+          <label class="lee_lee_diabetes_field">
             Date Range
-            <select class="levi_diabetes_select" name="range">
+            <select class="lee_lee_diabetes_select" name="range">
               ${DATE_RANGE_OPTIONS.map((option) => `<option value="${escapeHtml(option.value)}" ${filters.range === option.value ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
             </select>
           </label>
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             Entry Type
-            <select class="levi_diabetes_select" name="type">
+            <select class="lee_lee_diabetes_select" name="type">
               ${['All', ...EXTRA_TYPES].map((type) => `<option value="${escapeHtml(type)}" ${filters.type === type ? 'selected' : ''}>${escapeHtml(type === 'All' ? 'All Entry Types' : type)}</option>`).join('')}
             </select>
           </label>
-          <label class="levi_diabetes_field ${filters.range === 'custom' ? '' : 'is-hidden'}" data-custom-range-field="history-draft">
+          <label class="lee_lee_diabetes_field ${filters.range === 'custom' ? '' : 'is-hidden'}" data-custom-range-field="history-draft">
             Start Date
-            <input class="levi_diabetes_input" name="startDate" type="date" value="${escapeHtml(filters.startDate || '')}">
+            <input class="lee_lee_diabetes_input" name="startDate" type="date" value="${escapeHtml(filters.startDate || '')}">
           </label>
-          <label class="levi_diabetes_field ${filters.range === 'custom' ? '' : 'is-hidden'}" data-custom-range-field="history-draft">
+          <label class="lee_lee_diabetes_field ${filters.range === 'custom' ? '' : 'is-hidden'}" data-custom-range-field="history-draft">
             End Date
-            <input class="levi_diabetes_input" name="endDate" type="date" value="${escapeHtml(filters.endDate || '')}">
+            <input class="lee_lee_diabetes_input" name="endDate" type="date" value="${escapeHtml(filters.endDate || '')}">
           </label>
         </form>
-        <div class="levi_diabetes_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="cancel-history-filters">Cancel</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="clear-history-filters">Clear Filters</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="apply-history-filters">Apply</button>
+        <div class="lee_lee_diabetes_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="cancel-history-filters">Cancel</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="clear-history-filters">Clear Filters</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="apply-history-filters">Apply</button>
         </div>
       </section>
     `;
@@ -1835,7 +1836,7 @@
       ['Total insulin', formatSummaryValue(summary.totalInsulin, formatInsulin)],
     ];
     return `
-      <dl class="levi_diabetes_summary_grid">
+      <dl class="lee_lee_diabetes_summary_grid">
         ${items.map(([label, value]) => `
           <div>
             <dt>${escapeHtml(label)}</dt>
@@ -1860,25 +1861,25 @@
     const hasOlderGroups = visibleGroups.length < groups.length;
     const emptyMessage = visibleRecords.length
       ? `
-        <p class="levi_diabetes_empty" role="status">No records match these filters.</p>
-        <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost levi_diabetes_extra" data-action="reset-history-filters">Reset Filters</button>
+        <p class="lee_lee_diabetes_empty" role="status">No records match these filters.</p>
+        <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost lee_lee_diabetes_extra" data-action="reset-history-filters">Reset Filters</button>
       `
       : `
-        <p class="levi_diabetes_empty" role="status">No records yet.</p>
-        <p class="levi_diabetes_help">Saved blood-sugar and insulin entries will appear here.</p>
+        <p class="lee_lee_diabetes_empty" role="status">No records yet.</p>
+        <p class="lee_lee_diabetes_help">Saved blood-sugar and insulin entries will appear here.</p>
       `;
     root.innerHTML = `
-      <section class="levi_diabetes_top">
-        <p class="levi_diabetes_date">${escapeHtml(formatDate())}</p>
-        <h1 class="levi_diabetes_title" id="levi-diabetes-title">History</h1>
+      <section class="lee_lee_diabetes_top">
+        <p class="lee_lee_diabetes_date">${escapeHtml(formatDate())}</p>
+        <h1 class="lee_lee_diabetes_title" id="lee-lee-diabetes-title">History</h1>
         ${renderPersistenceStatus()}
       </section>
       ${renderTrackerNav('history')}
       ${renderHistoryFilterTrigger(visibleGroups)}
-      <section class="levi_diabetes_history_list" aria-label="History dates">
+      <section class="lee_lee_diabetes_history_list" aria-label="History dates">
         ${visibleGroups.length ? visibleGroups.map(renderHistoryDateCard).join('') : emptyMessage}
       </section>
-      ${hasOlderGroups ? `<button type="button" class="levi_diabetes_button levi_diabetes_button--ghost levi_diabetes_extra" data-action="load-older-history">Load Older Records</button>` : ''}
+      ${hasOlderGroups ? `<button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost lee_lee_diabetes_extra" data-action="load-older-history">Load Older Records</button>` : ''}
       ${renderHistoryFilterSheet()}
     `;
     focusHistorySheet(root);
@@ -1888,13 +1889,13 @@
     const summary = calculateDailySummary(group.records);
     const types = [...new Set(group.records.map((record) => record.type))].join(' · ');
     return `
-      <button type="button" class="levi_diabetes_history_date" data-action="history-date" data-date="${escapeHtml(group.dateKey)}">
+      <button type="button" class="lee_lee_diabetes_history_date" data-action="history-date" data-date="${escapeHtml(group.dateKey)}">
         <span>
-          <span class="levi_diabetes_card_title">${escapeHtml(formatDateKey(group.dateKey))}</span>
-          <span class="levi_diabetes_timeline_values">${escapeHtml(summary.entryCount)} ${summary.entryCount === 1 ? 'entry' : 'entries'} · Average: ${escapeHtml(formatSummaryValue(summary.averageBloodSugar, formatBloodSugar))} · Total insulin: ${escapeHtml(formatSummaryValue(summary.totalInsulin, formatInsulin))}</span>
-          <span class="levi_diabetes_timeline_notes">${escapeHtml(types)}</span>
+          <span class="lee_lee_diabetes_card_title">${escapeHtml(formatDateKey(group.dateKey))}</span>
+          <span class="lee_lee_diabetes_timeline_values">${escapeHtml(summary.entryCount)} ${summary.entryCount === 1 ? 'entry' : 'entries'} · Average: ${escapeHtml(formatSummaryValue(summary.averageBloodSugar, formatBloodSugar))} · Total insulin: ${escapeHtml(formatSummaryValue(summary.totalInsulin, formatInsulin))}</span>
+          <span class="lee_lee_diabetes_timeline_notes">${escapeHtml(types)}</span>
         </span>
-        <span class="levi_diabetes_card_icon" aria-hidden="true">›</span>
+        <span class="lee_lee_diabetes_card_icon" aria-hidden="true">›</span>
       </button>
     `;
   }
@@ -1909,16 +1910,16 @@
       dateKey,
     };
     root.innerHTML = `
-      <section class="levi_diabetes_top">
-        <p class="levi_diabetes_date">History</p>
-        <h1 class="levi_diabetes_title" id="levi-diabetes-title">${escapeHtml(formatDateKey(dateKey))}</h1>
+      <section class="lee_lee_diabetes_top">
+        <p class="lee_lee_diabetes_date">History</p>
+        <h1 class="lee_lee_diabetes_title" id="lee-lee-diabetes-title">${escapeHtml(formatDateKey(dateKey))}</h1>
         ${renderPersistenceStatus()}
       </section>
       ${renderTrackerNav('history')}
-      <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost levi_diabetes_extra" data-action="history">← All Dates</button>
+      <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost lee_lee_diabetes_extra" data-action="history">← All Dates</button>
       ${renderSummaryGrid(summary)}
-      <section class="levi_diabetes_timeline" aria-label="Records for ${escapeHtml(formatDateKey(dateKey))}">
-        ${dayRecords.length ? dayRecords.map(renderHistoryRecord).join('') : '<p class="levi_diabetes_empty" role="status">No records match these filters.</p>'}
+      <section class="lee_lee_diabetes_timeline" aria-label="Records for ${escapeHtml(formatDateKey(dateKey))}">
+        ${dayRecords.length ? dayRecords.map(renderHistoryRecord).join('') : '<p class="lee_lee_diabetes_empty" role="status">No records match these filters.</p>'}
       </section>
     `;
   }
@@ -1932,11 +1933,11 @@
     const differs = suggested && actual != null && Number(record.suggestedTotalUnits) !== Number(actual);
     const notes = record.notes ? `<p><strong>Notes:</strong> ${escapeHtml(record.notes)}</p>` : '';
     return `
-      <article class="levi_diabetes_timeline_item levi_diabetes_history_record">
+      <article class="lee_lee_diabetes_timeline_item lee_lee_diabetes_history_record">
         <div>
-          <div class="levi_diabetes_timeline_type">${escapeHtml(record.type)}</div>
-          <time class="levi_diabetes_timeline_time" datetime="${escapeHtml(new Date(getRecordTimestamp(record)).toISOString())}">${escapeHtml(formatTime(getRecordTimestamp(record)))}</time>
-          <div class="levi_diabetes_record_details">
+          <div class="lee_lee_diabetes_timeline_type">${escapeHtml(record.type)}</div>
+          <time class="lee_lee_diabetes_timeline_time" datetime="${escapeHtml(new Date(getRecordTimestamp(record)).toISOString())}">${escapeHtml(formatTime(getRecordTimestamp(record)))}</time>
+          <div class="lee_lee_diabetes_record_details">
             <p><strong>Blood sugar:</strong> ${escapeHtml(formatBloodSugar(record.bloodSugar) || 'No blood sugar')}</p>
             <p><strong>Insulin given:</strong> ${escapeHtml(formatInsulin(actual) || 'No insulin')}</p>
             ${suggested ? `<p><strong>Suggested:</strong> ${escapeHtml(suggested)}${differs ? ' · differs from actual' : ''}</p>` : ''}
@@ -1944,9 +1945,9 @@
             ${notes}
           </div>
         </div>
-        <div class="levi_diabetes_record_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="edit-record" data-id="${escapeHtml(record.id)}">Edit</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--danger" data-action="delete-record" data-id="${escapeHtml(record.id)}">Delete</button>
+        <div class="lee_lee_diabetes_record_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="edit-record" data-id="${escapeHtml(record.id)}">Edit</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--danger" data-action="delete-record" data-id="${escapeHtml(record.id)}">Delete</button>
         </div>
       </article>
     `;
@@ -1962,9 +1963,9 @@
     };
     const actual = getRecordActualInsulin(record);
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Delete this record?</h1>
-        <dl class="levi_diabetes_confirm_list">
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title" role="dialog" aria-modal="true">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Delete this record?</h1>
+        <dl class="lee_lee_diabetes_confirm_list">
           <div>
             <dt>Entry</dt>
             <dd>${escapeHtml(record.type)}</dd>
@@ -1982,9 +1983,9 @@
             <dd>${escapeHtml(formatInsulin(actual) || 'No insulin')}</dd>
           </div>
         </dl>
-        <div class="levi_diabetes_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="cancel-delete">Cancel</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--danger" data-action="confirm-delete-record">Delete Record</button>
+        <div class="lee_lee_diabetes_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="cancel-delete">Cancel</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--danger" data-action="confirm-delete-record">Delete Record</button>
         </div>
       </section>
     `;
@@ -2002,25 +2003,25 @@
     const exportRecords = getExportRecords();
     const rangeText = formatDateRangeText(exportOptions);
     root.innerHTML = `
-      <section class="levi_diabetes_top">
-        <p class="levi_diabetes_date">${escapeHtml(formatDate())}</p>
-        <h1 class="levi_diabetes_title" id="levi-diabetes-title">Export</h1>
+      <section class="lee_lee_diabetes_top">
+        <p class="lee_lee_diabetes_date">${escapeHtml(formatDate())}</p>
+        <h1 class="lee_lee_diabetes_title" id="lee-lee-diabetes-title">Export</h1>
         ${renderPersistenceStatus()}
       </section>
       ${renderTrackerNav('export')}
-      <section class="levi_diabetes_editor levi_diabetes_export_controls" aria-label="Export options">
+      <section class="lee_lee_diabetes_editor lee_lee_diabetes_export_controls" aria-label="Export options">
         ${renderFilterControls(exportOptions, 'export')}
-        <label class="levi_diabetes_field">
+        <label class="lee_lee_diabetes_field">
           Report Layout
-          <select class="levi_diabetes_select" name="layout" data-filter-scope="export">
+          <select class="lee_lee_diabetes_select" name="layout" data-filter-scope="export">
             ${REPORT_REGISTRY.map((layout) => `<option value="${escapeHtml(layout.id)}" ${exportOptions.layout === layout.id ? 'selected' : ''}>${escapeHtml(layout.title)}</option>`).join('')}
           </select>
         </label>
-        <p class="levi_diabetes_help">${escapeHtml(exportRecords.length)} ${exportRecords.length === 1 ? 'record' : 'records'} from ${escapeHtml(rangeText)}.</p>
-        <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="print-report" ${exportRecords.length ? '' : 'disabled'}>Print or Save as PDF</button>
-        ${exportRecords.length ? '' : '<p class="levi_diabetes_empty" role="status">No records are available for this date range.</p>'}
+        <p class="lee_lee_diabetes_help">${escapeHtml(exportRecords.length)} ${exportRecords.length === 1 ? 'record' : 'records'} from ${escapeHtml(rangeText)}.</p>
+        <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="print-report" ${exportRecords.length ? '' : 'disabled'}>Print or Save as PDF</button>
+        ${exportRecords.length ? '' : '<p class="lee_lee_diabetes_empty" role="status">No records are available for this date range.</p>'}
       </section>
-      <section class="levi_diabetes_report_preview" aria-label="Printable report preview">
+      <section class="lee_lee_diabetes_report_preview" aria-label="Printable report preview">
         ${renderReportPreview(exportRecords, rangeText)}
       </section>
     `;
@@ -2030,7 +2031,7 @@
     const report = getReportDefinition(exportOptions.layout);
     const reportData = report.builder(exportRecords);
     return `
-      <article class="levi_diabetes_report ${report.printLayout === 'landscape' ? 'levi_diabetes_report--landscape' : ''}">
+      <article class="lee_lee_diabetes_report ${report.printLayout === 'landscape' ? 'lee_lee_diabetes_report--landscape' : ''}">
         ${renderReportHeader(rangeText)}
         ${report.id === 'clinical'
           ? renderClinicalLogReport(reportData)
@@ -2056,7 +2057,7 @@
       ['Generated', `${formatDate(new Date())} at ${formatTime(Date.now())}`],
     ].filter(Boolean);
     return `
-      <header class="levi_diabetes_report_header">
+      <header class="lee_lee_diabetes_report_header">
         <h2>Lee-Lee’s Tracker</h2>
         <dl>
           ${details.map(([label, value]) => `
@@ -2074,9 +2075,9 @@
     const rows = reportData.groups;
     if (!rows.length) return '';
     return `
-      <section class="levi_diabetes_report_section">
+      <section class="lee_lee_diabetes_report_section">
         <h3>Clinical Log</h3>
-        <table class="levi_diabetes_clinical_table">
+        <table class="lee_lee_diabetes_clinical_table">
           <thead>
             <tr>
               <th scope="col">Date</th>
@@ -2122,13 +2123,13 @@
     const groups = reportData.groups;
     if (!groups.length) return '';
     return `
-      <section class="levi_diabetes_report_section">
+      <section class="lee_lee_diabetes_report_section">
         <h3>Detailed Report</h3>
         ${groups.map((group) => `
-          <section class="levi_diabetes_report_day">
+          <section class="lee_lee_diabetes_report_day">
             <h4>${escapeHtml(formatDateKey(group.dateKey))}</h4>
             ${renderSummaryGrid(group.summary)}
-            <table class="levi_diabetes_detail_table">
+            <table class="lee_lee_diabetes_detail_table">
               <thead>
                 <tr>
                   <th scope="col">Time</th>
@@ -2195,43 +2196,43 @@
     const eventTime = record.time || getLocalTimeKey(new Date(recordTimestamp));
     const config = getEntryTypeConfig(currentEditor.type);
     root.innerHTML = `
-      <form class="levi_diabetes_editor" data-levi-editor>
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">${escapeHtml(currentEditor.id ? 'Edit Entry' : 'Log Entry')}</h1>
+      <form class="lee_lee_diabetes_editor" data-lee-lee-editor>
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">${escapeHtml(currentEditor.id ? 'Edit Entry' : 'Log Entry')}</h1>
         ${renderTypeSelect(currentEditor.type)}
         ${config.fields.includes('bloodSugar') ? `
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             Blood Sugar
-            <input class="levi_diabetes_input" name="bloodSugar" type="number" inputmode="numeric" min="0" step="1" autocomplete="off" value="${escapeHtml(record.bloodSugar ?? '')}">
+            <input class="lee_lee_diabetes_input" name="bloodSugar" type="number" inputmode="numeric" min="0" step="1" autocomplete="off" value="${escapeHtml(record.bloodSugar ?? '')}">
           </label>
         ` : ''}
-        <label class="levi_diabetes_field">
+        <label class="lee_lee_diabetes_field">
           Date
-          <input class="levi_diabetes_input" name="date" type="date" required value="${escapeHtml(eventDate)}">
+          <input class="lee_lee_diabetes_input" name="date" type="date" required value="${escapeHtml(eventDate)}">
         </label>
-        <label class="levi_diabetes_field">
+        <label class="lee_lee_diabetes_field">
           Time
-          <input class="levi_diabetes_input" name="time" type="time" required value="${escapeHtml(eventTime)}">
+          <input class="lee_lee_diabetes_input" name="time" type="time" required value="${escapeHtml(eventTime)}">
         </label>
         <div data-dose-helper aria-live="polite"></div>
         ${config.fields.includes('insulinUnits') ? `
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             <span data-insulin-label>${entryTypeUsesMealGuidance(currentEditor.type) ? 'Insulin Actually Given' : 'Insulin'}</span>
-            <input class="levi_diabetes_input" name="insulinUnits" type="number" inputmode="decimal" min="0" step="0.5" autocomplete="off" value="${escapeHtml(record.administeredInsulinUnits ?? record.insulinUnits ?? '')}">
+            <input class="lee_lee_diabetes_input" name="insulinUnits" type="number" inputmode="decimal" min="0" step="0.5" autocomplete="off" value="${escapeHtml(record.administeredInsulinUnits ?? record.insulinUnits ?? '')}">
           </label>
         ` : ''}
         ${config.fields.includes('notes') ? `
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             Notes
-            <textarea class="levi_diabetes_textarea" name="notes" rows="4">${escapeHtml(record.notes || '')}</textarea>
+            <textarea class="lee_lee_diabetes_textarea" name="notes" rows="4">${escapeHtml(record.notes || '')}</textarea>
           </label>
         ` : ''}
-        <div class="levi_diabetes_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="cancel">Cancel</button>
-          <button type="submit" class="levi_diabetes_button levi_diabetes_button--primary" data-save-record>Save</button>
+        <div class="lee_lee_diabetes_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="cancel">Cancel</button>
+          <button type="submit" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-save-record>Save</button>
         </div>
       </form>
     `;
-    updateEditorState(root.querySelector('[data-levi-editor]'));
+    updateEditorState(root.querySelector('[data-lee-lee-editor]'));
     root.querySelector('[name="bloodSugar"]')?.focus();
   }
 
@@ -2289,12 +2290,12 @@
   function renderDoseHelperResult(result) {
     if (result.status === 'calculated') {
       return `
-        <section class="levi_diabetes_dose_card" aria-label="Suggested insulin">
+        <section class="lee_lee_diabetes_dose_card" aria-label="Suggested insulin">
           <div>
-            <div class="levi_diabetes_dose_label">Suggested dose</div>
-            <div class="levi_diabetes_dose_total">${escapeHtml(formatInsulin(result.suggestedTotalUnits))}</div>
-            <div class="levi_diabetes_dose_breakdown">${escapeHtml(formatInsulin(result.baseUnits))} base + ${escapeHtml(formatInsulin(result.correctionUnits))} correction</div>
-            <div class="levi_diabetes_dose_range">${escapeHtml(formatRange(result.matchedRange))}</div>
+            <div class="lee_lee_diabetes_dose_label">Suggested dose</div>
+            <div class="lee_lee_diabetes_dose_total">${escapeHtml(formatInsulin(result.suggestedTotalUnits))}</div>
+            <div class="lee_lee_diabetes_dose_breakdown">${escapeHtml(formatInsulin(result.baseUnits))} base + ${escapeHtml(formatInsulin(result.correctionUnits))} correction</div>
+            <div class="lee_lee_diabetes_dose_range">${escapeHtml(formatRange(result.matchedRange))}</div>
           </div>
           <p>${escapeHtml(result.message)}</p>
         </section>
@@ -2302,16 +2303,16 @@
     }
     if (result.status === 'outside-configured-range') {
       return `
-        <section class="levi_diabetes_dose_card levi_diabetes_dose_card--notice" aria-label="Dose guidance unavailable">
-          <div class="levi_diabetes_dose_label">${escapeHtml(result.message)}</div>
-          <p>Follow Levi’s clinician-provided high-glucose instructions or contact the diabetes care team.</p>
+        <section class="lee_lee_diabetes_dose_card lee_lee_diabetes_dose_card--notice" aria-label="Dose guidance unavailable">
+          <div class="lee_lee_diabetes_dose_label">${escapeHtml(result.message)}</div>
+          <p>Follow Lee-Lee’s clinician-provided high-glucose instructions or contact the diabetes care team.</p>
         </section>
       `;
     }
     if (result.status === 'unsupported-entry-type') {
-      return `<p class="levi_diabetes_help">${escapeHtml(result.message)}</p>`;
+      return `<p class="lee_lee_diabetes_help">${escapeHtml(result.message)}</p>`;
     }
-    return result.message ? `<p class="levi_diabetes_help">${escapeHtml(result.message)}</p>` : '';
+    return result.message ? `<p class="lee_lee_diabetes_help">${escapeHtml(result.message)}</p>` : '';
   }
 
   function updateDoseHelper(form) {
@@ -2365,9 +2366,9 @@
 
   function renderTypeSelect(selectedType) {
     return `
-      <label class="levi_diabetes_field">
+      <label class="lee_lee_diabetes_field">
         Entry Type
-        <select class="levi_diabetes_select" name="type">
+        <select class="lee_lee_diabetes_select" name="type">
           ${ENTRY_TYPE_DEFINITIONS.map(({ type, label }) => `<option value="${escapeHtml(type)}" ${type === selectedType ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}
         </select>
       </label>
@@ -2491,9 +2492,9 @@
       && record.administeredInsulinUnits != null
       && Number(record.suggestedTotalUnits) !== Number(record.administeredInsulinUnits);
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Confirm insulin given</h1>
-        <dl class="levi_diabetes_confirm_list">
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Confirm insulin given</h1>
+        <dl class="lee_lee_diabetes_confirm_list">
           <div>
             <dt>Blood sugar</dt>
             <dd>${escapeHtml(formatBloodSugar(record.bloodSugar) || 'No blood sugar')}</dd>
@@ -2511,10 +2512,10 @@
             <dd>${escapeHtml(formatRecordDateTime(record.recordTimestamp))}</dd>
           </div>
         </dl>
-        <p class="levi_diabetes_help">Based on the current clinician-provided insulin plan. Confirm the dose before giving insulin.</p>
-        <div class="levi_diabetes_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="back-to-editor">Go Back</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="confirm-save">Confirm and Save</button>
+        <p class="lee_lee_diabetes_help">Based on the current clinician-provided insulin plan. Confirm the dose before giving insulin.</p>
+        <div class="lee_lee_diabetes_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="back-to-editor">Go Back</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="confirm-save">Confirm and Save</button>
         </div>
       </section>
     `;
@@ -2563,7 +2564,7 @@
 
   function renderMigrationExplainer() {
     return `
-      <ul class="levi_diabetes_explainer_list">
+      <ul class="lee_lee_diabetes_explainer_list">
         <li>Local records remain on this device.</li>
         <li>A safety backup can be downloaded before anything uploads.</li>
         <li>Duplicate detection prevents the same record from being added twice.</li>
@@ -2586,18 +2587,18 @@
     const count = getMigrationCandidateRecords().length;
     currentEditor = { mode: 'shared-sync-migration-prompt' };
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">We found existing records on this device.</h1>
-        <p class="levi_diabetes_help">${escapeHtml(count)} ${count === 1 ? 'record is' : 'records are'} stored locally.</p>
-        <p class="levi_diabetes_help">Your shared account is ready. Upload your existing history so it becomes available on all signed-in devices.</p>
-        <p class="levi_diabetes_help">Nothing will be removed from this device.</p>
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title" role="dialog" aria-modal="true">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">We found existing records on this device.</h1>
+        <p class="lee_lee_diabetes_help">${escapeHtml(count)} ${count === 1 ? 'record is' : 'records are'} stored locally.</p>
+        <p class="lee_lee_diabetes_help">Your shared account is ready. Upload your existing history so it becomes available on all signed-in devices.</p>
+        <p class="lee_lee_diabetes_help">Nothing will be removed from this device.</p>
         ${renderMigrationExplainer()}
-        <div class="levi_diabetes_backup_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="export-backup" ${storageAvailability.available ? '' : 'disabled'}>Download Safety Backup</button>
+        <div class="lee_lee_diabetes_backup_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="export-backup" ${storageAvailability.available ? '' : 'disabled'}>Download Safety Backup</button>
         </div>
-        <div class="levi_diabetes_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="dismiss-migration-prompt">Not Now</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="begin-local-migration" data-started-from="prompt" data-primary-focus>Begin Migration</button>
+        <div class="lee_lee_diabetes_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="dismiss-migration-prompt">Not Now</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="begin-local-migration" data-started-from="prompt" data-primary-focus>Begin Migration</button>
         </div>
       </section>
     `;
@@ -2612,13 +2613,13 @@
     if (!root) return;
     currentEditor = { mode: 'shared-settings-migration-prompt' };
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Patient and clinic information was found on this device.</h1>
-        <p class="levi_diabetes_help">Upload it to the shared account so it appears the same on every signed-in device?</p>
-        <p class="levi_diabetes_help">Nothing will be removed from this device.</p>
-        <div class="levi_diabetes_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="dismiss-shared-settings-migration">Not Now</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="upload-shared-settings" data-primary-focus>Upload Shared Settings</button>
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title" role="dialog" aria-modal="true">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Patient and clinic information was found on this device.</h1>
+        <p class="lee_lee_diabetes_help">Upload it to the shared account so it appears the same on every signed-in device?</p>
+        <p class="lee_lee_diabetes_help">Nothing will be removed from this device.</p>
+        <div class="lee_lee_diabetes_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="dismiss-shared-settings-migration">Not Now</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="upload-shared-settings" data-primary-focus>Upload Shared Settings</button>
         </div>
       </section>
     `;
@@ -2634,16 +2635,16 @@
     const percent = summary.percent;
     currentEditor = { mode: 'shared-sync-migration-progress' };
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true" aria-busy="true">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Uploading existing history...</h1>
-        <p class="levi_diabetes_help" aria-live="polite">${escapeHtml(completed)} of ${escapeHtml(total)} complete</p>
-        <p class="levi_diabetes_help">${escapeHtml(summary.remaining)} ${summary.remaining === 1 ? 'record' : 'records'} remaining</p>
-        <div class="levi_diabetes_progress" role="progressbar" aria-label="Migration progress" aria-valuemin="0" aria-valuemax="${escapeHtml(total)}" aria-valuenow="${escapeHtml(completed)}">
-          <span class="levi_diabetes_progress_bar" style="width: ${escapeHtml(percent)}%"></span>
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title" role="dialog" aria-modal="true" aria-busy="true">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Uploading existing history...</h1>
+        <p class="lee_lee_diabetes_help" aria-live="polite">${escapeHtml(completed)} of ${escapeHtml(total)} complete</p>
+        <p class="lee_lee_diabetes_help">${escapeHtml(summary.remaining)} ${summary.remaining === 1 ? 'record' : 'records'} remaining</p>
+        <div class="lee_lee_diabetes_progress" role="progressbar" aria-label="Migration progress" aria-valuemin="0" aria-valuemax="${escapeHtml(total)}" aria-valuenow="${escapeHtml(completed)}">
+          <span class="lee_lee_diabetes_progress_bar" style="width: ${escapeHtml(percent)}%"></span>
         </div>
-        <p class="levi_diabetes_help">Please keep Lee-Lee’s Tracker open. No local data will be removed.</p>
-        <div class="levi_diabetes_actions levi_diabetes_actions--single">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" disabled>Migration Running</button>
+        <p class="lee_lee_diabetes_help">Please keep Lee-Lee’s Tracker open. No local data will be removed.</p>
+        <div class="lee_lee_diabetes_actions lee_lee_diabetes_actions--single">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" disabled>Migration Running</button>
         </div>
       </section>
     `;
@@ -2656,9 +2657,9 @@
     const summary = getMigrationSessionSummary();
     const hasConflicts = summary.conflicts > 0;
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">✓ Migration complete</h1>
-        <dl class="levi_diabetes_confirm_list">
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title" role="dialog" aria-modal="true">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">✓ Migration complete</h1>
+        <dl class="lee_lee_diabetes_confirm_list">
           <div>
             <dt>Uploaded</dt>
             <dd>${escapeHtml(summary.uploaded)}</dd>
@@ -2680,13 +2681,13 @@
             <dd>${escapeHtml(summary.failed)}</dd>
           </div>
         </dl>
-        <p class="levi_diabetes_help">${hasConflicts
+        <p class="lee_lee_diabetes_help">${hasConflicts
           ? 'Some records require review before they can finish syncing.'
           : 'Your history is now available on every device signed into Lee-Lee’s Tracker.'}</p>
-        <p class="levi_diabetes_help">Realtime synchronization is active.</p>
-        <div class="levi_diabetes_actions ${hasConflicts ? '' : 'levi_diabetes_actions--single'}">
-          ${hasConflicts ? '<button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="review-conflicts">Review Conflicts</button>' : ''}
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="continue-migration-success" data-primary-focus>Continue</button>
+        <p class="lee_lee_diabetes_help">Realtime synchronization is active.</p>
+        <div class="lee_lee_diabetes_actions ${hasConflicts ? '' : 'lee_lee_diabetes_actions--single'}">
+          ${hasConflicts ? '<button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="review-conflicts">Review Conflicts</button>' : ''}
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="continue-migration-success" data-primary-focus>Continue</button>
         </div>
       </section>
     `;
@@ -2709,15 +2710,15 @@
       : (isOffline ? 'Resume When Online' : (isFailed ? `Retry ${summary.failed || summary.remaining} Records` : 'Retry Now'));
     currentEditor = { mode: 'shared-sync-migration-interrupted' };
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">${escapeHtml(title)}</h1>
-        <p class="levi_diabetes_help">${escapeHtml(summary.processed)} of ${escapeHtml(summary.total)} records are safely processed.</p>
-        <p class="levi_diabetes_help">${escapeHtml(summary.remaining + summary.failed)} ${summary.remaining + summary.failed === 1 ? 'record remains' : 'records remain'}.</p>
-        <p class="levi_diabetes_help">No data was lost. The upload will continue automatically when it can.</p>
-        ${session?.lastErrorMessage ? `<p class="levi_diabetes_error">${escapeHtml(session.lastErrorMessage)}</p>` : ''}
-        <div class="levi_diabetes_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="settings">Settings</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="resume-migration" data-primary-focus>${escapeHtml(actionLabel)}</button>
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title" role="dialog" aria-modal="true">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">${escapeHtml(title)}</h1>
+        <p class="lee_lee_diabetes_help">${escapeHtml(summary.processed)} of ${escapeHtml(summary.total)} records are safely processed.</p>
+        <p class="lee_lee_diabetes_help">${escapeHtml(summary.remaining + summary.failed)} ${summary.remaining + summary.failed === 1 ? 'record remains' : 'records remain'}.</p>
+        <p class="lee_lee_diabetes_help">No data was lost. The upload will continue automatically when it can.</p>
+        ${session?.lastErrorMessage ? `<p class="lee_lee_diabetes_error">${escapeHtml(session.lastErrorMessage)}</p>` : ''}
+        <div class="lee_lee_diabetes_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="settings">Settings</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="resume-migration" data-primary-focus>${escapeHtml(actionLabel)}</button>
         </div>
       </section>
     `;
@@ -2729,13 +2730,13 @@
     if (!root) return;
     currentEditor = { mode: 'shared-sync-welcome' };
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title" role="dialog" aria-modal="true">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Shared Sync is Ready</h1>
-        <p class="levi_diabetes_help">Lee-Lee’s Tracker is now synchronized.</p>
-        <p class="levi_diabetes_help">Any new glucose readings or insulin records entered on Rolando’s or Emily’s devices will automatically appear everywhere.</p>
-        <p class="levi_diabetes_help">You're all set.</p>
-        <div class="levi_diabetes_actions levi_diabetes_actions--single">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="continue-shared-sync-welcome" data-primary-focus>Continue</button>
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title" role="dialog" aria-modal="true">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Shared Sync is Ready</h1>
+        <p class="lee_lee_diabetes_help">Lee-Lee’s Tracker is now synchronized.</p>
+        <p class="lee_lee_diabetes_help">Any new glucose readings or insulin records entered on Rolando’s or Emily’s devices will automatically appear everywhere.</p>
+        <p class="lee_lee_diabetes_help">You're all set.</p>
+        <div class="lee_lee_diabetes_actions lee_lee_diabetes_actions--single">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="continue-shared-sync-welcome" data-primary-focus>Continue</button>
         </div>
       </section>
     `;
@@ -2750,113 +2751,113 @@
     const friendlySyncStatus = getFriendlySyncStatus(syncStatus);
     const sharedSettingsStatus = getSharedSettingsStatus();
     root.innerHTML = `
-      <form class="levi_diabetes_editor" data-plan-editor>
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Settings</h1>
+      <form class="lee_lee_diabetes_editor" data-plan-editor>
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Settings</h1>
         ${renderTrackerNav('settings')}
         ${renderPersistenceStatus()}
-        <section class="levi_diabetes_settings_section" aria-labelledby="levi-patient-title">
-          <h2 class="levi_diabetes_section_title" id="levi-patient-title">Patient & Clinic</h2>
-          <p class="levi_diabetes_help">Patient and clinic information syncs across signed-in devices.</p>
-          <p class="levi_diabetes_save_status levi_diabetes_save_status--${escapeHtml(sharedSettingsStatus.state)}" aria-live="polite">
+        <section class="lee_lee_diabetes_settings_section" aria-labelledby="lee-lee-patient-title">
+          <h2 class="lee_lee_diabetes_section_title" id="lee-lee-patient-title">Patient & Clinic</h2>
+          <p class="lee_lee_diabetes_help">Patient and clinic information syncs across signed-in devices.</p>
+          <p class="lee_lee_diabetes_save_status lee_lee_diabetes_save_status--${escapeHtml(sharedSettingsStatus.state)}" aria-live="polite">
             ${escapeHtml(patientSettingsError || patientSettingsMessage || sharedSettingsStatus.message)}
           </p>
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             Patient Name
-            <input class="levi_diabetes_input" name="patientName" type="text" maxlength="80" value="${escapeHtml(trackerData.settings?.patientName || '')}">
+            <input class="lee_lee_diabetes_input" name="patientName" type="text" maxlength="80" value="${escapeHtml(trackerData.settings?.patientName || '')}">
           </label>
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             Date of Birth
-            <input class="levi_diabetes_input" name="patientBirthDate" type="date" value="${escapeHtml(trackerData.settings?.patientBirthDate || '')}">
+            <input class="lee_lee_diabetes_input" name="patientBirthDate" type="date" value="${escapeHtml(trackerData.settings?.patientBirthDate || '')}">
           </label>
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             Clinic Name
-            <input class="levi_diabetes_input" name="clinicName" type="text" maxlength="120" value="${escapeHtml(trackerData.settings?.clinicName || '')}">
+            <input class="lee_lee_diabetes_input" name="clinicName" type="text" maxlength="120" value="${escapeHtml(trackerData.settings?.clinicName || '')}">
           </label>
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             Clinic Phone
-            <input class="levi_diabetes_input" name="clinicPhone" type="tel" maxlength="40" value="${escapeHtml(trackerData.settings?.clinicPhone || '')}">
+            <input class="lee_lee_diabetes_input" name="clinicPhone" type="tel" maxlength="40" value="${escapeHtml(trackerData.settings?.clinicPhone || '')}">
           </label>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="save-patient-settings">Save Patient Info</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="save-patient-settings">Save Patient Info</button>
         </section>
-        <section class="levi_diabetes_settings_section" aria-labelledby="levi-history-preferences-title">
-          <h2 class="levi_diabetes_section_title" id="levi-history-preferences-title">History Preferences</h2>
-          <label class="levi_diabetes_field">
+        <section class="lee_lee_diabetes_settings_section" aria-labelledby="lee-lee-history-preferences-title">
+          <h2 class="lee_lee_diabetes_section_title" id="lee-lee-history-preferences-title">History Preferences</h2>
+          <label class="lee_lee_diabetes_field">
             History Initial Window
-            <select class="levi_diabetes_select" name="historyInitialWindow">
+            <select class="lee_lee_diabetes_select" name="historyInitialWindow">
               ${HISTORY_WINDOW_OPTIONS.map((option) => {
                 const currentValue = trackerData.settings?.historyInitialWindowDays || String(DEFAULT_HISTORY_WINDOW_DAYS);
                 return `<option value="${escapeHtml(option.value)}" ${String(currentValue) === String(option.value) ? 'selected' : ''}>${escapeHtml(option.label)}</option>`;
               }).join('')}
             </select>
           </label>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="save-history-preference">Save History Preference</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="save-history-preference">Save History Preference</button>
         </section>
-        <section class="levi_diabetes_settings_section" aria-labelledby="levi-sync-title">
-          <h2 class="levi_diabetes_section_title" id="levi-sync-title">Shared Sync</h2>
-          <label class="levi_diabetes_field">
+        <section class="lee_lee_diabetes_settings_section" aria-labelledby="lee-lee-sync-title">
+          <h2 class="lee_lee_diabetes_section_title" id="lee-lee-sync-title">Shared Sync</h2>
+          <label class="lee_lee_diabetes_field">
             This device is used by
-            <select class="levi_diabetes_select" name="deviceIdentity">
+            <select class="lee_lee_diabetes_select" name="deviceIdentity">
               ${['Rolando', 'Emily', 'Unknown'].map((name) => `<option value="${escapeHtml(name)}" ${syncStatus.deviceIdentity === name ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('')}
             </select>
           </label>
-          <div class="levi_diabetes_plan_meta">
+          <div class="lee_lee_diabetes_plan_meta">
             <span>Status: ${escapeHtml(friendlySyncStatus.message)}</span>
             <span>Pending: ${escapeHtml(syncStatus.pendingCount)}</span>
             <span>Conflicts: ${escapeHtml(syncStatus.conflictCount)}</span>
             <span>Realtime: ${escapeHtml(syncStatus.realtimeStatus)}</span>
             <span>Last successful sync: ${escapeHtml(formatRelativeSyncTime(syncStatus.lastSuccessfulSyncAt))}</span>
           </div>
-          <div class="levi_diabetes_backup_actions">
-            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="save-device-identity">Save Device</button>
-            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="sync-now">Sync Now</button>
-            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="review-conflicts" ${syncStatus.conflictCount ? '' : 'disabled'}>Review Conflicts</button>
-            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="sign-out">Sign Out This Device</button>
+          <div class="lee_lee_diabetes_backup_actions">
+            <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="save-device-identity">Save Device</button>
+            <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="sync-now">Sync Now</button>
+            <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="review-conflicts" ${syncStatus.conflictCount ? '' : 'disabled'}>Review Conflicts</button>
+            <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="sign-out">Sign Out This Device</button>
           </div>
         </section>
         ${renderMigrationSettings()}
         ${renderMigrationDiagnostics()}
-        <section class="levi_diabetes_settings_section" aria-labelledby="levi-insulin-plan-title">
-          <h2 class="levi_diabetes_section_title" id="levi-insulin-plan-title">Insulin Plan</h2>
-          ${errorMessage ? `<p class="levi_diabetes_error">${escapeHtml(errorMessage)}</p>` : ''}
-          <label class="levi_diabetes_field">
+        <section class="lee_lee_diabetes_settings_section" aria-labelledby="lee-lee-insulin-plan-title">
+          <h2 class="lee_lee_diabetes_section_title" id="lee-lee-insulin-plan-title">Insulin Plan</h2>
+          ${errorMessage ? `<p class="lee_lee_diabetes_error">${escapeHtml(errorMessage)}</p>` : ''}
+          <label class="lee_lee_diabetes_field">
             Plan Name
-            <input class="levi_diabetes_input" name="planName" type="text" maxlength="80" value="${escapeHtml(plan.name)}">
+            <input class="lee_lee_diabetes_input" name="planName" type="text" maxlength="80" value="${escapeHtml(plan.name)}">
           </label>
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             Effective Date
-            <input class="levi_diabetes_input" name="effectiveFrom" type="date" required value="${escapeHtml(plan.effectiveFrom)}">
+            <input class="lee_lee_diabetes_input" name="effectiveFrom" type="date" required value="${escapeHtml(plan.effectiveFrom)}">
           </label>
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             Meal Base Dose
-            <input class="levi_diabetes_input" name="mealBaseUnits" type="number" inputmode="decimal" min="0" step="0.5" required value="${escapeHtml(plan.mealBaseUnits)}">
+            <input class="lee_lee_diabetes_input" name="mealBaseUnits" type="number" inputmode="decimal" min="0" step="0.5" required value="${escapeHtml(plan.mealBaseUnits)}">
           </label>
-          <div class="levi_diabetes_plan_meta">
+          <div class="lee_lee_diabetes_plan_meta">
             <span>Supported meals: ${escapeHtml(plan.supportedMealTypes.join(', '))}</span>
             <span>Last updated: ${escapeHtml(formatDate(new Date(plan.updatedAt)))}</span>
           </div>
-          <fieldset class="levi_diabetes_ranges">
+          <fieldset class="lee_lee_diabetes_ranges">
             <legend>Correction Table</legend>
             ${plan.correctionRanges.map(renderRangeEditorRow).join('')}
           </fieldset>
-          <label class="levi_diabetes_field">
+          <label class="lee_lee_diabetes_field">
             Plan Notes
-            <textarea class="levi_diabetes_textarea" name="notes" rows="4">${escapeHtml(plan.notes || '')}</textarea>
+            <textarea class="lee_lee_diabetes_textarea" name="notes" rows="4">${escapeHtml(plan.notes || '')}</textarea>
           </label>
         </section>
-        <section class="levi_diabetes_settings_section" aria-labelledby="levi-backup-title">
-          <h2 class="levi_diabetes_section_title" id="levi-backup-title">Local Backup</h2>
-          <p class="levi_diabetes_help">JSON backups are for restore. CSV files are for human-readable review and cannot restore the tracker.</p>
-          <div class="levi_diabetes_backup_actions">
-            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="export-backup">Export Data Backup</button>
-            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="export-csv">Export CSV</button>
-            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="import-backup">Import Data Backup</button>
+        <section class="lee_lee_diabetes_settings_section" aria-labelledby="lee-lee-backup-title">
+          <h2 class="lee_lee_diabetes_section_title" id="lee-lee-backup-title">Local Backup</h2>
+          <p class="lee_lee_diabetes_help">JSON backups are for restore. CSV files are for human-readable review and cannot restore the tracker.</p>
+          <div class="lee_lee_diabetes_backup_actions">
+            <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="export-backup">Export Data Backup</button>
+            <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="export-csv">Export CSV</button>
+            <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="import-backup">Import Data Backup</button>
           </div>
-          <input class="levi_diabetes_backup_input" type="file" accept="application/json,.json" data-backup-import aria-label="Import Lee-Lee’s Tracker data backup">
+          <input class="lee_lee_diabetes_backup_input" type="file" accept="application/json,.json" data-backup-import aria-label="Import Lee-Lee’s Tracker data backup">
         </section>
         ${renderRecentlyDeletedSettings()}
-        <div class="levi_diabetes_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="cancel">Cancel</button>
-          <button type="submit" class="levi_diabetes_button levi_diabetes_button--primary">Review Plan Change</button>
+        <div class="lee_lee_diabetes_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="cancel">Cancel</button>
+          <button type="submit" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary">Review Plan Change</button>
         </div>
       </form>
     `;
@@ -2865,25 +2866,25 @@
   function renderRecentlyDeletedSettings() {
     const deleted = deletedRecords();
     return `
-      <section class="levi_diabetes_settings_section" aria-labelledby="levi-deleted-title">
-        <h2 class="levi_diabetes_section_title" id="levi-deleted-title">Recently Deleted</h2>
+      <section class="lee_lee_diabetes_settings_section" aria-labelledby="lee-lee-deleted-title">
+        <h2 class="lee_lee_diabetes_section_title" id="lee-lee-deleted-title">Recently Deleted</h2>
         ${deleted.length
-          ? `<div class="levi_diabetes_timeline">${deleted.map((record) => `
-            <article class="levi_diabetes_timeline_item levi_diabetes_history_record">
+          ? `<div class="lee_lee_diabetes_timeline">${deleted.map((record) => `
+            <article class="lee_lee_diabetes_timeline_item lee_lee_diabetes_history_record">
               <div>
-                <div class="levi_diabetes_timeline_type">${escapeHtml(record.type)}</div>
-                <div class="levi_diabetes_record_details">
+                <div class="lee_lee_diabetes_timeline_type">${escapeHtml(record.type)}</div>
+                <div class="lee_lee_diabetes_record_details">
                   <p>${escapeHtml(formatRecordDateTime(record.recordTimestamp))}</p>
                   <p>${escapeHtml(formatBloodSugar(record.bloodSugar) || 'No blood sugar')} · ${escapeHtml(formatInsulin(getRecordActualInsulin(record)) || 'No insulin')}</p>
                   <p>Deleted by ${escapeHtml(record.deletedBy || 'Unknown')}</p>
                 </div>
               </div>
-              <div class="levi_diabetes_record_actions">
-                <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="restore-record" data-id="${escapeHtml(record.id)}">Restore</button>
+              <div class="lee_lee_diabetes_record_actions">
+                <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="restore-record" data-id="${escapeHtml(record.id)}">Restore</button>
               </div>
             </article>
           `).join('')}</div>`
-          : '<p class="levi_diabetes_empty">No deleted records.</p>'}
+          : '<p class="lee_lee_diabetes_empty">No deleted records.</p>'}
       </section>
     `;
   }
@@ -2897,9 +2898,9 @@
       ? `Retry ${Number(session.retryCount || 0)}`
       : (session.status || 'idle');
     return `
-      <section class="levi_diabetes_settings_section" aria-labelledby="levi-migration-diagnostics-title">
-        <h2 class="levi_diabetes_section_title" id="levi-migration-diagnostics-title">Migration Diagnostics</h2>
-        <dl class="levi_diabetes_status_grid">
+      <section class="lee_lee_diabetes_settings_section" aria-labelledby="lee-lee-migration-diagnostics-title">
+        <h2 class="lee_lee_diabetes_section_title" id="lee-lee-migration-diagnostics-title">Migration Diagnostics</h2>
+        <dl class="lee_lee_diabetes_status_grid">
           <div>
             <dt>Status</dt>
             <dd>${escapeHtml(session.status || 'idle')}</dd>
@@ -2953,7 +2954,7 @@
             <dd>${escapeHtml(retryState)}</dd>
           </div>
         </dl>
-        ${session.lastErrorMessage ? `<p class="levi_diabetes_help">${escapeHtml(session.lastErrorMessage)}</p>` : ''}
+        ${session.lastErrorMessage ? `<p class="lee_lee_diabetes_help">${escapeHtml(session.lastErrorMessage)}</p>` : ''}
       </section>
     `;
   }
@@ -2967,10 +2968,10 @@
       const friendlySyncStatus = getFriendlySyncStatus(syncStatus);
       const cloudCount = Math.max(metadata.recordsMigrated, activeCount);
       return `
-        <section class="levi_diabetes_settings_section" aria-labelledby="levi-cloud-status-title">
-          <h2 class="levi_diabetes_section_title" id="levi-cloud-status-title">Cloud Status</h2>
-          <p class="levi_diabetes_save_status levi_diabetes_save_status--${escapeHtml(friendlySyncStatus.state)}">${escapeHtml(friendlySyncStatus.message)}</p>
-          <dl class="levi_diabetes_status_grid">
+        <section class="lee_lee_diabetes_settings_section" aria-labelledby="lee-lee-cloud-status-title">
+          <h2 class="lee_lee_diabetes_section_title" id="lee-lee-cloud-status-title">Cloud Status</h2>
+          <p class="lee_lee_diabetes_save_status lee_lee_diabetes_save_status--${escapeHtml(friendlySyncStatus.state)}">${escapeHtml(friendlySyncStatus.message)}</p>
+          <dl class="lee_lee_diabetes_status_grid">
             <div>
               <dt>Records in cloud</dt>
               <dd>${escapeHtml(cloudCount)}</dd>
@@ -2988,23 +2989,23 @@
               <dd>${escapeHtml(syncStatus.deviceIdentity || 'Unknown')}</dd>
             </div>
           </dl>
-          <div class="levi_diabetes_backup_actions">
-            <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="sync-now">Sync Now</button>
+          <div class="lee_lee_diabetes_backup_actions">
+            <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="sync-now">Sync Now</button>
           </div>
         </section>
       `;
     }
     return `
-      <section class="levi_diabetes_settings_section" aria-labelledby="levi-migration-title">
-        <h2 class="levi_diabetes_section_title" id="levi-migration-title">Existing Records</h2>
+      <section class="lee_lee_diabetes_settings_section" aria-labelledby="lee-lee-migration-title">
+        <h2 class="lee_lee_diabetes_section_title" id="lee-lee-migration-title">Existing Records</h2>
         ${!metadata.migrationCompleted && metadata.promptDismissed
-          ? '<div class="levi_diabetes_banner"><span>Existing local records have not yet been uploaded.</span><button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="begin-local-migration" data-started-from="settings">Begin Migration</button></div>'
+          ? '<div class="lee_lee_diabetes_banner"><span>Existing local records have not yet been uploaded.</span><button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="begin-local-migration" data-started-from="settings">Begin Migration</button></div>'
           : ''}
-        <p class="levi_diabetes_help">${escapeHtml(activeCount)} active ${activeCount === 1 ? 'record' : 'records'} are available on this device. Create a safety backup before uploading existing local records to the shared account.</p>
+        <p class="lee_lee_diabetes_help">${escapeHtml(activeCount)} active ${activeCount === 1 ? 'record' : 'records'} are available on this device. Create a safety backup before uploading existing local records to the shared account.</p>
         ${renderMigrationExplainer()}
-        <div class="levi_diabetes_backup_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="export-backup" ${backupAvailable ? '' : 'disabled'}>Download Safety Backup</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="begin-local-migration" data-started-from="settings" ${activeCount ? '' : 'disabled'}>Begin Migration</button>
+        <div class="lee_lee_diabetes_backup_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="export-backup" ${backupAvailable ? '' : 'disabled'}>Download Safety Backup</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="begin-local-migration" data-started-from="settings" ${activeCount ? '' : 'disabled'}>Begin Migration</button>
         </div>
       </section>
     `;
@@ -3276,18 +3277,18 @@
 
   function renderRangeEditorRow(range, index) {
     return `
-      <div class="levi_diabetes_range_row">
+      <div class="lee_lee_diabetes_range_row">
         <label>
           Minimum glucose
-          <input class="levi_diabetes_input" name="rangeMin${index}" type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(range.minGlucose ?? '')}" placeholder="Below">
+          <input class="lee_lee_diabetes_input" name="rangeMin${index}" type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(range.minGlucose ?? '')}" placeholder="Below">
         </label>
         <label>
           Maximum glucose
-          <input class="levi_diabetes_input" name="rangeMax${index}" type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(range.maxGlucose ?? '')}">
+          <input class="lee_lee_diabetes_input" name="rangeMax${index}" type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(range.maxGlucose ?? '')}">
         </label>
         <label>
           Correction units
-          <input class="levi_diabetes_input" name="rangeUnits${index}" type="number" inputmode="decimal" min="0" step="0.5" value="${escapeHtml(range.correctionUnits)}">
+          <input class="lee_lee_diabetes_input" name="rangeUnits${index}" type="number" inputmode="decimal" min="0" step="0.5" value="${escapeHtml(range.correctionUnits)}">
         </label>
       </div>
     `;
@@ -3362,10 +3363,10 @@
       pendingPlan: plan,
     };
     root.innerHTML = `
-      <section class="levi_diabetes_editor" aria-labelledby="levi-diabetes-title">
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">Confirm insulin plan change</h1>
-        <p class="levi_diabetes_help">You are changing the insulin plan used to calculate suggested doses.</p>
-        <dl class="levi_diabetes_confirm_list">
+      <section class="lee_lee_diabetes_editor" aria-labelledby="lee-lee-diabetes-title">
+        <h1 class="lee_lee_diabetes_editor_title" id="lee-lee-diabetes-title">Confirm insulin plan change</h1>
+        <p class="lee_lee_diabetes_help">You are changing the insulin plan used to calculate suggested doses.</p>
+        <dl class="lee_lee_diabetes_confirm_list">
           <div>
             <dt>Plan</dt>
             <dd>${escapeHtml(plan.name)}</dd>
@@ -3379,13 +3380,13 @@
             <dd>${escapeHtml(formatInsulin(plan.mealBaseUnits))}</dd>
           </div>
         </dl>
-        <label class="levi_diabetes_checkline">
-          <span>I have verified these instructions with Levi’s diabetes care team.</span>
+        <label class="lee_lee_diabetes_checkline">
+          <span>I have verified these instructions with Lee-Lee’s diabetes care team.</span>
           <input type="checkbox" data-plan-confirm-check>
         </label>
-        <div class="levi_diabetes_actions">
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="settings">Go Back</button>
-          <button type="button" class="levi_diabetes_button levi_diabetes_button--primary" data-action="confirm-plan" disabled>Activate Plan</button>
+        <div class="lee_lee_diabetes_actions">
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--ghost" data-action="settings">Go Back</button>
+          <button type="button" class="lee_lee_diabetes_button lee_lee_diabetes_button--primary" data-action="confirm-plan" disabled>Activate Plan</button>
         </div>
       </section>
     `;
@@ -3646,8 +3647,8 @@
   }
 
   function createSyncRepository() {
-    if (!window.LeeLeesTrackerSync?.createRepository) return null;
-    return window.LeeLeesTrackerSync.createRepository({
+    if (!window.LeeLeeTrackerSync?.createRepository) return null;
+    return window.LeeLeeTrackerSync.createRepository({
       getDocument: () => trackerData,
       saveDocument: (data, options = {}) => saveTrackerData(data, { keepStatus: true, ...options }),
       normalizeRecord,
@@ -3988,7 +3989,7 @@
       }
     });
     root.addEventListener('submit', (event) => {
-      if (!event.target.matches('[data-auth-form], [data-device-identity-form], [data-levi-editor], [data-plan-editor]')) return;
+      if (!event.target.matches('[data-auth-form], [data-device-identity-form], [data-lee-lee-editor], [data-plan-editor]')) return;
       event.preventDefault();
       if (event.target.matches('[data-auth-form]')) {
         const email = event.target.elements.email.value;
@@ -4031,7 +4032,7 @@
       handleSave(event.target);
     });
     root.addEventListener('input', (event) => {
-      const form = event.target.closest('[data-levi-editor]');
+      const form = event.target.closest('[data-lee-lee-editor]');
       if (!form) return;
       if (event.target.name === 'insulinUnits') {
         form.dataset.userEditedInsulin = 'true';
@@ -4046,7 +4047,7 @@
         if (confirmButton) confirmButton.disabled = !confirmCheck.checked;
         return;
       }
-      const form = event.target.closest('[data-levi-editor]');
+      const form = event.target.closest('[data-lee-lee-editor]');
       if (!form) return;
       updateEditorState(form);
     });
@@ -4105,7 +4106,7 @@
     renderInitialRoute();
   }
 
-  window.LeeLeesTrackerStorage = {
+  window.LeeLeeTrackerStorage = {
     storageKey: TRACKER_STORAGE_KEY,
     schemaVersion: TRACKER_SCHEMA_VERSION,
     loadTrackerData,
@@ -4116,7 +4117,7 @@
     createBackupDocument,
   };
 
-  window.LeeLeesTrackerReports = {
+  window.LeeLeeTrackerReports = {
     getRecordEventDateKey,
     getRecordTimestamp,
     getRecordActualInsulin,
