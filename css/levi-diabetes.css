@@ -94,6 +94,10 @@
   margin: 0 0 1rem;
 }
 
+.levi_diabetes_mobile_nav_button {
+  display: none;
+}
+
 .levi_diabetes_nav_button {
   min-height: 44px;
   border: 1px solid var(--levi-border);
@@ -114,6 +118,7 @@
 
 .levi_diabetes_card:focus-visible,
 .levi_diabetes_button:focus-visible,
+.levi_diabetes_mobile_nav_button:focus-visible,
 .levi_diabetes_nav_button:focus-visible,
 .levi_diabetes_input:focus-visible,
 .levi_diabetes_textarea:focus-visible,
@@ -170,6 +175,16 @@
 .levi_diabetes_extra {
   width: 100%;
   margin: 0.9rem 0 1.3rem;
+}
+
+.levi_diabetes_today_actions {
+  margin: 0 0 1rem;
+}
+
+.levi_diabetes_log_entry_button {
+  width: 100%;
+  min-height: 54px;
+  font-size: 1rem;
 }
 
 .levi_diabetes_section_title {
@@ -825,8 +840,47 @@
 }
 
 @media only screen and (max-width: 520px) {
+  .levi_diabetes_nav_shell {
+    position: relative;
+    margin: 0 0 0.85rem;
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  .levi_diabetes_mobile_nav_button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.62rem 0.78rem;
+    border: 1px solid var(--levi-border);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 6%);
+    color: var(--levi-soft);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
   .levi_diabetes_nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: none;
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+    margin: 0.45rem 0 0;
+    padding: 0.45rem;
+    border: 1px solid var(--levi-border);
+    border-radius: 8px;
+    background: rgb(5 9 19 / 94%);
+  }
+
+  .levi_diabetes_nav_shell.is-open .levi_diabetes_nav {
+    display: grid;
+  }
+
+  .levi_diabetes_nav_button {
+    text-align: left;
   }
 
   .levi_diabetes_status_grid {
@@ -868,6 +922,7 @@
 
   .digit_clock_header,
   .levi_diabetes_top,
+  .levi_diabetes_nav_shell,
   .levi_diabetes_nav,
   .levi_diabetes_export_controls,
   .levi_diabetes_filters,

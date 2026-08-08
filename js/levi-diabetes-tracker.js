@@ -19,9 +19,30 @@
   const LEGACY_PLAN_STORAGE_KEYS = [
     'levi_diabetes_insulin_plans_v1',
   ];
-  const PRIMARY_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Bedtime', '2 AM'];
-  const EXTRA_TYPES = [...PRIMARY_TYPES, 'Correction', 'Snack', 'Exercise', 'Other'];
-  const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner'];
+  const ENTRY_TYPE_DEFINITIONS = Object.freeze([
+    { type: 'Breakfast', label: 'Breakfast', clinicalLogPrimary: true, mealGuidance: true, fields: ['bloodSugar', 'insulinUnits', 'notes'] },
+    { type: 'Lunch', label: 'Lunch', clinicalLogPrimary: true, mealGuidance: true, fields: ['bloodSugar', 'insulinUnits', 'notes'] },
+    { type: 'Dinner', label: 'Dinner', clinicalLogPrimary: true, mealGuidance: true, fields: ['bloodSugar', 'insulinUnits', 'notes'] },
+    { type: 'Bedtime', label: 'Bedtime', clinicalLogPrimary: true, mealGuidance: false, fields: ['bloodSugar', 'insulinUnits', 'notes'] },
+    { type: '2 AM', label: '2 AM', clinicalLogPrimary: true, mealGuidance: false, fields: ['bloodSugar', 'insulinUnits', 'notes'] },
+    { type: 'Correction', label: 'Correction', clinicalLogPrimary: false, mealGuidance: false, fields: ['bloodSugar', 'insulinUnits', 'notes'] },
+    { type: 'Snack', label: 'Snack', clinicalLogPrimary: false, mealGuidance: false, fields: ['bloodSugar', 'insulinUnits', 'notes'] },
+    { type: 'Exercise', label: 'Exercise', clinicalLogPrimary: false, mealGuidance: false, fields: ['bloodSugar', 'insulinUnits', 'notes'] },
+    { type: 'Other', label: 'Other', clinicalLogPrimary: false, mealGuidance: false, fields: ['bloodSugar', 'insulinUnits', 'notes'] },
+  ]);
+  const ENTRY_TYPE_CONFIG = Object.freeze(Object.fromEntries(
+    ENTRY_TYPE_DEFINITIONS.map((definition) => [definition.type, Object.freeze({ ...definition, fields: Object.freeze([...definition.fields]) })]),
+  ));
+  const PRIMARY_TYPES = ENTRY_TYPE_DEFINITIONS.filter((definition) => definition.clinicalLogPrimary).map((definition) => definition.type);
+  const EXTRA_TYPES = ENTRY_TYPE_DEFINITIONS.map((definition) => definition.type);
+  const MEAL_TYPES = ENTRY_TYPE_DEFINITIONS.filter((definition) => definition.mealGuidance).map((definition) => definition.type);
+  const DEFAULT_ENTRY_TYPE = EXTRA_TYPES[0];
+  const TRACKER_NAV_ITEMS = Object.freeze([
+    ['today', 'Today'],
+    ['history', 'History'],
+    ['export', 'Export'],
+    ['settings', 'Settings'],
+  ]);
   const DATE_RANGE_OPTIONS = [
     { value: 'today', label: 'Today', days: 1 },
     { value: 'last7', label: 'Last 7 days', days: 7 },
@@ -77,6 +98,7 @@
   let historyDraftFilters = { ...historyFilters };
   let historyVisibleDayCount = null;
   let historyFilterSheetOpen = false;
+  let trackerMenuOpen = false;
   let lastFocusedElement = null;
   let exportOptions = {
     range: 'last7',
@@ -231,6 +253,18 @@
 
   function normalizeBloodSugar(value) {
     return isWholePositiveGlucose(value) ? Number(value) : null;
+  }
+
+  function getEntryTypeConfig(type) {
+    return ENTRY_TYPE_CONFIG[type] || ENTRY_TYPE_CONFIG.Other;
+  }
+
+  function entryTypeHasField(type, fieldName) {
+    return getEntryTypeConfig(type).fields.includes(fieldName);
+  }
+
+  function entryTypeUsesMealGuidance(type) {
+    return getEntryTypeConfig(type).mealGuidance === true;
   }
 
   function normalizeCorrectionRange(range) {
@@ -1295,6 +1329,18 @@
     calculateMealInsulinDose,
   };
 
+  window.LeeLeesTrackerEntryTypes = {
+    all: ENTRY_TYPE_DEFINITIONS.map((definition) => ({ ...definition, fields: [...definition.fields] })),
+    primaryTypes: [...PRIMARY_TYPES],
+    mealTypes: [...MEAL_TYPES],
+    getEntryTypeConfig: (type) => {
+      const config = getEntryTypeConfig(type);
+      return { ...config, fields: [...config.fields] };
+    },
+    entryTypeUsesMealGuidance,
+    entryTypeHasField,
+  };
+
   function getRecordEventDateKey(record) {
     return getLocalDateKey(new Date(getRecordTimestamp(record)));
   }
@@ -1521,6 +1567,13 @@
     return `${dayCount} ${dayCount === 1 ? 'Day' : 'Days'} • ${entryCount} ${entryCount === 1 ? 'Entry' : 'Entries'}`;
   }
 
+  function getTodaysActivityRecords(sourceRecords, todayDateKey = getLocalDateKey()) {
+    return sourceRecords
+      .filter((record) => !isRecordDeleted(record))
+      .filter((record) => getRecordEventDateKey(record) === todayDateKey)
+      .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+  }
+
   function formatDateKey(dateKey) {
     const timestamp = createDateStartTimestamp(dateKey);
     return timestamp == null ? dateKey : formatDate(new Date(timestamp));
@@ -1552,10 +1605,7 @@
   }
 
   function todaysRecords() {
-    const today = getLocalDateKey();
-    return activeRecords()
-      .filter((record) => getRecordEventDateKey(record) === today)
-      .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+    return getTodaysActivityRecords(records);
   }
 
   function latestRecordForType(type) {
@@ -1602,24 +1652,34 @@
       : '';
   }
 
+  function getTrackerNavLabel(active) {
+    return TRACKER_NAV_ITEMS.find(([action]) => action === active)?.[1] || 'Menu';
+  }
+
   function renderTrackerNav(active) {
-    const items = [
-      ['today', 'Today'],
-      ['history', 'History'],
-      ['export', 'Export'],
-      ['settings', 'Settings'],
-    ];
     return `
-      <nav class="levi_diabetes_nav" aria-label="Lee-Lee’s Tracker sections">
-        ${items.map(([action, label]) => `
-          <button
-            type="button"
-            class="levi_diabetes_nav_button ${active === action ? 'is-active' : ''}"
-            data-action="${escapeHtml(action)}"
-            aria-current="${active === action ? 'page' : 'false'}"
-          >${escapeHtml(label)}</button>
-        `).join('')}
-      </nav>
+      <div class="levi_diabetes_nav_shell ${trackerMenuOpen ? 'is-open' : ''}">
+        <button
+          type="button"
+          class="levi_diabetes_mobile_nav_button"
+          data-action="toggle-tracker-nav"
+          aria-controls="levi-diabetes-nav"
+          aria-expanded="${trackerMenuOpen ? 'true' : 'false'}"
+        >
+          <span>${escapeHtml(getTrackerNavLabel(active))}</span>
+          <span aria-hidden="true">☰</span>
+        </button>
+        <nav class="levi_diabetes_nav" id="levi-diabetes-nav" aria-label="Lee-Lee’s Tracker sections">
+          ${TRACKER_NAV_ITEMS.map(([action, label]) => `
+            <button
+              type="button"
+              class="levi_diabetes_nav_button ${active === action ? 'is-active' : ''}"
+              data-action="${escapeHtml(action)}"
+              aria-current="${active === action ? 'page' : 'false'}"
+            >${escapeHtml(label)}</button>
+          `).join('')}
+        </nav>
+      </div>
     `;
   }
 
@@ -1635,13 +1695,12 @@
         ${renderPersistenceStatus()}
       </section>
       ${renderTrackerNav('today')}
-      <section class="levi_diabetes_cards" aria-label="Primary events">
-        ${PRIMARY_TYPES.map(renderPrimaryCard).join('')}
+      <section class="levi_diabetes_today_actions" aria-label="Log an entry">
+        <button type="button" class="levi_diabetes_button levi_diabetes_button--primary levi_diabetes_log_entry_button" data-action="log-entry">+ Log Entry</button>
       </section>
-      <button type="button" class="levi_diabetes_button levi_diabetes_button--primary levi_diabetes_extra" data-action="extra">+ Extra Check</button>
       <section aria-labelledby="levi-diabetes-timeline-title">
-        <h2 class="levi_diabetes_section_title" id="levi-diabetes-timeline-title">Today</h2>
-        ${timeline.length ? `<div class="levi_diabetes_timeline">${timeline.map(renderTimelineItem).join('')}</div>` : '<p class="levi_diabetes_empty">No readings recorded today.</p>'}
+        <h2 class="levi_diabetes_section_title" id="levi-diabetes-timeline-title">Today’s Activity</h2>
+        ${timeline.length ? `<div class="levi_diabetes_timeline">${timeline.map(renderTimelineItem).join('')}</div>` : '<p class="levi_diabetes_empty">No entries today.</p>'}
       </section>
     `;
   }
@@ -2119,29 +2178,32 @@
     const root = getRoot();
     if (!root) return;
     const record = options.record || {};
-    const isExtra = options.mode === 'extra';
     currentEditor = {
       mode: options.mode,
       id: record.id || null,
-      type: record.type || options.type || 'Correction',
+      type: record.type || options.type || DEFAULT_ENTRY_TYPE,
       originalRecord: record.id ? { ...record } : null,
       returnTo: options.returnTo || null,
       returnDateKey: options.returnDateKey || null,
     };
+    trackerMenuOpen = false;
     const now = new Date();
     const recordTimestamp = record.recordTimestamp != null
       ? getRecordTimestamp(record)
       : now.getTime();
     const eventDate = record.date || getLocalDateKey(new Date(recordTimestamp));
     const eventTime = record.time || getLocalTimeKey(new Date(recordTimestamp));
+    const config = getEntryTypeConfig(currentEditor.type);
     root.innerHTML = `
       <form class="levi_diabetes_editor" data-levi-editor>
-        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">${escapeHtml(isExtra ? 'Extra Check' : currentEditor.type)}</h1>
-        ${isExtra ? renderTypeSelect(currentEditor.type) : ''}
-        <label class="levi_diabetes_field">
-          Blood Sugar
-          <input class="levi_diabetes_input" name="bloodSugar" type="number" inputmode="numeric" min="0" step="1" autocomplete="off" value="${escapeHtml(record.bloodSugar ?? '')}">
-        </label>
+        <h1 class="levi_diabetes_editor_title" id="levi-diabetes-title">${escapeHtml(currentEditor.id ? 'Edit Entry' : 'Log Entry')}</h1>
+        ${renderTypeSelect(currentEditor.type)}
+        ${config.fields.includes('bloodSugar') ? `
+          <label class="levi_diabetes_field">
+            Blood Sugar
+            <input class="levi_diabetes_input" name="bloodSugar" type="number" inputmode="numeric" min="0" step="1" autocomplete="off" value="${escapeHtml(record.bloodSugar ?? '')}">
+          </label>
+        ` : ''}
         <label class="levi_diabetes_field">
           Date
           <input class="levi_diabetes_input" name="date" type="date" required value="${escapeHtml(eventDate)}">
@@ -2151,14 +2213,18 @@
           <input class="levi_diabetes_input" name="time" type="time" required value="${escapeHtml(eventTime)}">
         </label>
         <div data-dose-helper aria-live="polite"></div>
-        <label class="levi_diabetes_field">
-          <span data-insulin-label>${MEAL_TYPES.includes(currentEditor.type) ? 'Insulin Actually Given' : 'Insulin'}</span>
-          <input class="levi_diabetes_input" name="insulinUnits" type="number" inputmode="decimal" min="0" step="0.5" autocomplete="off" value="${escapeHtml(record.administeredInsulinUnits ?? record.insulinUnits ?? '')}">
-        </label>
-        <label class="levi_diabetes_field">
-          Notes
-          <textarea class="levi_diabetes_textarea" name="notes" rows="4">${escapeHtml(record.notes || '')}</textarea>
-        </label>
+        ${config.fields.includes('insulinUnits') ? `
+          <label class="levi_diabetes_field">
+            <span data-insulin-label>${entryTypeUsesMealGuidance(currentEditor.type) ? 'Insulin Actually Given' : 'Insulin'}</span>
+            <input class="levi_diabetes_input" name="insulinUnits" type="number" inputmode="decimal" min="0" step="0.5" autocomplete="off" value="${escapeHtml(record.administeredInsulinUnits ?? record.insulinUnits ?? '')}">
+          </label>
+        ` : ''}
+        ${config.fields.includes('notes') ? `
+          <label class="levi_diabetes_field">
+            Notes
+            <textarea class="levi_diabetes_textarea" name="notes" rows="4">${escapeHtml(record.notes || '')}</textarea>
+          </label>
+        ` : ''}
         <div class="levi_diabetes_actions">
           <button type="button" class="levi_diabetes_button levi_diabetes_button--ghost" data-action="cancel">Cancel</button>
           <button type="submit" class="levi_diabetes_button levi_diabetes_button--primary" data-save-record>Save</button>
@@ -2173,7 +2239,7 @@
     const typeInput = form.elements.type;
     return typeInput && EXTRA_TYPES.includes(typeInput.value)
       ? typeInput.value
-      : currentEditor?.type || 'Other';
+      : currentEditor?.type || DEFAULT_ENTRY_TYPE;
   }
 
   function getEditorRecordTimestamp(form) {
@@ -2183,8 +2249,20 @@
   function getEditorDoseResult(form) {
     const type = getEditorType(form);
     const recordTimestamp = getEditorRecordTimestamp(form);
+    if (!entryTypeUsesMealGuidance(type)) {
+      return {
+        status: 'manual',
+        baseUnits: null,
+        correctionUnits: null,
+        suggestedTotalUnits: null,
+        matchedRange: null,
+        insulinPlanId: null,
+        insulinPlanSnapshot: null,
+        message: '',
+      };
+    }
     const insulinPlan = recordTimestamp ? getActiveInsulinPlan(recordTimestamp) : null;
-    if (MEAL_TYPES.includes(type) && !insulinPlan) {
+    if (!insulinPlan) {
       return {
         status: 'unavailable',
         baseUnits: null,
@@ -2241,7 +2319,7 @@
     const type = getEditorType(form);
     const label = form.querySelector('[data-insulin-label]');
     if (label) {
-      label.textContent = MEAL_TYPES.includes(type) ? 'Insulin Actually Given' : 'Insulin';
+      label.textContent = entryTypeUsesMealGuidance(type) ? 'Insulin Actually Given' : 'Insulin';
     }
     const helper = form.querySelector('[data-dose-helper]');
     const result = getEditorDoseResult(form);
@@ -2288,9 +2366,9 @@
   function renderTypeSelect(selectedType) {
     return `
       <label class="levi_diabetes_field">
-        Type
+        Entry Type
         <select class="levi_diabetes_select" name="type">
-          ${EXTRA_TYPES.map((type) => `<option value="${escapeHtml(type)}" ${type === selectedType ? 'selected' : ''}>${escapeHtml(type)}</option>`).join('')}
+          ${ENTRY_TYPE_DEFINITIONS.map(({ type, label }) => `<option value="${escapeHtml(type)}" ${type === selectedType ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}
         </select>
       </label>
     `;
@@ -2306,8 +2384,15 @@
 
   function openExtraEditor() {
     renderEditor({
-      mode: 'extra',
-      record: { type: 'Correction' },
+      mode: 'log-entry',
+      record: { type: DEFAULT_ENTRY_TYPE },
+    });
+  }
+
+  function openLogEntryEditor() {
+    renderEditor({
+      mode: 'log-entry',
+      record: { type: DEFAULT_ENTRY_TYPE },
     });
   }
 
@@ -2335,32 +2420,30 @@
     const existing = currentEditor?.id
       ? records.find((record) => record.id === currentEditor.id)
       : null;
-    const eventDate = form.elements.date.value;
-    const eventTime = form.elements.time.value;
-    const recordTimestamp = createLocalTimestamp(eventDate, eventTime);
+    const observedContext = getObservedEntryContext(form);
+    const recordTimestamp = observedContext.recordTimestamp;
     if (!recordTimestamp) {
       updateEditorSaveState(form);
       return null;
     }
-    const type = getEditorType(form);
     const nowTimestamp = now.toISOString();
-    const doseResult = getEditorDoseResult(form);
-    const administeredInsulinUnits = normalizeNumber(form.elements.insulinUnits.value);
+    const calculatedGuidance = getCalculatedGuidance(form);
+    const actualAction = getActualRecordedAction(form);
     return {
       id: existing?.id || createId(),
       date: getLocalDateKey(new Date(recordTimestamp)),
       time: getLocalTimeKey(new Date(recordTimestamp)),
-      type,
-      bloodSugar: normalizeBloodSugar(form.elements.bloodSugar.value),
-      insulinUnits: administeredInsulinUnits,
-      administeredInsulinUnits,
-      suggestedBaseUnits: doseResult.status === 'calculated' ? doseResult.baseUnits : null,
-      suggestedCorrectionUnits: doseResult.status === 'calculated' ? doseResult.correctionUnits : null,
-      suggestedTotalUnits: doseResult.status === 'calculated' ? doseResult.suggestedTotalUnits : null,
-      insulinPlanId: doseResult.insulinPlanId || null,
-      insulinPlanSnapshot: doseResult.insulinPlanSnapshot || null,
-      doseCalculationStatus: doseResult.status,
-      notes: sanitizeNotes(form.elements.notes.value),
+      type: observedContext.type,
+      bloodSugar: observedContext.bloodSugar,
+      insulinUnits: actualAction.administeredInsulinUnits,
+      administeredInsulinUnits: actualAction.administeredInsulinUnits,
+      suggestedBaseUnits: calculatedGuidance.status === 'calculated' ? calculatedGuidance.baseUnits : null,
+      suggestedCorrectionUnits: calculatedGuidance.status === 'calculated' ? calculatedGuidance.correctionUnits : null,
+      suggestedTotalUnits: calculatedGuidance.status === 'calculated' ? calculatedGuidance.suggestedTotalUnits : null,
+      insulinPlanId: calculatedGuidance.insulinPlanId || null,
+      insulinPlanSnapshot: calculatedGuidance.insulinPlanSnapshot || null,
+      doseCalculationStatus: calculatedGuidance.status,
+      notes: observedContext.notes,
       recordTimestamp: new Date(recordTimestamp).toISOString(),
       createdAt: existing?.createdAt ?? nowTimestamp,
       updatedAt: nowTimestamp,
@@ -2371,6 +2454,25 @@
       deletedBy: existing?.deletedBy || null,
       source: existing?.source || 'app',
       clientCreatedAt: existing?.clientCreatedAt || existing?.createdAt || nowTimestamp,
+    };
+  }
+
+  function getObservedEntryContext(form) {
+    return {
+      type: getEditorType(form),
+      recordTimestamp: getEditorRecordTimestamp(form),
+      bloodSugar: normalizeBloodSugar(form.elements.bloodSugar?.value),
+      notes: sanitizeNotes(form.elements.notes?.value),
+    };
+  }
+
+  function getCalculatedGuidance(form) {
+    return getEditorDoseResult(form);
+  }
+
+  function getActualRecordedAction(form) {
+    return {
+      administeredInsulinUnits: normalizeNumber(form.elements.insulinUnits?.value),
     };
   }
 
@@ -3380,7 +3482,7 @@
     const record = records.find((item) => item.id === recordId);
     if (!record) return;
     renderEditor({
-      mode: PRIMARY_TYPES.includes(record.type) ? 'primary' : 'extra',
+      mode: 'edit-entry',
       type: record.type,
       record,
       returnTo: 'history-day',
@@ -3666,23 +3768,39 @@
         return;
       }
       if (!shouldShowProtectedApp() && !['reset-password'].includes(action)) return;
+      if (action === 'toggle-tracker-nav') {
+        trackerMenuOpen = !trackerMenuOpen;
+        const active = currentEditor?.mode === 'history' || currentEditor?.mode === 'history-day'
+          ? 'history'
+          : (['export', 'settings'].includes(currentEditor?.mode) ? currentEditor.mode : 'today');
+        if (active === 'history' && currentEditor?.mode === 'history-day') renderHistoryDay(currentEditor.dateKey);
+        else if (active === 'history') renderHistory();
+        else if (active === 'export') renderExport();
+        else if (active === 'settings') renderSettings();
+        else renderHome();
+        return;
+      }
       if (action === 'edit-primary') {
         openPrimaryEditor(target.dataset.type);
       }
-      if (action === 'extra') {
+      if (action === 'extra' || action === 'log-entry') {
         openExtraEditor();
       }
       if (action === 'today') {
+        trackerMenuOpen = false;
         renderHome();
       }
       if (action === 'history') {
+        trackerMenuOpen = false;
         resetHistoryVisibleWindow();
         renderHistory();
       }
       if (action === 'export') {
+        trackerMenuOpen = false;
         renderExport();
       }
       if (action === 'settings') {
+        trackerMenuOpen = false;
         renderSettings();
       }
       if (action === 'cancel') {
@@ -3693,6 +3811,8 @@
           mode: currentEditor?.mode || 'extra',
           type: currentEditor?.pendingRecord?.type || currentEditor?.type,
           record: currentEditor?.pendingRecord || currentEditor?.originalRecord || {},
+          returnTo: currentEditor?.returnTo || null,
+          returnDateKey: currentEditor?.returnDateKey || null,
         });
       }
       if (action === 'confirm-save' && currentEditor?.pendingRecord) {
@@ -3957,6 +4077,19 @@
       }
     });
     root.addEventListener('keydown', (event) => {
+      if (trackerMenuOpen && event.key === 'Escape') {
+        event.preventDefault();
+        trackerMenuOpen = false;
+        const active = currentEditor?.mode === 'history' || currentEditor?.mode === 'history-day'
+          ? 'history'
+          : (['export', 'settings'].includes(currentEditor?.mode) ? currentEditor.mode : 'today');
+        if (active === 'history' && currentEditor?.mode === 'history-day') renderHistoryDay(currentEditor.dateKey);
+        else if (active === 'history') renderHistory();
+        else if (active === 'export') renderExport();
+        else if (active === 'settings') renderSettings();
+        else renderHome();
+        return;
+      }
       if (historyFilterSheetOpen && event.key === 'Escape') {
         event.preventDefault();
         closeHistoryFilters();
@@ -3997,6 +4130,7 @@
     formatTime,
     formatBloodSugar,
     formatInsulin,
+    getTodaysActivityRecords,
     getVisibleHistoryGroups,
     getHistoryFilterCount,
     getHistoryVisibleSummary,
