@@ -10,7 +10,7 @@ History and Export derive their data at render time from the hydrated tracker do
 
 `lando-world:lee-lees-tracker:v1`
 
-The shared reporting helpers in `js/levi-diabetes-tracker.js` handle:
+The shared reporting helpers in `js/lee-lee-diabetes-tracker.js` handle:
 
 - Event timestamp resolution
 - Local event-date grouping

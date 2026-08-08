@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
-const trackerSource = readFileSync(new URL('../js/levi-diabetes-tracker.js', import.meta.url), 'utf8');
-const cssSource = readFileSync(new URL('../css/levi-diabetes.css', import.meta.url), 'utf8');
+const trackerSource = readFileSync(new URL('../js/lee-lee-diabetes-tracker.js', import.meta.url), 'utf8');
+const cssSource = readFileSync(new URL('../css/lee-lee-diabetes.css', import.meta.url), 'utf8');
 
 function createLocalStorage(seed = {}) {
   const store = new Map(Object.entries(seed));
@@ -15,7 +15,7 @@ function createLocalStorage(seed = {}) {
   };
 }
 
-function createTrackerReports() {
+function createTrackerRuntime() {
   const context = {
     console,
     Date,
@@ -47,7 +47,11 @@ function createTrackerReports() {
   context.window = context;
   context.globalThis = context;
   vm.runInNewContext(trackerSource, context);
-  return context.LeeLeesTrackerReports;
+  return context;
+}
+
+function createTrackerReports() {
+  return createTrackerRuntime().LeeLeeTrackerReports;
 }
 
 function record(overrides = {}) {
@@ -166,7 +170,7 @@ test('older records reconstruct event time from date and time fields', () => {
 
 test('print styles hide controls and use a white printable report', () => {
   assert.match(cssSource, /@media print/);
-  assert.match(cssSource, /\.levi_diabetes_nav,[\s\S]*display: none !important/);
+  assert.match(cssSource, /\.lee_lee_diabetes_nav,[\s\S]*display: none !important/);
   assert.match(cssSource, /background: #ffffff !important/);
 });
 
@@ -223,6 +227,81 @@ test('report registry describes current reports independently from export render
   assert.equal(reports.reportRegistry[0].printLayout, 'landscape');
   assert.equal(reports.buildClinicalReport([record({ id: 'clinical-source' })]).id, 'clinical');
   assert.equal(reports.buildDetailedReportData([record({ id: 'detailed-source' })]).id, 'detailed');
+});
+
+test('entry type configuration preserves canonical labels and meal guidance boundaries', () => {
+  const runtime = createTrackerRuntime();
+  const entryTypes = runtime.LeeLeeTrackerEntryTypes;
+  const labels = Array.from(entryTypes.all, (definition) => definition.label);
+
+  assert.deepEqual(labels, ['Breakfast', 'Lunch', 'Dinner', 'Bedtime', '2 AM', 'Correction', 'Snack', 'Exercise', 'Other']);
+  assert.deepEqual(Array.from(entryTypes.mealTypes), ['Breakfast', 'Lunch', 'Dinner']);
+  assert.equal(entryTypes.getEntryTypeConfig('Bedtime').label, 'Bedtime');
+  assert.equal(entryTypes.entryTypeUsesMealGuidance('Breakfast'), true);
+  assert.equal(entryTypes.entryTypeUsesMealGuidance('Lunch'), true);
+  assert.equal(entryTypes.entryTypeUsesMealGuidance('Dinner'), true);
+  assert.equal(entryTypes.entryTypeUsesMealGuidance('Correction'), false);
+  assert.equal(entryTypes.getEntryTypeConfig('Night').type, 'Other');
+});
+
+test('meal dose helper keeps the clinician-provided calculation unchanged', () => {
+  const runtime = createTrackerRuntime();
+  const result = runtime.LeeLeeTrackerDoseHelper.calculateMealInsulinDose({
+    bloodSugar: 198,
+    entryType: 'Breakfast',
+    recordTimestamp: Date.parse('2026-08-01T07:42:00.000Z'),
+    insulinPlan: {
+      id: 'plan',
+      supportedMealTypes: ['Breakfast', 'Lunch', 'Dinner'],
+      mealBaseUnits: 4,
+      correctionRanges: [
+        { minGlucose: null, maxGlucose: 174, correctionUnits: 0 },
+        { minGlucose: 175, maxGlucose: 249, correctionUnits: 1 },
+        { minGlucose: 250, maxGlucose: 324, correctionUnits: 2 },
+      ],
+    },
+  });
+  const correction = runtime.LeeLeeTrackerDoseHelper.calculateMealInsulinDose({
+    bloodSugar: 198,
+    entryType: 'Correction',
+    recordTimestamp: Date.parse('2026-08-01T13:30:00.000Z'),
+    insulinPlan: {
+      id: 'plan',
+      supportedMealTypes: ['Breakfast', 'Lunch', 'Dinner'],
+      mealBaseUnits: 4,
+      correctionRanges: [{ minGlucose: 175, maxGlucose: 249, correctionUnits: 1 }],
+    },
+  });
+
+  assert.equal(result.status, 'calculated');
+  assert.equal(result.baseUnits, 4);
+  assert.equal(result.correctionUnits, 1);
+  assert.equal(result.suggestedTotalUnits, 5);
+  assert.equal(correction.status, 'unsupported-entry-type');
+  assert.equal(correction.suggestedTotalUnits, null);
+});
+
+test('today activity helper returns only current-day active records newest first', () => {
+  const reports = createTrackerReports();
+  const today = reports.getTodaysActivityRecords([
+    record({ id: 'yesterday', recordTimestamp: '2026-08-07T23:50:00.000Z' }),
+    record({ id: 'breakfast', type: 'Breakfast', recordTimestamp: '2026-08-08T07:42:00.000Z' }),
+    record({ id: 'lunch', type: 'Lunch', recordTimestamp: '2026-08-08T12:18:00.000Z' }),
+    record({ id: 'deleted', recordTimestamp: '2026-08-08T14:00:00.000Z', deletedAt: '2026-08-08T14:05:00.000Z' }),
+  ], '2026-08-08');
+
+  assert.deepEqual(today.map((item) => item.id), ['lunch', 'breakfast']);
+});
+
+test('today UI uses one log-entry CTA and responsive navigation contracts', () => {
+  assert.match(trackerSource, /Today’s Activity/);
+  assert.match(trackerSource, /data-action="log-entry"/);
+  assert.doesNotMatch(trackerSource, /PRIMARY_TYPES\.map\(renderPrimaryCard\)/);
+  assert.match(trackerSource, /data-action="toggle-tracker-nav"/);
+  assert.match(trackerSource, /aria-expanded/);
+  assert.match(cssSource, /\.lee_lee_diabetes_mobile_nav_button/);
+  assert.match(cssSource, /max-width: 520px[\s\S]*\.lee_lee_diabetes_nav_shell\.is-open \.lee_lee_diabetes_nav/);
+  assert.match(cssSource, /min-width: 680px[\s\S]*\.lee_lee_diabetes_cards/);
 });
 
 test('shared sync status copy explains healthy, syncing, and offline states', () => {

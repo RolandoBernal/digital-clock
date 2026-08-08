@@ -30,7 +30,7 @@ Never place these in frontend code, Git, logs, screenshots, or chat:
 For local testing, edit `js/lee-lees-tracker-config.js` on your machine:
 
 ```js
-window.LEE_LEES_TRACKER_SUPABASE_CONFIG = {
+window.LEE_LEE_TRACKER_SUPABASE_CONFIG = {
   url: 'https://YOUR-PROJECT.supabase.co',
   publishableKey: 'YOUR-PUBLISHABLE-KEY',
 };

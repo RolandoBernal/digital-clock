@@ -20,7 +20,7 @@ Do not put privileged Supabase credentials in frontend code. The browser may use
 Local runtime config lives in `js/lee-lees-tracker-config.js`:
 
 ```js
-window.LEE_LEES_TRACKER_SUPABASE_CONFIG = {
+window.LEE_LEE_TRACKER_SUPABASE_CONFIG = {
   url: 'https://YOUR-PROJECT.supabase.co',
   publishableKey: 'YOUR-PUBLISHABLE-KEY',
 };

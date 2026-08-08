@@ -49,7 +49,7 @@ function createSyncContext({ localStorage = createLocalStorage(), supabase = nul
   };
   context.window = context;
   context.globalThis = context;
-  if (config) context.LEE_LEES_TRACKER_SUPABASE_CONFIG = config;
+  if (config) context.LEE_LEE_TRACKER_SUPABASE_CONFIG = config;
   if (supabase) context.supabase = supabase;
   vm.runInNewContext(syncSource, context);
   return context;
@@ -232,13 +232,13 @@ function createMockSupabase(remoteRows = [], options = {}) {
 
 test('reports missing Supabase config without throwing', () => {
   const context = createSyncContext();
-  assert.equal(context.LeeLeesTrackerSync.getConfig().configured, false);
+  assert.equal(context.LeeLeeTrackerSync.getConfig().configured, false);
 });
 
 test('device identity is persisted locally', () => {
   const context = createSyncContext();
-  context.LeeLeesTrackerSync.setDeviceIdentity('Emily');
-  assert.equal(context.LeeLeesTrackerSync.getDeviceIdentity(), 'Emily');
+  context.LeeLeeTrackerSync.setDeviceIdentity('Emily');
+  assert.equal(context.LeeLeeTrackerSync.getDeviceIdentity(), 'Emily');
 });
 
 test('new record queues locally and uploads through Supabase once initialized', async () => {
@@ -249,7 +249,7 @@ test('new record queues locally and uploads through Supabase once initialized', 
   });
   context.navigator.onLine = false;
   const store = createDocumentStore({ records: [record()] });
-  const repository = context.LeeLeesTrackerSync.createRepository(store);
+  const repository = context.LeeLeeTrackerSync.createRepository(store);
 
   await repository.initialize();
   assert.equal(repository.getSyncStatus().signedIn, true);
@@ -285,7 +285,7 @@ test('same-record stale update creates a conflict instead of overwriting', async
   });
   context.navigator.onLine = false;
   const store = createDocumentStore({ records: [record({ version: 1 })] });
-  const repository = context.LeeLeesTrackerSync.createRepository(store);
+  const repository = context.LeeLeeTrackerSync.createRepository(store);
 
   await repository.initialize();
   repository.queueUpsert(record({ version: 1, bloodSugar: 198 }), record({ version: 1 }));
@@ -320,7 +320,7 @@ test('two clients updating the same base version produce one update and one conf
   });
   context.navigator.onLine = false;
   const store = createDocumentStore({ records: [record({ version: 1, bloodSugar: 180 })] });
-  const repository = context.LeeLeesTrackerSync.createRepository(store);
+  const repository = context.LeeLeeTrackerSync.createRepository(store);
 
   await repository.initialize();
   repository.queueUpsert(record({ version: 1, bloodSugar: 190 }), record({ version: 1, bloodSugar: 180 }));
@@ -358,7 +358,7 @@ test('soft delete and restore use version-matched RPC updates that increment onc
   });
   context.navigator.onLine = false;
   const store = createDocumentStore({ records: [record({ version: 1, bloodSugar: 180 })] });
-  const repository = context.LeeLeesTrackerSync.createRepository(store);
+  const repository = context.LeeLeeTrackerSync.createRepository(store);
 
   await repository.initialize();
   repository.setDeviceIdentity('Emily');
@@ -409,7 +409,7 @@ test('conflict resolution using local version applies against the latest shared 
   });
   context.navigator.onLine = false;
   const store = createDocumentStore({ records: [record({ version: 1 })] });
-  const repository = context.LeeLeesTrackerSync.createRepository(store);
+  const repository = context.LeeLeeTrackerSync.createRepository(store);
 
   await repository.initialize();
   repository.queueUpsert(record({ version: 1, bloodSugar: 198 }), record({ version: 1 }));
@@ -430,8 +430,8 @@ test('shared settings insert for authenticated user and sync to a second client'
   const config = { url: 'https://example.supabase.co', publishableKey: 'publishable-key-for-browser-tests-123' };
   const firstContext = createSyncContext({ supabase, config });
   const secondContext = createSyncContext({ supabase, config });
-  const first = firstContext.LeeLeesTrackerSync.createRepository(createDocumentStore());
-  const second = secondContext.LeeLeesTrackerSync.createRepository(createDocumentStore());
+  const first = firstContext.LeeLeeTrackerSync.createRepository(createDocumentStore());
+  const second = secondContext.LeeLeeTrackerSync.createRepository(createDocumentStore());
 
   await first.initialize();
   first.setDeviceIdentity('Rolando');
@@ -467,7 +467,7 @@ test('shared settings stale version creates a conflict and preserves local versi
     config: { url: 'https://example.supabase.co', publishableKey: 'publishable-key-for-browser-tests-123' },
   });
   context.navigator.onLine = false;
-  const repository = context.LeeLeesTrackerSync.createRepository(createDocumentStore());
+  const repository = context.LeeLeeTrackerSync.createRepository(createDocumentStore());
 
   await repository.initialize();
   repository.saveSharedSettings({
@@ -492,14 +492,14 @@ test('offline shared settings queue survives reload and syncs exactly once', asy
   const config = { url: 'https://example.supabase.co', publishableKey: 'publishable-key-for-browser-tests-123' };
   const firstContext = createSyncContext({ localStorage, supabase, config });
   firstContext.navigator.onLine = false;
-  const first = firstContext.LeeLeesTrackerSync.createRepository(createDocumentStore());
+  const first = firstContext.LeeLeeTrackerSync.createRepository(createDocumentStore());
 
   await first.initialize();
   first.saveSharedSettings({ patientName: 'Lee' });
   assert.equal(first.getSharedSettingsStatus().pendingCount, 1);
 
   const secondContext = createSyncContext({ localStorage, supabase, config });
-  const second = secondContext.LeeLeesTrackerSync.createRepository(createDocumentStore());
+  const second = secondContext.LeeLeeTrackerSync.createRepository(createDocumentStore());
   await second.initialize();
   await second.processSharedSettingsQueue();
 
@@ -509,7 +509,7 @@ test('offline shared settings queue survives reload and syncs exactly once', asy
 
 test('shared settings migration metadata is separate from medical-record migration metadata', () => {
   const context = createSyncContext();
-  const repository = context.LeeLeesTrackerSync.createRepository(createDocumentStore());
+  const repository = context.LeeLeeTrackerSync.createRepository(createDocumentStore());
 
   repository.setSharedSettingsMigration({ prompted: true, dismissedAt: '2026-08-04T12:00:00.000Z' });
 
@@ -562,7 +562,7 @@ test('identical conflicts are auto-resolved while meaningful differences remain'
     config: { url: 'https://example.supabase.co', publishableKey: 'publishable-key-for-browser-tests-123' },
   });
   context.navigator.onLine = false;
-  const repository = context.LeeLeesTrackerSync.createRepository(createDocumentStore());
+  const repository = context.LeeLeeTrackerSync.createRepository(createDocumentStore());
 
   await repository.initialize();
   repository.queueUpsert(record({ id: 'same-content', version: 1, bloodSugar: 180 }), record({ id: 'same-content', version: 1 }));
@@ -579,7 +579,7 @@ test('identical conflicts are auto-resolved while meaningful differences remain'
 test('JSON import preview flags same UUID with different content as a conflict', () => {
   const context = createSyncContext();
   const store = createDocumentStore();
-  const repository = context.LeeLeesTrackerSync.createRepository(store);
+  const repository = context.LeeLeeTrackerSync.createRepository(store);
   const preview = repository.previewJsonImport({
     appIdentifier: 'lee-lee-tracker-full-backup',
     records: [record({ id: 'same-id', bloodSugar: 220 })],
@@ -593,7 +593,7 @@ test('JSON import preview flags same UUID with different content as a conflict',
 test('CSV export escapes quotes, commas, and line breaks', () => {
   const context = createSyncContext();
   const store = createDocumentStore();
-  const repository = context.LeeLeesTrackerSync.createRepository(store);
+  const repository = context.LeeLeeTrackerSync.createRepository(store);
   const csv = repository.exportCsv([{ ...record(), notes: 'Line one,\nLine "two"' }]);
 
   assert.match(csv, /"Line one,\nLine ""two"""/);

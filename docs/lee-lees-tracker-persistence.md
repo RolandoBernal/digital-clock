@@ -26,7 +26,7 @@ Startup reads the stable document first, validates it, migrates older data, hydr
 
 ## Writes
 
-All durable changes go through the tracker repository functions in `js/levi-diabetes-tracker.js`:
+All durable changes go through the tracker repository functions in `js/lee-lee-diabetes-tracker.js`:
 
 - `loadTrackerData()`
 - `saveTrackerData(data)`
@@ -37,7 +37,7 @@ Each update starts from the latest stored document, applies the change, writes t
 
 ## Migrations
 
-Legacy record data is merged from known older keys, including `levi_diabetes_records_v1`. Legacy insulin plans are merged from `levi_diabetes_insulin_plans_v1`.
+Legacy record data and insulin plans are still merged from known pre-Lee-Lee keys so older browser data remains readable after the naming cleanup.
 
 Legacy keys are left intact during migration. Records are deduplicated by ID first, then by a conservative composite identity when no ID is available. Malformed records are preserved in `recovery.malformedRecords` instead of causing the whole database to be discarded.
 
