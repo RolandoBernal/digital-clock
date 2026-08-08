@@ -1729,14 +1729,17 @@
       ? `<div class="lee_lee_diabetes_timeline_notes">${escapeHtml(getMealDoseSummary(record))}</div>`
       : '';
     return `
-      <article class="lee_lee_diabetes_timeline_item">
+      <article class="lee_lee_diabetes_timeline_item lee_lee_diabetes_timeline_item--today">
         <div>
           <div class="lee_lee_diabetes_timeline_type">${escapeHtml(record.type)}</div>
           <div class="lee_lee_diabetes_timeline_values">${escapeHtml(formatBloodSugar(record.bloodSugar) || 'No blood sugar')} · ${escapeHtml(formatInsulin(record.insulinUnits) || 'No insulin')}</div>
           ${doseSummary}
           ${notes}
         </div>
-        <time class="lee_lee_diabetes_timeline_time" datetime="${escapeHtml(new Date(getRecordTimestamp(record)).toISOString())}">${escapeHtml(formatTime(getRecordTimestamp(record)))}</time>
+        <div class="lee_lee_diabetes_timeline_footer">
+          <time class="lee_lee_diabetes_timeline_time" datetime="${escapeHtml(new Date(getRecordTimestamp(record)).toISOString())}">${escapeHtml(formatTime(getRecordTimestamp(record)))}</time>
+          <button type="button" class="lee_lee_diabetes_timeline_edit" data-action="edit-today-record" data-id="${escapeHtml(record.id)}">Edit</button>
+        </div>
       </article>
     `;
   }
@@ -3479,15 +3482,16 @@
     renderHome();
   }
 
-  function openRecordEditor(recordId) {
+  function openRecordEditor(recordId, returnTo = 'history-day') {
     const record = records.find((item) => item.id === recordId);
     if (!record) return;
+    const returnDateKey = getRecordEventDateKey(record);
     renderEditor({
       mode: 'edit-entry',
       type: record.type,
       record,
-      returnTo: 'history-day',
-      returnDateKey: getRecordEventDateKey(record),
+      returnTo,
+      returnDateKey,
     });
   }
 
@@ -3847,6 +3851,9 @@
       }
       if (action === 'edit-record') {
         openRecordEditor(target.dataset.id);
+      }
+      if (action === 'edit-today-record') {
+        openRecordEditor(target.dataset.id, 'today');
       }
       if (action === 'delete-record') {
         deleteRecord(target.dataset.id);
